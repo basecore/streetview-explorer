@@ -1,2 +1,5 @@
 streetview-dl>=0.4.0
 requests>=2.31.0
+Pillow>=10.0.0
+# tkinterweb is optional – enables embedded map inside the GUI
+# pip install tkinterweb
