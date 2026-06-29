@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>StreetView Explorer v3.0</title>
+<title>StreetView Explorer v3.1</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
@@ -162,6 +162,17 @@ tr:hover td{background:var(--surface3)}
 .b-s{background:#1a3a25;color:var(--success)}
 .b-f{background:#3a1a1a;color:var(--error)}
 
+/* API TEST RESULT BOX */
+.api-result-box{
+  margin-top:10px;padding:10px 14px;border-radius:8px;font-size:.82rem;
+  font-family:'Cascadia Code','Fira Mono',monospace;line-height:1.6;
+  background:#0d0c0b;border:1px solid var(--border);display:none;
+  white-space:pre-wrap;max-height:160px;overflow-y:auto;
+}
+.api-result-box.ok{border-color:var(--success);color:var(--success)}
+.api-result-box.err{border-color:var(--error);color:var(--error)}
+.api-result-box.warn{border-color:var(--warn);color:var(--warn)}
+
 @keyframes spin{to{transform:rotate(360deg)}}
 .spin{display:inline-block;width:11px;height:11px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:4px}
 
@@ -177,7 +188,7 @@ tr:hover td{background:var(--surface3)}
     <div class="tagline">Panoramas entdecken &amp; herunterladen &mdash; lokal oder via GitHub Actions</div>
   </div>
   <div class="header-right">
-    <span class="version-badge">v3.0 &nbsp;&middot;&nbsp; 2026-06-29</span>
+    <span class="version-badge">v3.1 &nbsp;&middot;&nbsp; 2026-06-29</span>
     <a class="gh-link" href="https://github.com/basecore/streetview-explorer" target="_blank">
       <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
       basecore/streetview-explorer
@@ -216,7 +227,7 @@ tr:hover td{background:var(--surface3)}
   </div>
 
   <!-- STREET SEARCH -->
-  <div id="street-search-bar" style="display:none;margin-bottom:10px;display:none">
+  <div id="street-search-bar" style="display:none;margin-bottom:10px">
     <div style="display:flex;gap:8px">
       <input type="text" id="street-input" placeholder="z. B. Berger Strasse, Frankfurt am Main" style="flex:1"/>
       <button class="btn btn-primary" onclick="geocodeStreet()">Suchen</button>
@@ -326,8 +337,10 @@ tr:hover td{background:var(--surface3)}
       <span class="tok-detail" id="tok-google-detail"></span>
     </div>
     <div class="actions">
-      <button class="btn btn-primary" onclick="testGoogle()">&#9654; Key testen</button>
+      <button class="btn btn-primary" id="btn-test-google" onclick="testGoogle()">&#9654; Key testen</button>
     </div>
+    <!-- Result detail box -->
+    <div class="api-result-box" id="google-result-box"></div>
     <div class="sep"></div>
     <details>
       <summary style="cursor:pointer;font-size:.85rem;color:var(--muted);user-select:none">&#128214; Wie bekomme ich einen Google API-Key? (aufklappen)</summary>
@@ -335,12 +348,13 @@ tr:hover td{background:var(--surface3)}
         <ol style="margin-left:18px">
           <li>Oeffne <a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a></li>
           <li>Neues Projekt erstellen oder bestehendes auswaehlen</li>
-          <li><b style="color:var(--text)">APIs &amp; Dienste &rarr; Bibliothek &rarr; "Map Tiles API"</b> &rarr; Aktivieren</li>
+          <li><b style="color:var(--text)">APIs &amp; Dienste &rarr; Bibliothek &rarr; "Map Tiles API" + "Geocoding API"</b> &rarr; Aktivieren</li>
           <li><b style="color:var(--text)">APIs &amp; Dienste &rarr; Anmeldedaten &rarr; + API-Schluessel erstellen</b></li>
           <li>Abrechnung aktivieren (Pflicht auch fuer kostenlosen Tier)</li>
           <li>Key kopieren &rarr; oben einfuegen &rarr; testen</li>
         </ol>
         <p style="margin-top:8px"><b style="color:var(--text)">Kosten:</b> Kostenlos bis 100.000 Tiles/Monat. low=32 &middot; medium=128 &middot; high=512 Tiles/Panorama.</p>
+        <p style="margin-top:4px;color:var(--warn)">&#9888; Der Test benutzt die Geocoding API (CORS-kompatibel). Stelle sicher, dass <b style="color:var(--text)">Geocoding API</b> ebenfalls aktiviert ist.</p>
       </div>
     </details>
   </div>
@@ -469,17 +483,17 @@ tr:hover td{background:var(--surface3)}
 // ============================================================
 // CONFIG & STATE
 // ============================================================
-const APP_VERSION = 'v3.0';
+const APP_VERSION = 'v3.1';
 const APP_DATE    = '2026-06-29';
 const LOCAL_API   = 'http://localhost:5000';
 
 let mode        = 'local';
 let jobsMode    = 'local';
 let mapDrawMode = 'click';
-let drawnLine   = null;   // Leaflet polyline
-let linePoints  = [];     // [{lat,lng}]
+let drawnLine   = null;
+let linePoints  = [];
 let singleMarker = null;
-let foundPanos  = [];     // [{pano_id,lat,lng,date}]
+let foundPanos  = [];
 let currentJobId = null;
 let currentES    = null;
 let serverOnline = false;
@@ -564,7 +578,6 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
   maxZoom:19
 }).addTo(map);
 
-// Pano marker layer
 const panoLayer = L.layerGroup().addTo(map);
 
 map.on('click', e=>{
@@ -647,7 +660,7 @@ async function geocodeStreet(){
   setStatus(`Suche: ${q}...`,'running');
   try{
     const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&polygon_geojson=1&limit=1`,
-      {headers:{'User-Agent':'streetview-explorer/3.0'}});
+      {headers:{'User-Agent':'streetview-explorer/3.1'}});
     const data = await r.json();
     if(!data.length){ setStatus('Nicht gefunden.','warn'); dbg('Geocode: keine Ergebnisse','warn'); return; }
     const geo = data[0].geojson||{};
@@ -684,17 +697,16 @@ async function geocodeStreet(){
 }
 
 // ============================================================
-// PANORAMA DISCOVERY (via local server)
+// PANORAMA DISCOVERY
 // ============================================================
 async function discoverPanosAlongLine(){
-  if(!serverOnline){ setStatus('Lokaler Server nicht erreichbar fuer Panorama-Suche. Starte streetview_server.py','error'); return; }
+  if(!serverOnline){ setStatus('Lokaler Server nicht erreichbar. Starte streetview_server.py','error'); return; }
   const googleKey = v('tok-google');
   if(!googleKey){ setStatus('Google API-Key im Tokens-Tab eingeben.','error'); showTab('tab-tokens'); return; }
 
   const sampling = parseInt(v('cfg-sampling'))||10;
   const radius   = parseInt(v('cfg-radius'))||8;
 
-  // Interpolate linePoints
   const samples = interpolate(linePoints.map(p=>({lat:p.lat,lng:p.lng})), sampling);
   dbg(`Interpolation: ${linePoints.length} Linienpunkte -> ${samples.length} Samples (alle ${sampling}m)`,'info');
   setStatus(`Suche Panoramen: ${samples.length} Punkte...`,'running');
@@ -774,7 +786,6 @@ async function startDownload(m){
   const googleKey = v('tok-google');
   if(!googleKey){ setStatus('Google API-Key fehlt.','error'); showTab('tab-tokens'); return; }
 
-  // Quota check
   const qd=quotaData();
   const TILES={low:32,medium:128,high:512};
   const estTiles=foundPanos.length*(TILES[v('cfg-quality')]||128);
@@ -788,7 +799,6 @@ async function startDownload(m){
   if(m==='local') await startLocalDownload(googleKey);
   else await startCloudDownload(googleKey);
 
-  // Update quota estimate
   qd.used+=estTiles;
   saveQuotaData(qd);
   loadQuota();
@@ -807,7 +817,7 @@ async function startLocalDownload(googleKey){
     api_key:   googleKey,
     pano_ids:  foundPanos.map(p=>p.pano_id),
   };
-  dbg('Starte lokalen Download...',  'info');
+  dbg('Starte lokalen Download...','info');
   dbg(`CMD: python3 streetview_headless.py --quality ${params.quality} ...`,'cmd');
   try{
     const r=await fetch(`${LOCAL_API}/api/start`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(params)});
@@ -828,13 +838,12 @@ async function startCloudDownload(googleKey){
   const workflow=v('cfg-workflow')||'download.yml';
   const branch=v('cfg-branch')||'main';
   const street=v('street-input')||'Karte';
-  const city='';
   dbg(`Cloud-Dispatch: ${owner}/${repo} workflow=${workflow}`,'cmd');
   try{
     const res=await fetch(`https://api.github.com/repos/${owner}/${repo}/actions/workflows/${workflow}/dispatches`,{
       method:'POST',
       headers:{'Authorization':`Bearer ${pat}`,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','Content-Type':'application/json'},
-      body:JSON.stringify({ref:branch,inputs:{street,city,quality:v('cfg-quality'),sampling:v('cfg-sampling'),radius:v('cfg-radius'),historical:v('cfg-historical'),api_key:googleKey}})
+      body:JSON.stringify({ref:branch,inputs:{street,city:'',quality:v('cfg-quality'),sampling:v('cfg-sampling'),radius:v('cfg-radius'),historical:v('cfg-historical'),api_key:googleKey}})
     });
     dbg(`HTTP ${res.status}`,'info');
     if(res.status===204){setStatus('GitHub Actions Job gestartet.','success');dbg('HTTP 204 - Workflow dispatched','ok');showTab('tab-jobs');setTimeout(loadCloudJobs,3000);}
@@ -843,7 +852,7 @@ async function startCloudDownload(googleKey){
 }
 
 // ============================================================
-// SSE (Lokal Live-Log)
+// SSE
 // ============================================================
 function listenSSE(jobId){
   if(currentES) currentES.close();
@@ -867,40 +876,84 @@ function listenSSE(jobId){
 // TOKEN TESTS
 // ============================================================
 function tokenChanged(t){
-  if(t==='google'){document.getElementById('tok-google-dot').className='tok-dot';document.getElementById('tok-google-label').textContent='Nicht getestet';}
-  if(t==='pat'){document.getElementById('tok-pat-dot').className='tok-dot';document.getElementById('tok-pat-label').textContent='Nicht getestet';}
+  if(t==='google'){
+    document.getElementById('tok-google-dot').className='tok-dot';
+    document.getElementById('tok-google-label').textContent='Nicht getestet';
+    const rb=document.getElementById('google-result-box');
+    rb.style.display='none'; rb.className='api-result-box';
+  }
+  if(t==='pat'){
+    document.getElementById('tok-pat-dot').className='tok-dot';
+    document.getElementById('tok-pat-label').textContent='Nicht getestet';
+  }
 }
 
+// ---------------------------------------------------------------
+// Google API Key Test
+// Verwendet Geocoding API (maps.googleapis.com) — hat CORS-Header,
+// tile.googleapis.com hat KEINEN CORS-Support im Browser.
+// ---------------------------------------------------------------
 async function testGoogle(){
   const key=v('tok-google');
   if(!key){setStatus('Bitte Google API-Key eingeben.','error');return;}
   const dot=document.getElementById('tok-google-dot');
   const lbl=document.getElementById('tok-google-label');
   const det=document.getElementById('tok-google-detail');
-  dot.className='tok-dot checking'; lbl.textContent='Teste...';
+  const rb =document.getElementById('google-result-box');
+  dot.className='tok-dot checking'; lbl.textContent='Teste...'; rb.style.display='none';
+  dbg(`Google API-Key Test gestartet (Geocoding API, CORS-kompatibel)`,'info');
   dbg(`Google API-Key Test: len=${key.length}`,'info');
+
+  // Geocoding API: gibt JSON mit CORS-Headern zurueck
+  const url=`https://maps.googleapis.com/maps/api/geocode/json?address=Berlin&key=${key}`;
+  dbg(`GET ${url.replace(key,'[KEY]')}`,'cmd');
+
   try{
-    // Test: minimal tile request (1x1 px)
-    const url=`https://tile.googleapis.com/v1/streetview/tiles/0/0/0?session=test&key=${key}`;
-    const r=await fetch(url,{method:'HEAD'});
-    dbg(`Google API HTTP ${r.status}`,'info');
-    if(r.status===200||r.status===400){
-      // 400 = key ok but bad params, that's fine
-      dot.className='tok-dot ok'; lbl.textContent='Key gueltig ✓';
-      det.textContent=`HTTP ${r.status}`;
+    const r = await fetch(url);
+    const data = await r.json();
+    dbg(`HTTP ${r.status} | status="${data.status}"`,'info');
+
+    rb.style.display='block';
+    rb.textContent=`HTTP ${r.status}\nstatus: ${data.status}\nerror_message: ${data.error_message||'(keiner)'}`;
+
+    if(data.status==='OK'||data.status==='ZERO_RESULTS'){
+      // Key gueltig - Geocoding API antwortet korrekt
+      dot.className='tok-dot ok';
+      lbl.textContent='Key gueltig \u2713';
+      det.textContent=`Geocoding API: ${data.status}`;
+      rb.className='api-result-box ok';
       setStatus('Google API-Key gueltig.','success');
-      dbg('Google API-Key: OK','ok');
-    } else if(r.status===403){
-      const body=await r.text().catch(()=>'');
-      const reason=body.includes('keyInvalid')?'Key ungueltig':body.includes('accessNotConfigured')?'Map Tiles API nicht aktiviert':'403 Forbidden - Billing pruefen';
-      dot.className='tok-dot err'; lbl.textContent=`Fehler: ${reason}`;
-      setStatus(reason,'error'); dbg(`Google API Fehler: ${reason}`,'err');
+      dbg('Google API-Key: OK (Geocoding API bestaetigt)','ok');
+    } else if(data.status==='REQUEST_DENIED'){
+      const msg=data.error_message||'REQUEST_DENIED';
+      let reason='Key ungueltig oder API nicht aktiviert';
+      if(msg.includes('not activated')) reason='Geocoding API nicht aktiviert \u2192 console.cloud.google.com aktivieren';
+      else if(msg.includes('keyInvalid')||msg.includes('API key')) reason='Key ungueltig oder falsch eingegeben';
+      else if(msg.includes('billing')) reason='Billing nicht aktiviert';
+      dot.className='tok-dot err';
+      lbl.textContent=`Fehler: ${reason}`;
+      rb.className='api-result-box err';
+      rb.textContent+=`\n\nHinweis: ${reason}`;
+      setStatus(reason,'error');
+      dbg(`Google API Fehler: ${reason} | ${msg}`,'err');
+    } else if(data.status==='OVER_QUERY_LIMIT'){
+      dot.className='tok-dot err';
+      lbl.textContent='Quota ueberschritten (OVER_QUERY_LIMIT)';
+      rb.className='api-result-box warn';
+      setStatus('Google API Quota ueberschritten.','warn');
+      dbg('Google API: OVER_QUERY_LIMIT','warn');
     } else {
-      dot.className='tok-dot err'; lbl.textContent=`HTTP ${r.status}`;
-      dbg(`Google API: HTTP ${r.status}`,'warn');
+      dot.className='tok-dot err';
+      lbl.textContent=`Unbekannter Status: ${data.status}`;
+      rb.className='api-result-box warn';
+      dbg(`Google API: unbekannter Status ${data.status}`,'warn');
     }
-  }catch(e){
-    dot.className='tok-dot err'; lbl.textContent=`Netzwerkfehler: ${e}`;
+  } catch(e){
+    dot.className='tok-dot err';
+    lbl.textContent=`Netzwerkfehler: ${e}`;
+    rb.style.display='block'; rb.className='api-result-box err';
+    rb.textContent=`Netzwerkfehler: ${e}\n\nMoegliche Ursachen:\n- Kein Internet\n- Browser blockiert Request (CORS)\n- Firewall/Proxy`;
+    setStatus(`Netzwerkfehler: ${e}`,'error');
     dbg(`Google API Netzwerkfehler: ${e}`,'err');
   }
 }
@@ -924,7 +977,7 @@ async function testPAT(){
       const d=await r.json();
       const wf=d.workflows||[];
       dot.className='tok-dot ok';
-      lbl.textContent=`Token gueltig ✓ (${wf.length} Workflows gefunden)`;
+      lbl.textContent=`Token gueltig \u2713 (${wf.length} Workflows gefunden)`;
       det.textContent=wf.map(w=>w.name).join(', ');
       setStatus('PAT-Token gueltig.','success');
       dbg(`PAT OK: ${wf.length} Workflows: ${wf.map(w=>w.name).join(', ')}`,'ok');
@@ -954,7 +1007,6 @@ function loadQuota(){
   const qd=quotaData();
   const now=new Date();
   const curMonth=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-  // Reset if new month
   if(qd.month!==curMonth){qd.month=curMonth;qd.used=0;saveQuotaData(qd);}
   const limit=parseInt(v('quota-limit'))||qd.limit||100000;
   const pct=Math.min(100,Math.round(qd.used/limit*100));
@@ -997,7 +1049,7 @@ async function checkServer(){
     serverOnline=r.ok;
   } catch{ serverOnline=false; }
   dots.forEach(d=>{d.className='srv-dot'+(serverOnline?' online':' offline');});
-  labels.forEach(l=>{l.textContent=serverOnline?'Lokaler Server online':'Lokaler Server offline — starte streetview_server.py';});
+  labels.forEach(l=>{l.textContent=serverOnline?'Lokaler Server online':'Lokaler Server offline \u2014 starte streetview_server.py';});
 }
 setInterval(checkServer,5000);
 
@@ -1067,7 +1119,6 @@ async function dlArtifact(runId){
   }
 }
 
-// Auto-refresh
 setInterval(()=>{ if(jobsMode==='cloud'&&document.getElementById('tab-jobs').classList.contains('active')) loadCloudJobs(); },15000);
 setInterval(()=>{ if(jobsMode==='local'&&document.getElementById('tab-jobs').classList.contains('active')) loadLocalJobs(); },5000);
 
@@ -1077,6 +1128,7 @@ setInterval(()=>{ if(jobsMode==='local'&&document.getElementById('tab-jobs').cla
 dbg(`StreetView Explorer ${APP_VERSION} gestartet (${APP_DATE})`,'ok');
 dbg('GitHub: https://github.com/basecore/streetview-explorer','info');
 dbg('Modus: Lokal (localhost:5000) | Cloud (GitHub Actions)','info');
+dbg('HINWEIS: Google API-Key Test nutzt Geocoding API (maps.googleapis.com) - CORS-kompatibel','info');
 loadQuota();
 checkServer();
 setMode('local');
