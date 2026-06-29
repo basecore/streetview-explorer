@@ -169,7 +169,24 @@ def main():
     parser.add_argument("--pause",          type=float, default=0.3)
     parser.add_argument("--historical",     default="false")
     parser.add_argument("--output",         default="./panoramas")
-    parser.add_argument("--pano-ids-file",  default=None, help="JSON-Datei mit vorher gefundenen pano_ids (ueberspringt Geocoding)")
+    parser.add_argument("--pano-ids-file",    default=None,  help="JSON-Datei mit pano_ids (ueberspringt Geocoding)")
+    # FOV & Framing
+    parser.add_argument("--heading",          type=float, default=0,    help="Blickrichtung 0-360 Grad")
+    parser.add_argument("--pitch",            type=float, default=0,    help="Neigung -90 bis 90 Grad")
+    parser.add_argument("--fov",              type=float, default=90,   help="Field of View 10-120 Grad")
+    parser.add_argument("--zoom",             type=int,   default=2,    help="Zoom-Level 0-5")
+    # Output
+    parser.add_argument("--output-format",    default="jpg", choices=["jpg","png","webp"], help="Ausgabeformat")
+    parser.add_argument("--jpg-quality",      type=int,   default=85,   help="JPEG-Qualitaet 10-100")
+    # Historisch / Datum
+    parser.add_argument("--date-from",        default="",   help="Datum von YYYY-MM")
+    parser.add_argument("--date-to",          default="",   help="Datum bis YYYY-MM")
+    parser.add_argument("--max-age-months",   type=int,   default=0,    help="Max. Alter in Monaten (0=kein Filter)")
+    # Filter
+    parser.add_argument("--source",           default="",   help="Quelle: google, user oder leer=alle")
+    parser.add_argument("--outdoor",          default="",   help="Nur Outdoor: true, false oder leer=alle")
+    parser.add_argument("--min-quality-score",type=float, default=0.0,  help="Min. Qualitaetswert 0.0-1.0")
+    parser.add_argument("--max-dist",         type=int,   default=0,    help="Max. Distanz vom Punkt in Metern (0=kein Filter)")
     args = parser.parse_args()
 
     historical = args.historical.lower() == "true"
