@@ -753,7 +753,10 @@ function setMode(m){
   document.getElementById('msw-cloud').className='msw-btn'+(m==='cloud'?' act-cloud':'');
   document.getElementById('btn-dl-local').style.display=m==='local'?'inline-flex':'none';
   document.getElementById('btn-dl-cloud').style.display=m==='cloud'?'inline-flex':'none';
-  dbg(`Modus: ${m}`,'info');checkServer();
+  dbg(`Modus: ${m}`,'info');
+  // Jobs-Tab immer synchron halten
+  setJobsMode(m==='cloud'?'cloud':'local');
+  checkServer();
 }
 function setJobsMode(m){
   jobsMode=m;
