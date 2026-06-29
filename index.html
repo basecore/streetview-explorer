@@ -829,30 +829,55 @@ async function startDownload(m){
   qd.used+=est;saveQuotaData(qd);loadQuota();
 }
 
-async function dlLocal(key,sel){
-  const streetRaw=v('street-input')||'';
-  const parts=streetRaw.split(',').map(s=>s.trim());
-  const street=parts[0]||'unbekannt';
-  const city=parts.slice(1).join(', ')||'';
-  const p={
-    street,city,
-    quality:v('cfg-quality'),
-    sampling:v('cfg-sampling'),
-    radius:v('cfg-radius'),
-    historical:v('cfg-historical'),
-    output:v('cfg-output'),
-    api_key:key,
-    pano_ids:sel.map(p=>p.pano_id)
+async function dlLocal(key, sel) {
+  // Street + City aus Suchfeld lesen
+  const streetRaw = v('street-input') || '';
+  const parts = streetRaw.split(',').map(s => s.trim()).filter(Boolean);
+  const street = parts[0] || '';
+  const city   = parts.slice(1).join(', ') || '';
+
+  // Validierung VOR dem Senden
+  const INVALID = ['', 'unbekannt', 'karte', 'map', 'unknown'];
+  if (INVALID.includes(street.toLowerCase())) {
+    setStatus(
+      'Kein Strassenname erkannt. Bitte im Karte-Tab "Suche" nutzen und eine Strasse eingeben (z.B. Berger Strasse, Frankfurt am Main)',
+      'error'
+    );
+    dbg('Download abgebrochen: kein gueltiger Strassenname im Suchfeld.', 'err');
+    dbg('Workflow: Karte-Tab → Strasse suchen → Panoramen suchen → Lokal laden', 'warn');
+    return;
+  }
+
+  const p = {
+    street,
+    city,
+    quality:    v('cfg-quality'),
+    sampling:   v('cfg-sampling'),
+    radius:     v('cfg-radius'),
+    historical: v('cfg-historical'),
+    output:     v('cfg-output'),
+    api_key:    key,
+    pano_ids:   sel.map(p => p.pano_id),
   };
-  dbg(`CMD: streetview-dl --quality ${p.quality} [${p.pano_ids.length} pano_ids]`,'cmd');
-  try{
-    const r=await fetch(`${LOCAL_API}/api/start`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});
-    const d=await r.json();if(!r.ok){setStatus(`Fehler: ${d.error}`,'error');return;}
-    currentJobId=d.job_id;
-    setStatus(`Job gestartet: ${d.job_id}`,'running');
+
+  dbg(`Download: street="${street}" city="${city}" quality=${p.quality} pano_ids=[${p.pano_ids.length}]`, 'cmd');
+
+  try {
+    const r = await fetch(`${LOCAL_API}/api/start`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(p),
+    });
+    const d = await r.json();
+    if (!r.ok) { setStatus(`Fehler: ${d.error}`, 'error'); return; }
+    currentJobId = d.job_id;
+    setStatus(`Job gestartet: ${d.job_id}`, 'running');
     showTab('tab-debug');
     listenSSE(d.job_id);
-  }catch(e){setStatus(`Fehler: ${e}`,'error');dbg(`${e}`,'err');}
+  } catch (e) {
+    setStatus(`Fehler: ${e}`, 'error');
+    dbg(`${e}`, 'err');
+  }
 }
 
 async function dlCloud(key,sel){
