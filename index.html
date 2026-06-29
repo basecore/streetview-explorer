@@ -729,7 +729,13 @@ function showTab(id){
   TAB_IDS.forEach(t=>document.getElementById(t).classList.toggle('active',t===id));
   document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',TAB_IDS[i]===id));
   TAB_IDS.forEach(t=>{const m=document.getElementById('mobt-'+t);if(m)m.classList.toggle('active',t===id);});
-  if(id==='tab-jobs')loadLocalJobs();
+  if(id==='tab-jobs'){
+    loadLocalJobs();
+    if(jobsMode==='cloud'){
+      if(_cloudJobsRefreshTimer)clearTimeout(_cloudJobsRefreshTimer);
+      loadCloudJobs();
+    }
+  }
 }
 function setStatus(msg,type='running'){
   const b=document.getElementById('status-bar');
@@ -1220,49 +1226,26 @@ async function dlCloud(key, sel) {
   const wf    = v('cfg-workflow') || 'download.yml';
   const br    = v('cfg-branch')   || 'main';
 
-  // Street/City korrekt aus Suchfeld lesen
-  const streetRaw = v('street-input') || '';
-  const parts     = streetRaw.split(',').map(s => s.trim()).filter(Boolean);
+  const streetRaw     = v('street-input') || '';
+  const parts         = streetRaw.split(',').map(s => s.trim()).filter(Boolean);
   const firstIsNumber = parts.length > 0 && /^\d+$/.test(parts[0]);
   const street = firstIsNumber ? (parts[1] || parts[0]) : (parts[0] || '');
   const city   = firstIsNumber
     ? parts.slice(2).filter(p => !/^\d{5}$/.test(p) && p.length > 3).slice(0, 2).join(', ')
     : parts.slice(1).filter(p => !/^\d{5}$/.test(p) && p.length > 3).slice(0, 2).join(', ');
 
-  // Echte pano_ids trennen von Fallbacks
-  const realPanos = sel.filter(p => !p.pano_id.startsWith('pos_'));
-  const fakePanos = sel.filter(p =>  p.pano_id.startsWith('pos_'));
-
-  // Duplikat-Check nur für echte pano_ids
+  const realPanos  = sel.filter(p => !p.pano_id.startsWith('pos_'));
+  const fakePanos  = sel.filter(p =>  p.pano_id.startsWith('pos_'));
   const alreadyDone = JSON.parse(localStorage.getItem('svex_dispatched_panos') || '[]');
   let toDispatch    = realPanos.filter(p => !alreadyDone.includes(p.pano_id));
   const dupCount    = realPanos.length - toDispatch.length;
-
   if (dupCount > 0) {
-    const skip = confirm(
-      `${dupCount} Panoramen wurden bereits angefragt.\nTrotzdem erneut downloaden?`
-    );
+    const skip = confirm(`${dupCount} Panoramen wurden bereits angefragt.\nTrotzdem erneut downloaden?`);
     if (skip) toDispatch = realPanos;
   }
 
-  // Koordinaten aus Fallback-Positionen extrahieren (für reinen Koordinaten-Modus)
-  const coordsFromFallback = fakePanos.map(p => ({
-    lat: p.lat || 0,
-    lng: p.lng || 0,
-  }));
-
-  // Entscheide Dispatch-Modus
-  const hasPanoIds = toDispatch.length > 0;
-  const hasCoords  = coordsFromFallback.length > 0 || (hasPoint && singleMarker);
-  const hasStreet  = street.length > 2;
-
-  if (!hasPanoIds && !hasCoords && !hasStreet) {
-    setStatus('Nichts zum Dispatchen: kein Strassenname, keine Koordinaten, keine pano_ids.', 'error');
-    return;
-  }
-
-  // Koordinaten für Dispatch bestimmen
   let dispatchLat = '', dispatchLng = '';
+  const hasPanoIds = toDispatch.length > 0;
   if (!hasPanoIds) {
     if (fakePanos.length > 0) {
       dispatchLat = fakePanos[0].lat?.toFixed(6) || '';
@@ -1273,6 +1256,13 @@ async function dlCloud(key, sel) {
     }
   }
 
+  const hasCoords = !!dispatchLat;
+  const hasStreet = street.length > 2;
+  if (!hasPanoIds && !hasCoords && !hasStreet) {
+    setStatus('Nichts zum Dispatchen: kein Strassenname, keine Koordinaten, keine pano_ids.', 'error');
+    return;
+  }
+
   const modeLabel = hasPanoIds
     ? `${toDispatch.length} pano_ids`
     : (dispatchLat ? `Koordinaten ${dispatchLat},${dispatchLng}` : `Strasse: ${street}`);
@@ -1280,28 +1270,61 @@ async function dlCloud(key, sel) {
   dbg(`Cloud Dispatch: ${owner}/${repo} wf=${wf} Modus=${modeLabel}`, 'cmd');
   dbg(`street="${street}" city="${city}" lat=${dispatchLat} lng=${dispatchLng}`, 'info');
 
+  // ── NEU: TILE-SCHÄTZUNG UND WARNUNG ──────────────────────────────
+  const TILES_EST    = { low: 32, medium: 128, high: 512 };
+  const qual         = v('cfg-quality') || 'medium';
+  const hist         = v('cfg-historical') === 'true';
+  const dispatchCount = hasPanoIds ? toDispatch.length : 1;
+  const estTiles     = Math.round(dispatchCount * (TILES_EST[qual] || 128) * (hist ? 2.5 : 1));
+  const estCost      = (estTiles / 1000 * 0.007).toFixed(3);
+
+  dbg(`Tile-Schätzung: ${dispatchCount} Pano(s) × ${TILES_EST[qual]} Tiles${hist ? ' × 2.5 (historisch)' : ''} = ~${estTiles.toLocaleString()} Tiles (~$${estCost})`, 'info');
+
+  if (estTiles > 10000) {
+    const ok = confirm(
+      `⚠ Hoher Tile-Verbrauch!\n\n` +
+      `~${estTiles.toLocaleString()} Tiles (~$${estCost})\n` +
+      `Qualität: ${qual}${hist ? ' + historisch' : ''}\n` +
+      `Panoramen: ${dispatchCount}\n\n` +
+      `Trotzdem fortfahren?`
+    );
+    if (!ok) {
+      dbg('Dispatch abgebrochen wegen hohem Tile-Verbrauch.', 'warn');
+      return;
+    }
+  }
+  // ── ENDE TILE-SCHÄTZUNG ──────────────────────────────────────────
+
   _cloudDispatching = true;
   const btn = document.getElementById('btn-dl-cloud');
   if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Sendet...'; }
 
   try {
     const inputs = {
-      street:     street  || 'unbekannt',
-      city:       city    || '',
-      quality:    v('cfg-quality')    || 'medium',
-      sampling:   v('cfg-sampling')   || '10',
-      radius:     v('cfg-radius')     || '8',
-      historical: v('cfg-historical') || 'false',
-      api_key:    key,
+      street:      street || 'unbekannt',
+      city:        city   || '',
+      quality:     qual,
+      sampling:    v('cfg-sampling')    || '10',
+      radius:      v('cfg-radius')      || '8',
+      historical:  v('cfg-historical')  || 'false',
+      heading:     v('cfg-heading')     || '0',
+      pitch:       v('cfg-pitch')       || '0',
+      fov:         v('cfg-fov')         || '90',
+      zoom:        v('cfg-zoom')        || '2',
+      output_format: v('cfg-format')    || 'jpg',
+      jpg_quality: v('cfg-jpg-quality') || '85',
+      date_from:   v('cfg-date-from')   || '',
+      date_to:     v('cfg-date-to')     || '',
+      max_age_months: v('cfg-max-age')  || '',
+      source:      v('cfg-source')      || '',
+      outdoor:     v('cfg-outdoor')     || '',
+      api_key:     key,
     };
 
-    // Koordinaten mitsenden wenn keine echten pano_ids
     if (!hasPanoIds && dispatchLat) {
       inputs.lat = dispatchLat;
       inputs.lng = dispatchLng;
     }
-
-    // Echte pano_ids als kommagetrennte Liste mitsenden
     if (hasPanoIds) {
       inputs.pano_ids = toDispatch.map(p => p.pano_id).join(',');
     }
@@ -1323,7 +1346,6 @@ async function dlCloud(key, sel) {
     dbg(`HTTP ${res.status}`, 'info');
 
     if (res.status === 204) {
-      // Dispatched pano_ids merken
       if (hasPanoIds) {
         const updated = [...new Set([...alreadyDone, ...toDispatch.map(p => p.pano_id)])];
         localStorage.setItem('svex_dispatched_panos', JSON.stringify(updated));
@@ -1335,19 +1357,43 @@ async function dlCloud(key, sel) {
         lat:       dispatchLat,
         lng:       dispatchLng,
         timestamp: new Date().toISOString(),
-        quality:   v('cfg-quality'),
+        quality:   qual,
+        est_tiles: estTiles,
       }));
 
       const msg = hasPanoIds
-        ? `✓ ${toDispatch.length} Panoramen angefragt`
+        ? `✓ ${toDispatch.length} Panoramen angefragt (~${estTiles.toLocaleString()} Tiles)`
         : dispatchLat
-          ? `✓ Koordinaten (${dispatchLat}, ${dispatchLng}) an GitHub geschickt`
-          : `✓ Strasse "${street}, ${city}" an GitHub geschickt`;
+          ? `✓ Koordinaten (${dispatchLat}, ${dispatchLng}) angefragt`
+          : `✓ Strasse "${street}, ${city}" angefragt`;
 
       setStatus(msg + ' — GitHub Actions startet.', 'success');
       dbg(msg, 'ok');
+
+      // ── NEU: SOFORTIGER PLATZHALTER IM JOBS-TAB ──────────────────
       showTab('tab-jobs');
-      setTimeout(loadCloudJobs, 4000);
+      setJobsMode('cloud');
+      const list = document.getElementById('cloud-jobs-list');
+      if (list) {
+        const placeholder = document.createElement('div');
+        placeholder.className = 'run-entry';
+        placeholder.id = 'run-pending';
+        placeholder.innerHTML = `
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span class="badge b-r"><span class="spin"></span> Startet...</span>
+            <b style="font-size:.85rem">neu</b>
+            <span style="font-size:.75rem;color:var(--muted)">${new Date().toLocaleString('de-DE')}</span>
+          </div>
+          <div style="margin-top:4px;font-size:.73rem;color:var(--muted)">
+            ~${estTiles.toLocaleString()} Tiles · ${qual}${hist ? ' · historisch' : ''}
+            ${estTiles > 10000 ? ' · <span style="color:var(--warn)">⚠ hoher Verbrauch</span>' : ''}
+          </div>`;
+        list.prepend(placeholder);
+      }
+      // ── ENDE PLATZHALTER ─────────────────────────────────────────
+
+      setTimeout(loadCloudJobs, 5000);
+
     } else {
       const t = await res.text();
       setStatus(`HTTP ${res.status}: ${t.slice(0, 120)}`, 'error');
@@ -1361,7 +1407,6 @@ async function dlCloud(key, sel) {
     if (btn) { btn.disabled = false; btn.innerHTML = '&#9654; Request'; }
   }
 }
-
 function listenSSE(jobId){
   if(currentES)currentES.close();
   currentES=new EventSource(`${LOCAL_API}/api/log/${jobId}`);
@@ -1458,6 +1503,8 @@ async function loadLocalJobs(){
     }).join('');
   }catch(e){list.innerHTML=`<p style="color:var(--error)">${e}</p>`;}
 }
+let _cloudJobsRefreshTimer = null;
+
 async function loadCloudJobs() {
   const pat   = v('tok-pat');
   const owner = v('cfg-owner') || 'basecore';
@@ -1465,18 +1512,25 @@ async function loadCloudJobs() {
   const wf    = v('cfg-workflow') || 'download.yml';
   const list  = document.getElementById('cloud-jobs-list');
   if (!pat) { list.innerHTML = '<p style="color:var(--muted)">PAT eingeben.</p>'; return; }
-  list.innerHTML = '<p style="color:var(--muted)"><span class="spin"></span>Lädt...</p>';
+
+  // Spinner nur beim ersten Laden zeigen
+  if (!list.dataset.loaded) {
+    list.innerHTML = '<p style="color:var(--muted)"><span class="spin"></span> Lädt...</p>';
+  }
+
   try {
     const r = await fetch(
-      `https://api.github.com/repos/${owner}/${repo}/actions/workflows/${wf}/runs?per_page=10`,
+      `https://api.github.com/repos/${owner}/${repo}/actions/workflows/${wf}/runs?per_page=15`,
       { headers: { 'Authorization': `Bearer ${pat}`, 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' } }
     );
     if (!r.ok) { list.innerHTML = `<p style="color:var(--error)">Fehler ${r.status}</p>`; return; }
-    const data  = await r.json();
-    const runs  = data.workflow_runs || [];
+    const data = await r.json();
+    const runs = data.workflow_runs || [];
+    list.dataset.loaded = '1';
+
     if (!runs.length) { list.innerHTML = '<p style="color:var(--muted)">Keine Jobs.</p>'; return; }
 
-    // Für jeden Run Artifacts laden
+    // Artifacts parallel laden
     const artifactsByRun = {};
     await Promise.all(runs.map(async run => {
       try {
@@ -1484,34 +1538,72 @@ async function loadCloudJobs() {
           `https://api.github.com/repos/${owner}/${repo}/actions/runs/${run.id}/artifacts`,
           { headers: { 'Authorization': `Bearer ${pat}`, 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' } }
         );
-        if (ar.ok) {
-          const ad = await ar.json();
-          artifactsByRun[run.id] = ad.artifacts || [];
-        }
+        if (ar.ok) { const ad = await ar.json(); artifactsByRun[run.id] = ad.artifacts || []; }
       } catch {}
     }));
 
-    list.innerHTML = runs.map(run => {
-      const badge =
-        run.status === 'completed'
-          ? (run.conclusion === 'success'
-              ? '<span class="badge b-s">✓ Fertig</span>'
-              : '<span class="badge b-f">✗ Fehler</span>')
-          : '<span class="badge b-r"><span class="spin"></span>Läuft</span>';
-      const dt = new Date(run.created_at).toLocaleString('de-DE');
-      const artifacts = artifactsByRun[run.id] || [];
+    const TILES = { low: 32, medium: 128, high: 512 };
+    const alreadyDone = JSON.parse(localStorage.getItem('svex_dispatched_panos') || '[]');
+    const hasRunning  = runs.some(r => r.status !== 'completed');
 
+    // Auto-Refresh wenn laufende Jobs vorhanden
+    if (_cloudJobsRefreshTimer) clearTimeout(_cloudJobsRefreshTimer);
+    if (hasRunning) {
+      _cloudJobsRefreshTimer = setTimeout(loadCloudJobs, 8000);
+    }
+
+    list.innerHTML = runs.map(run => {
+      const isRunning   = run.status !== 'completed';
+      const isSuccess   = run.status === 'completed' && run.conclusion === 'success';
+      const isFailed    = run.status === 'completed' && run.conclusion !== 'success';
+      const badge = isRunning
+        ? '<span class="badge b-r"><span class="spin"></span> Läuft</span>'
+        : isSuccess
+          ? '<span class="badge b-s">✓ Fertig</span>'
+          : '<span class="badge b-f">✗ Fehler</span>';
+
+      const dt = new Date(run.created_at).toLocaleString('de-DE');
+
+      // Tile-Schätzung aus Run-Inputs (falls verfügbar)
+      const inputs   = run.inputs || {};
+      const quality  = inputs.quality  || 'medium';
+      const tilesPerPano = TILES[quality] || 128;
+      const historical   = inputs.historical === 'true';
+      // Pano-Anzahl aus letztem Dispatch schätzen
+      const lastDispatch = JSON.parse(localStorage.getItem('svex_last_dispatch') || '{}');
+      const panoCount    = (lastDispatch.pano_ids || []).length || 1;
+      const estTiles     = Math.round(panoCount * tilesPerPano * (historical ? 2.5 : 1));
+      const estCost      = (estTiles / 1000 * 0.007).toFixed(3); // ~$7/1000 Tiles
+
+      const tileWarn = estTiles > 10000
+        ? `<div style="margin-top:6px;padding:6px 10px;background:#2a1a10;border:1px solid var(--warn);border-radius:6px;font-size:.75rem;color:var(--warn)">
+            ⚠ Hoher Verbrauch: ~${estTiles.toLocaleString()} Tiles (~$${estCost})
+           </div>`
+        : `<div style="margin-top:4px;font-size:.73rem;color:var(--muted)">
+            ~${estTiles.toLocaleString()} Tiles · ${quality} · ${historical ? 'historisch' : 'aktuell'}
+           </div>`;
+
+      // Abbruch-Button für laufende Jobs
+      const cancelBtn = isRunning
+        ? `<button onclick="cancelCloudJob(${run.id},'${run.node_id}')" 
+             class="btn btn-danger" style="padding:5px 10px;font-size:.75rem">
+             ✕ Abbrechen
+           </button>`
+        : '';
+
+      // Artifacts
+      const artifacts = artifactsByRun[run.id] || [];
       const artifactHtml = artifacts.length
         ? `<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
             <div style="font-size:.73rem;color:var(--muted);margin-bottom:4px">📦 Artifacts (${artifacts.length})</div>
             ${artifacts.map(a => {
-              const sizeMb = (a.size_in_bytes / 1024 / 1024).toFixed(1);
+              const sizeMb  = (a.size_in_bytes / 1024 / 1024).toFixed(1);
               const expires = new Date(a.expires_at).toLocaleDateString('de-DE');
               return `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--border);flex-wrap:wrap">
-                <span style="font-size:.78rem;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escH(a.name)}">${escH(a.name)}</span>
+                <span style="font-size:.78rem;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escH(a.name)}</span>
                 <span style="font-size:.72rem;color:var(--muted);white-space:nowrap">${sizeMb} MB</span>
                 <span style="font-size:.72rem;color:var(--muted);white-space:nowrap">bis ${expires}</span>
-                <a href="${escH(a.archive_download_url)}" 
+                <a href="${escH(a.archive_download_url)}"
                    onclick="downloadArtifact(event,'${a.archive_download_url}','${escH(a.name)}.zip')"
                    style="font-size:.75rem;color:var(--primary);text-decoration:none;white-space:nowrap;background:var(--surface3);border:1px solid var(--border);border-radius:6px;padding:3px 8px">
                   ⬇ Download
@@ -1519,23 +1611,68 @@ async function loadCloudJobs() {
               </div>`;
             }).join('')}
           </div>`
-        : (run.status === 'completed'
-            ? '<div style="font-size:.73rem;color:var(--muted);margin-top:6px">Keine Artifacts (abgelaufen oder nicht erzeugt)</div>'
-            : '');
+        : (isSuccess ? '<div style="font-size:.73rem;color:var(--muted);margin-top:6px">Keine Artifacts (abgelaufen oder nicht erzeugt)</div>' : '');
 
-      return `<div class="run-entry">
+      return `<div class="run-entry" id="run-${run.id}">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap">
           ${badge}
           <b style="font-size:.85rem">#${run.run_number}</b>
           <span style="font-size:.75rem;color:var(--muted)">${dt}</span>
-          <a href="${run.html_url}" target="_blank" style="margin-left:auto;font-size:.75rem;color:var(--primary);text-decoration:none">GitHub ↗</a>
+          <div style="margin-left:auto;display:flex;gap:6px;align-items:center">
+            ${cancelBtn}
+            <a href="${run.html_url}" target="_blank"
+               style="font-size:.75rem;color:var(--primary);text-decoration:none">GitHub ↗</a>
+          </div>
         </div>
+        ${tileWarn}
         ${artifactHtml}
       </div>`;
     }).join('');
 
   } catch (e) {
     list.innerHTML = `<p style="color:var(--error)">${e}</p>`;
+    dbg(`loadCloudJobs Fehler: ${e}`, 'err');
+  }
+}
+
+async function cancelCloudJob(runId, nodeId) {
+  const pat   = v('tok-pat');
+  const owner = v('cfg-owner') || 'basecore';
+  const repo  = v('cfg-repo')  || 'streetview-explorer';
+  if (!pat) { setStatus('PAT fehlt.', 'error'); return; }
+  if (!confirm(`Job #${runId} wirklich abbrechen?`)) return;
+
+  try {
+    const r = await fetch(
+      `https://api.github.com/repos/${owner}/${repo}/actions/runs/${runId}/cancel`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization':        `Bearer ${pat}`,
+          'Accept':               'application/vnd.github+json',
+          'X-GitHub-Api-Version': '2022-11-28',
+        },
+      }
+    );
+    if (r.status === 202) {
+      setStatus(`Job #${runId} wird abgebrochen...`, 'warn');
+      dbg(`Job ${runId} Abbruch angefordert`, 'warn');
+      // Run-Eintrag sofort als "abgebrochen" markieren
+      const el = document.getElementById(`run-${runId}`);
+      if (el) {
+        const badge = el.querySelector('.badge');
+        if (badge) { badge.className = 'badge b-f'; badge.textContent = '✕ Abgebrochen'; }
+        const btn = el.querySelector('.btn-danger');
+        if (btn) btn.remove();
+      }
+      setTimeout(loadCloudJobs, 3000);
+    } else {
+      const t = await r.text();
+      setStatus(`Abbruch Fehler ${r.status}: ${t.slice(0,80)}`, 'error');
+    }
+  } catch (e) {
+    setStatus(`Abbruch Fehler: ${e}`, 'error');
+    dbg(`cancelCloudJob Fehler: ${e}`, 'err');
   }
 }
 
