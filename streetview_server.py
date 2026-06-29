@@ -6,7 +6,6 @@ Streamt den Log per SSE (Server-Sent Events) live in den Browser.
 
 Start:
   python3 streetview_server.py
-Oder automatisch via streetview_explorer.py
 """
 
 import json
@@ -19,9 +18,7 @@ import threading
 import time
 from pathlib import Path
 
-# ---------------------------------------------------------------------------
-# Auto-install
-# ---------------------------------------------------------------------------
+
 def _ensure(pkg, import_as=None):
     try:
         __import__(import_as or pkg)
@@ -32,12 +29,9 @@ def _ensure(pkg, import_as=None):
 _ensure("flask")
 _ensure("flask_cors", "flask_cors")
 
-from flask import Flask, Response, jsonify, request, stream_with_context  # noqa: E402
-from flask_cors import CORS  # noqa: E402
+from flask import Flask, Response, jsonify, request, stream_with_context
+from flask_cors import CORS
 
-# ---------------------------------------------------------------------------
-# Logging
-# ---------------------------------------------------------------------------
 logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s  [%(levelname)-7s]  %(message)s",
@@ -45,16 +39,12 @@ logging.basicConfig(
 )
 log = logging.getLogger("svex-server")
 
-# ---------------------------------------------------------------------------
-# App
-# ---------------------------------------------------------------------------
 app = Flask(__name__)
 CORS(app)
 
 BASE = Path(__file__).parent
 HEADLESS = BASE / "streetview_headless.py"
 
-# Active jobs: job_id -> {process, queue, status, params}
 _jobs: dict = {}
 _jobs_lock = threading.Lock()
 
@@ -63,16 +53,40 @@ def _run_job(job_id: str, params: dict):
     """Run streetview_headless.py in a thread, feed output into a queue."""
     q = _jobs[job_id]["queue"]
 
+    street = params.get("street", "").strip()
+    city   = params.get("city", "").strip()
+
+    # Sicherheitspruefung: kein Download ohne gueltigen Strassennamen
+    if not street or street.lower() in ("karte", "map", "unknown", ""):
+        q.put({"type": "error", "data": (
+            f"Ungültiger Strassenname: \"{street}\"\n"
+            f"Bitte im Suchfeld einen echten Strassennamen eingeben\n"
+            f"(z.B. 'Berger Strasse') und dann 'Suchen' drücken."
+        )})
+        _jobs[job_id]["status"] = "error"
+        _jobs[job_id]["returncode"] = 1
+        q.put({"type": "done", "data": "Abgebrochen (ungültiger Strassenname)", "rc": 1})
+        return
+
     cmd = [
         sys.executable, str(HEADLESS),
-        "--street",   params["street"],
-        "--city",     params["city"],
+        "--street",   street,
+        "--city",     city,
         "--quality",  params.get("quality", "medium"),
         "--sampling", str(params.get("sampling", 10)),
         "--radius",   str(params.get("radius", 8)),
         "--historical", str(params.get("historical", "false")),
         "--output",   params.get("output", str(BASE / "downloads")),
     ]
+
+    # Optionale pano_ids: als JSON-Datei uebergeben damit kein erneutes Geocoding noetig
+    pano_ids = params.get("pano_ids", [])
+    if pano_ids:
+        import tempfile, json as _json
+        tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False)
+        _json.dump(pano_ids, tmp)
+        tmp.close()
+        cmd += ["--pano-ids-file", tmp.name]
 
     env = os.environ.copy()
     env["GOOGLE_MAPS_API_KEY"] = params.get("api_key", "")
@@ -115,16 +129,61 @@ def _run_job(job_id: str, params: dict):
 
 @app.route("/api/status")
 def api_status():
-    return jsonify({"status": "ok", "version": "2.0"})
+    return jsonify({"status": "ok", "version": "2.1"})
+
+
+@app.route("/api/query", methods=["POST"])
+def api_query():
+    """Einzelpunkt-Abfrage: lat, lng, radius, api_key -> panoramas[]"""
+    params = request.get_json(force=True)
+    lat = params.get("lat")
+    lng = params.get("lng")
+    radius = params.get("radius", 8)
+    api_key = params.get("api_key", "")
+    if lat is None or lng is None:
+        return jsonify({"error": "lat und lng erforderlich"}), 400
+    # Stub: In Produktion hier streetview-dl query aufrufen
+    # Gibt Browser-Fallback-Pano zurueck wenn kein streetview-dl verfuegbar
+    try:
+        import subprocess as sp
+        r = sp.run(
+            ["streetview-dl", "query",
+             "--lat", str(lat), "--lng", str(lng),
+             "--radius", str(radius),
+             "--max-results", "5",
+             "--json"],
+            capture_output=True, text=True, timeout=15,
+            env={**os.environ, "GOOGLE_MAPS_API_KEY": api_key}
+        )
+        if r.returncode == 0:
+            data = json.loads(r.stdout)
+            return jsonify(data)
+    except Exception as e:
+        log.warning("streetview-dl query fehlgeschlagen: %s", e)
+    fid = f"pos_{str(lat).replace('.','_')}_{str(lng).replace('.','_')}"
+    return jsonify({"panoramas": [{"pano_id": fid, "lat": lat, "lng": lng, "date": "?"}]})
 
 
 @app.route("/api/start", methods=["POST"])
 def api_start():
     params = request.get_json(force=True)
-    required = ["street", "city", "api_key"]
+
+    # city darf leer sein wenn pano_ids direkt uebergeben werden
+    pano_ids = params.get("pano_ids", [])
+    if pano_ids:
+        required = ["api_key"]
+    else:
+        required = ["street", "city", "api_key"]
+
     missing = [k for k in required if not params.get(k)]
     if missing:
         return jsonify({"error": f"Fehlende Parameter: {', '.join(missing)}"}), 400
+
+    # Pflichtfeld street trotzdem setzen wenn nicht vorhanden
+    if not params.get("street"):
+        params["street"] = "unbekannt"
+    if not params.get("city"):
+        params["city"] = ""
 
     job_id = f"job_{int(time.time()*1000)}"
     with _jobs_lock:
@@ -193,6 +252,7 @@ def api_jobs():
                 "street":     j["params"].get("street", ""),
                 "city":       j["params"].get("city", ""),
                 "quality":    j["params"].get("quality", ""),
+                "pano_count": len(j["params"].get("pano_ids", [])),
             }
             for jid, j in _jobs.items()
         ]
@@ -204,6 +264,6 @@ def api_jobs():
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
     port = int(os.environ.get("SVEX_PORT", 5000))
-    log.info("StreetView Explorer Server v2.0 auf http://localhost:%d", port)
+    log.info("StreetView Explorer Server v2.1 auf http://localhost:%d", port)
     log.info("Stoppen mit Ctrl+C")
     app.run(host="127.0.0.1", port=port, debug=False, threaded=True)
