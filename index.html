@@ -237,7 +237,7 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--pr
       <div class="pano-bar-top">
         <strong id="pano-count-label"></strong>
         <div class="pano-dl-btns">
-          <button class="btn btn-ghost" onclick="togglePanoTable()">&#128203; Tabelle</button>
+          <button class="btn btn-ghost" onclick="togglePanoTable()" id="btn-toggle-table">&#128203; Tabelle ausblenden</button>
           <button class="btn btn-ghost" onclick="exportSelectedCSV()" id="btn-export-csv" style="display:none">&#11123; CSV Export</button>
           <button class="btn btn-local" id="btn-dl-local" onclick="startDownload('local')">&#9654; Lokal laden</button>
           <button class="btn btn-cloud" id="btn-dl-cloud" onclick="startDownload('cloud')" style="display:none">&#9654; Request</button>
@@ -252,7 +252,7 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--pr
         <button class="btn btn-ghost" style="padding:4px 10px;font-size:.75rem;margin-left:auto" onclick="invertSelection()">Invertieren</button>
       </div>
 
-      <div class="pano-table-wrap" id="pano-table-wrap" style="display:none">
+      <div class="pano-table-wrap" id="pano-table-wrap">
         <table>
           <thead>
             <tr>
@@ -807,9 +807,12 @@ function flyToMarker(idx){
   if(p._marker)p._marker.openPopup();
   showTab('tab-map');
 }
-function togglePanoTable(){
-  const w=document.getElementById('pano-table-wrap');
-  w.style.display=w.style.display==='none'?'block':'none';
+function togglePanoTable() {
+  const w = document.getElementById('pano-table-wrap');
+  const btn = document.getElementById('btn-toggle-table');
+  const visible = w.style.display !== 'none';
+  w.style.display = visible ? 'none' : 'block';
+  btn.textContent = visible ? '📋 Tabelle anzeigen' : '📋 Tabelle ausblenden';
 }
 
 /* ── CSV EXPORT ── */
