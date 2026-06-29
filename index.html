@@ -240,7 +240,7 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--pr
           <button class="btn btn-ghost" onclick="togglePanoTable()">&#128203; Tabelle</button>
           <button class="btn btn-ghost" onclick="exportSelectedCSV()" id="btn-export-csv" style="display:none">&#11123; CSV Export</button>
           <button class="btn btn-local" id="btn-dl-local" onclick="startDownload('local')">&#9654; Lokal laden</button>
-          <button class="btn btn-cloud" id="btn-dl-cloud" onclick="startDownload('cloud')" style="display:none">&#9729; Cloud</button>
+          <button class="btn btn-cloud" id="btn-dl-cloud" onclick="startDownload('cloud')" style="display:none">&#9654; Request</button>
         </div>
       </div>
 
@@ -256,7 +256,7 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--pr
         <table>
           <thead>
             <tr>
-              <th class="cb-col"><input type="checkbox" id="cb-all-head" onchange="toggleSelectAll(this.checked)" title="Alle"/></th>
+              <th class="cb-col"></th>
               <th>#</th><th>pano_id</th><th>Datum</th><th>Lat</th><th>Lng</th><th>Karte</th>
             </tr>
           </thead>
@@ -729,36 +729,55 @@ function haversine(la1,lo1,la2,lo2){
 }
 
 /* ── PANO TABELLE + AUSWAHL ── */
-function updatePanoBar(){
-  const bar=document.getElementById('pano-found-bar');
-  if(!foundPanos.length){bar.style.display='none';return;}
-  bar.style.display='block';
-  const selCount=foundPanos.filter(p=>p._selected).length;
-  document.getElementById('pano-count-label').textContent=
-    `${foundPanos.length} Panoramen${serverOnline?'':' (Browser-Modus)'} gefunden`;
-  document.getElementById('sel-bar').style.display='flex';
-  document.getElementById('sel-count').textContent=selCount;
-  document.getElementById('btn-export-csv').style.display=selCount>0?'inline-flex':'none';
+function updatePanoBar() {
+  const bar = document.getElementById('pano-found-bar');
+  if (!foundPanos.length) { bar.style.display = 'none'; return; }
+  bar.style.display = 'block';
+  const selCount = foundPanos.filter(p => p._selected).length;
+  const fakeCount = foundPanos.filter(p => p.pano_id.startsWith('pos_')).length;
 
-  // Sync Haupt-Checkbox
-  const cbAll=document.getElementById('cb-all');
-  const cbAllHead=document.getElementById('cb-all-head');
-  if(cbAll){cbAll.checked=selCount===foundPanos.length;cbAll.indeterminate=selCount>0&&selCount<foundPanos.length;}
-  if(cbAllHead){cbAllHead.checked=selCount===foundPanos.length;cbAllHead.indeterminate=selCount>0&&selCount<foundPanos.length;}
+  document.getElementById('pano-count-label').textContent =
+    `${foundPanos.length} Panoramen gefunden` +
+    (fakeCount ? ` (${fakeCount} Browser-Fallback)` : '') +
+    (!serverOnline ? ' — Browser-Modus' : '');
 
-  document.getElementById('pano-tbody').innerHTML=foundPanos.map((p,i)=>{
-    const lat=(p.lat||0).toFixed(5);
-    const lng=(p.lng||0).toFixed(5);
-    const mapsUrl=`https://www.google.com/maps/@${lat},${lng},3a,75y,0h,90t/`;
-    return `<tr id="prow-${i}" class="${p._selected?'':''}">
-      <td class="cb-col"><input type="checkbox" ${p._selected?'checked':''} onchange="togglePano(${i},this.checked)"/></td>
-      <td>${i+1}</td>
-      <td><code style="font-size:.7rem">${escH(p.pano_id.substring(0,24))}</code></td>
-      <td>${escH(p.date||'?')}</td>
+  document.getElementById('sel-bar').style.display = 'flex';
+  document.getElementById('sel-count').textContent = selCount;
+  document.getElementById('btn-export-csv').style.display = selCount > 0 ? 'inline-flex' : 'none';
+
+  // Nur die Haupt-Checkbox in der sel-bar syncen (NICHT th-Checkbox separat)
+  const cbAll = document.getElementById('cb-all');
+  if (cbAll) {
+    cbAll.checked = selCount === foundPanos.length && foundPanos.length > 0;
+    cbAll.indeterminate = selCount > 0 && selCount < foundPanos.length;
+  }
+
+  // Dispatched-IDs aus localStorage
+  const alreadyDone = JSON.parse(localStorage.getItem('svex_dispatched_panos') || '[]');
+
+  document.getElementById('pano-tbody').innerHTML = foundPanos.map((p, i) => {
+    const lat = (p.lat || 0).toFixed(5);
+    const lng = (p.lng || 0).toFixed(5);
+    const mapsUrl = `https://www.google.com/maps/@${lat},${lng},3a,75y,0h,90t/`;
+    const isFake = p.pano_id.startsWith('pos_');
+    const isDone = alreadyDone.includes(p.pano_id);
+    const rowStyle = isFake ? 'color:var(--muted)' : '';
+    const doneTag = isDone
+      ? '<span style="font-size:.65rem;background:#1a3a25;color:#68a83f;border-radius:99px;padding:1px 6px;margin-left:4px">✓ angefragt</span>'
+      : '';
+    const fakeTag = isFake
+      ? '<span style="font-size:.65rem;background:#2a2010;color:#c9813a;border-radius:99px;padding:1px 6px;margin-left:4px">fallback</span>'
+      : '';
+    return `<tr style="${rowStyle}">
+      <td class="cb-col"><input type="checkbox" ${p._selected ? 'checked' : ''} onchange="togglePano(${i},this.checked)"/></td>
+      <td>${i + 1}</td>
+      <td><code style="font-size:.7rem">${escH(p.pano_id.substring(0, 24))}</code>${doneTag}${fakeTag}</td>
+      <td>${escH(p.date || '?')}</td>
       <td>${lat}</td>
       <td>${lng}</td>
-      <td><a href="${escH(mapsUrl)}" target="_blank" style="color:var(--primary);font-size:.75rem">&#8599;</a>
-          <button onclick="flyToMarker(${i})" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:.75rem;padding:0 4px" title="Auf Karte zeigen">&#128204;</button>
+      <td>
+        <a href="${escH(mapsUrl)}" target="_blank" style="color:var(--primary);font-size:.75rem">↗</a>
+        <button onclick="flyToMarker(${i})" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:.75rem;padding:0 4px" title="Auf Karte zeigen">📍</button>
       </td>
     </tr>`;
   }).join('');
@@ -880,24 +899,110 @@ async function dlLocal(key, sel) {
   }
 }
 
-async function dlCloud(key,sel){
-  const pat=v('tok-pat');if(!pat){setStatus('PAT fehlt.','error');showTab('tab-tokens');return;}
-  const owner=v('cfg-owner')||'basecore',repo=v('cfg-repo')||'streetview-explorer',wf=v('cfg-workflow')||'download.yml',br=v('cfg-branch')||'main';
-  const streetRaw=v('street-input')||'';
-  const parts=streetRaw.split(',').map(s=>s.trim());
-  const street=parts[0]||'unbekannt';
-  const city=parts.slice(1).join(', ')||'';
-  dbg(`Cloud Dispatch: ${owner}/${repo} wf=${wf} street="${street}" city="${city}"`,'cmd');
-  try{
-    const res=await fetch(`https://api.github.com/repos/${owner}/${repo}/actions/workflows/${wf}/dispatches`,{
-      method:'POST',
-      headers:{'Authorization':`Bearer ${pat}`,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','Content-Type':'application/json'},
-      body:JSON.stringify({ref:br,inputs:{street,city,quality:v('cfg-quality'),sampling:v('cfg-sampling'),radius:v('cfg-radius'),historical:v('cfg-historical'),api_key:key}})
-    });
-    dbg(`HTTP ${res.status}`,'info');
-    if(res.status===204){setStatus('Cloud-Job gestartet.','success');showTab('tab-jobs');setTimeout(loadCloudJobs,3000);}
-    else{const t=await res.text();setStatus(`HTTP ${res.status}: ${t.slice(0,100)}`,'error');}
-  }catch(e){setStatus(`Fehler: ${e}`,'error');}
+let _cloudDispatching = false;
+async function dlCloud(key, sel) {
+  if (_cloudDispatching) { setStatus('Bitte warten, Request läuft...', 'warn'); return; }
+
+  // Prüfe ob echte pano_ids vorhanden (keine Browser-Fallbacks)
+  const fakePanos = sel.filter(p => p.pano_id.startsWith('pos_'));
+  if (fakePanos.length === sel.length) {
+    setStatus('Nur Browser-Fallback-Positionen — kein echter StreetView-Panorama gefunden. Bitte streetview_server.py lokal starten für echte pano_ids.', 'error');
+    dbg('Cloud-Dispatch abgebrochen: alle pano_ids sind Browser-Fallbacks (pos_...).', 'err');
+    return;
+  }
+  if (fakePanos.length > 0) {
+    dbg(`Warnung: ${fakePanos.length} Fallback-Positionen werden ignoriert, ${sel.length - fakePanos.length} echte Panoramen werden übermittelt.`, 'warn');
+    sel = sel.filter(p => !p.pano_id.startsWith('pos_'));
+  }
+
+  // Duplikat-Check gegen bereits dispatched pano_ids
+  const alreadyDone = JSON.parse(localStorage.getItem('svex_dispatched_panos') || '[]');
+  const dupPanos = sel.filter(p => alreadyDone.includes(p.pano_id));
+  if (dupPanos.length > 0) {
+    const skip = confirm(
+      `${dupPanos.length} Panoramen wurden bereits angefragt:\n` +
+      dupPanos.map(p => p.pano_id.substring(0, 30)).join('\n') +
+      '\n\nTrotzdem erneut downloaden?'
+    );
+    if (!skip) { sel = sel.filter(p => !alreadyDone.includes(p.pano_id)); }
+    if (!sel.length) { setStatus('Nichts Neues zum Downloaden.', 'warn'); return; }
+  }
+
+  const pat = v('tok-pat');
+  if (!pat) { setStatus('PAT fehlt.', 'error'); showTab('tab-tokens'); return; }
+  const owner = v('cfg-owner') || 'basecore';
+  const repo  = v('cfg-repo')  || 'streetview-explorer';
+  const wf    = v('cfg-workflow') || 'download.yml';
+  const br    = v('cfg-branch') || 'main';
+
+  // Street/City korrekt aus Suchfeld lesen
+  const streetRaw = v('street-input') || '';
+  // Nominatim gibt oft "Hausnr, Strassenname, Stadt, ..." zurück → wir wollen Strassenname
+  const parts = streetRaw.split(',').map(s => s.trim()).filter(Boolean);
+  // Wenn erstes Teil eine reine Zahl ist (Hausnummer), überspringe es
+  const firstIsNumber = parts.length > 0 && /^\d+$/.test(parts[0]);
+  const street = firstIsNumber ? (parts[1] || parts[0]) : (parts[0] || 'unbekannt');
+  const city = firstIsNumber
+    ? parts.slice(2).filter(p => !/^\d{5}$/.test(p) && p.length > 3).slice(0, 2).join(', ')
+    : parts.slice(1).filter(p => !/^\d{5}$/.test(p) && p.length > 3).slice(0, 2).join(', ');
+
+  dbg(`Cloud Dispatch: ${owner}/${repo} wf=${wf} street="${street}" city="${city}" panos=${sel.length}`, 'cmd');
+
+  _cloudDispatching = true;
+  // Button temporär deaktivieren
+  const btn = document.getElementById('btn-dl-cloud');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Sendet...'; }
+
+  try {
+    const res = await fetch(
+      `https://api.github.com/repos/${owner}/${repo}/actions/workflows/${wf}/dispatches`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${pat}`,
+          'Accept': 'application/vnd.github+json',
+          'X-GitHub-Api-Version': '2022-11-28',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ref: br,
+          inputs: {
+            street,
+            city,
+            quality:    v('cfg-quality'),
+            sampling:   v('cfg-sampling'),
+            radius:     v('cfg-radius'),
+            historical: v('cfg-historical'),
+            api_key:    key,
+          },
+        }),
+      }
+    );
+    dbg(`HTTP ${res.status}`, 'info');
+    if (res.status === 204) {
+      // Speichere dispatched pano_ids für Duplikat-Check
+      const updated = [...new Set([...alreadyDone, ...sel.map(p => p.pano_id)])];
+      localStorage.setItem('svex_dispatched_panos', JSON.stringify(updated));
+      localStorage.setItem('svex_last_dispatch', JSON.stringify({
+        street, city,
+        pano_ids: sel.map(p => p.pano_id),
+        timestamp: new Date().toISOString(),
+        quality: v('cfg-quality'),
+      }));
+      setStatus(`✓ ${sel.length} Panoramen angefragt — GitHub Actions startet.`, 'success');
+      showTab('tab-jobs');
+      setTimeout(loadCloudJobs, 4000);
+    } else {
+      const t = await res.text();
+      setStatus(`HTTP ${res.status}: ${t.slice(0, 120)}`, 'error');
+    }
+  } catch (e) {
+    setStatus(`Fehler: ${e}`, 'error');
+    dbg(`${e}`, 'err');
+  } finally {
+    _cloudDispatching = false;
+    if (btn) { btn.disabled = false; btn.textContent = '▶ Request'; }
+  }
 }
 
 function listenSSE(jobId){
@@ -996,23 +1101,114 @@ async function loadLocalJobs(){
     }).join('');
   }catch(e){list.innerHTML=`<p style="color:var(--error)">${e}</p>`;}
 }
-async function loadCloudJobs(){
-  const pat=v('tok-pat'),owner=v('cfg-owner')||'basecore',repo=v('cfg-repo')||'streetview-explorer',wf=v('cfg-workflow')||'download.yml';
-  const list=document.getElementById('cloud-jobs-list');
-  if(!pat){list.innerHTML='<p style="color:var(--muted)">PAT eingeben.</p>';return;}
-  list.innerHTML='<p style="color:var(--muted)"><span class="spin"></span>L\u00e4dt...</p>';
-  try{
-    const r=await fetch(`https://api.github.com/repos/${owner}/${repo}/actions/workflows/${wf}/runs?per_page=10`,{headers:{'Authorization':`Bearer ${pat}`,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'}});
-    if(!r.ok){list.innerHTML=`<p style="color:var(--error)">Fehler ${r.status}</p>`;return;}
-    const data=await r.json();const runs=data.workflow_runs||[];
-    if(!runs.length){list.innerHTML='<p style="color:var(--muted)">Keine Jobs.</p>';return;}
-    list.innerHTML=runs.map(run=>{
-      const b=run.status==='completed'?(run.conclusion==='success'?'<span class="badge b-s">Fertig</span>':'<span class="badge b-f">Fehler</span>'):'<span class="badge b-r"><span class="spin"></span>L\u00e4uft</span>';
-      const dt=new Date(run.created_at).toLocaleString('de-DE');
-      return `<div class="run-entry"><div style="font-weight:600;margin-bottom:4px">${b} #${run.run_number}</div><div style="font-size:.75rem;color:var(--muted);margin-bottom:6px">${dt}</div><a href="${run.html_url}" target="_blank" class="btn btn-ghost" style="padding:5px 10px;font-size:.75rem;text-decoration:none">Ansehen &rarr;</a></div>`;
+async function loadCloudJobs() {
+  const pat   = v('tok-pat');
+  const owner = v('cfg-owner') || 'basecore';
+  const repo  = v('cfg-repo')  || 'streetview-explorer';
+  const wf    = v('cfg-workflow') || 'download.yml';
+  const list  = document.getElementById('cloud-jobs-list');
+  if (!pat) { list.innerHTML = '<p style="color:var(--muted)">PAT eingeben.</p>'; return; }
+  list.innerHTML = '<p style="color:var(--muted)"><span class="spin"></span>Lädt...</p>';
+  try {
+    const r = await fetch(
+      `https://api.github.com/repos/${owner}/${repo}/actions/workflows/${wf}/runs?per_page=10`,
+      { headers: { 'Authorization': `Bearer ${pat}`, 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' } }
+    );
+    if (!r.ok) { list.innerHTML = `<p style="color:var(--error)">Fehler ${r.status}</p>`; return; }
+    const data  = await r.json();
+    const runs  = data.workflow_runs || [];
+    if (!runs.length) { list.innerHTML = '<p style="color:var(--muted)">Keine Jobs.</p>'; return; }
+
+    // Für jeden Run Artifacts laden
+    const artifactsByRun = {};
+    await Promise.all(runs.map(async run => {
+      try {
+        const ar = await fetch(
+          `https://api.github.com/repos/${owner}/${repo}/actions/runs/${run.id}/artifacts`,
+          { headers: { 'Authorization': `Bearer ${pat}`, 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' } }
+        );
+        if (ar.ok) {
+          const ad = await ar.json();
+          artifactsByRun[run.id] = ad.artifacts || [];
+        }
+      } catch {}
+    }));
+
+    list.innerHTML = runs.map(run => {
+      const badge =
+        run.status === 'completed'
+          ? (run.conclusion === 'success'
+              ? '<span class="badge b-s">✓ Fertig</span>'
+              : '<span class="badge b-f">✗ Fehler</span>')
+          : '<span class="badge b-r"><span class="spin"></span>Läuft</span>';
+      const dt = new Date(run.created_at).toLocaleString('de-DE');
+      const artifacts = artifactsByRun[run.id] || [];
+
+      const artifactHtml = artifacts.length
+        ? `<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+            <div style="font-size:.73rem;color:var(--muted);margin-bottom:4px">📦 Artifacts (${artifacts.length})</div>
+            ${artifacts.map(a => {
+              const sizeMb = (a.size_in_bytes / 1024 / 1024).toFixed(1);
+              const expires = new Date(a.expires_at).toLocaleDateString('de-DE');
+              return `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--border);flex-wrap:wrap">
+                <span style="font-size:.78rem;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escH(a.name)}">${escH(a.name)}</span>
+                <span style="font-size:.72rem;color:var(--muted);white-space:nowrap">${sizeMb} MB</span>
+                <span style="font-size:.72rem;color:var(--muted);white-space:nowrap">bis ${expires}</span>
+                <a href="${escH(a.archive_download_url)}" 
+                   onclick="downloadArtifact(event,'${a.archive_download_url}','${escH(a.name)}.zip')"
+                   style="font-size:.75rem;color:var(--primary);text-decoration:none;white-space:nowrap;background:var(--surface3);border:1px solid var(--border);border-radius:6px;padding:3px 8px">
+                  ⬇ Download
+                </a>
+              </div>`;
+            }).join('')}
+          </div>`
+        : (run.status === 'completed'
+            ? '<div style="font-size:.73rem;color:var(--muted);margin-top:6px">Keine Artifacts (abgelaufen oder nicht erzeugt)</div>'
+            : '');
+
+      return `<div class="run-entry">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap">
+          ${badge}
+          <b style="font-size:.85rem">#${run.run_number}</b>
+          <span style="font-size:.75rem;color:var(--muted)">${dt}</span>
+          <a href="${run.html_url}" target="_blank" style="margin-left:auto;font-size:.75rem;color:var(--primary);text-decoration:none">GitHub ↗</a>
+        </div>
+        ${artifactHtml}
+      </div>`;
     }).join('');
-  }catch(e){list.innerHTML=`<p style="color:var(--error)">${e}</p>`;}
+
+  } catch (e) {
+    list.innerHTML = `<p style="color:var(--error)">${e}</p>`;
+  }
 }
+
+async function downloadArtifact(evt, url, filename) {
+  evt.preventDefault();
+  const pat = v('tok-pat');
+  if (!pat) { setStatus('PAT fehlt für Download.', 'error'); return; }
+  setStatus('Artifact wird heruntergeladen...', 'running');
+  try {
+    const r = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${pat}`,
+        'Accept': 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+      },
+    });
+    if (!r.ok) { setStatus(`Download Fehler ${r.status}`, 'error'); return; }
+    const blob = await r.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    setStatus(`✓ ${filename} heruntergeladen (${(blob.size/1024/1024).toFixed(1)} MB)`, 'success');
+    dbg(`Artifact: ${filename} (${(blob.size/1024).toFixed(0)} KB)`, 'ok');
+  } catch (e) {
+    setStatus(`Download Fehler: ${e}`, 'error');
+    dbg(`Artifact Fehler: ${e}`, 'err');
+  }
+}
+
 setInterval(()=>{if(jobsMode==='cloud'&&document.getElementById('tab-jobs').classList.contains('active'))loadCloudJobs();},15000);
 setInterval(()=>{if(jobsMode==='local'&&document.getElementById('tab-jobs').classList.contains('active'))loadLocalJobs();},5000);
 
