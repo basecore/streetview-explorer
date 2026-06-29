@@ -144,7 +144,7 @@ def query_point(lat, lng, radius, max_results):
         return []
 
 
-def build_download_cmd(url_file, outdir, quality, historical):
+def build_download_cmd(url_file, outdir, quality, historical, args=None):
     cmd = [
         "streetview-dl",
         "--batch",      str(url_file),
@@ -154,6 +154,29 @@ def build_download_cmd(url_file, outdir, quality, historical):
     ]
     if historical:
         cmd.append("--historical-download")
+
+    if args:
+        if args.heading != 0:
+            cmd += ["--heading", str(args.heading)]
+        if args.pitch != 0:
+            cmd += ["--pitch", str(args.pitch)]
+        if args.fov != 90:
+            cmd += ["--fov", str(args.fov)]
+        if args.zoom != 2:
+            cmd += ["--zoom", str(args.zoom)]
+        if args.output_format != "jpg":
+            cmd += ["--format", args.output_format]
+        if args.jpg_quality != 85:
+            cmd += ["--jpeg-quality", str(args.jpg_quality)]
+        if args.date_from:
+            cmd += ["--date-from", args.date_from]
+        if args.date_to:
+            cmd += ["--date-to", args.date_to]
+        if args.source:
+            cmd += ["--source", args.source]
+        if args.outdoor:
+            cmd += ["--outdoor", args.outdoor]
+
     log.debug("Download CMD: %s", " ".join(cmd))
     return cmd
 
@@ -188,8 +211,19 @@ def main():
     parser.add_argument("--min-quality-score",type=float, default=0.0,  help="Min. Qualitaetswert 0.0-1.0")
     parser.add_argument("--max-dist",         type=int,   default=0,    help="Max. Distanz vom Punkt in Metern (0=kein Filter)")
     args = parser.parse_args()
-
+    # Neue Parameter loggen
+    log.info("  Heading: %.0f°  Pitch: %.0f°  FOV: %.0f°  Zoom: %d", args.heading, args.pitch, args.fov, args.zoom)
+    log.info("  Format: %s  JPG-Q: %d%%", args.output_format, args.jpg_quality)
+    if args.date_from or args.date_to:
+        log.info("  Datum: %s bis %s", args.date_from or "*", args.date_to or "*")
+    if args.max_age_months:
+        log.info("  Max. Alter: %d Monate", args.max_age_months)
+    if args.source:
+        log.info("  Quelle-Filter: %s", args.source)
+    if args.outdoor:
+        log.info("  Outdoor-Filter: %s", args.outdoor)
     historical = args.historical.lower() == "true"
+  
     outdir = Path(args.output)
     outdir.mkdir(parents=True, exist_ok=True)
 
@@ -315,7 +349,7 @@ def main():
         est_tiles = int(est_tiles * 2.5)
     log.info("Starte Download: ~%d Tiles geschaetzt", est_tiles)
 
-    cmd = build_download_cmd(url_file, outdir, args.quality, historical)
+    cmd = build_download_cmd(url_file, outdir, args.quality, historical, args)
     log.info("CMD: %s", " ".join(cmd))
 
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
