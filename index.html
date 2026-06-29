@@ -1212,105 +1212,153 @@ let _cloudDispatching = false;
 async function dlCloud(key, sel) {
   if (_cloudDispatching) { setStatus('Bitte warten, Request läuft...', 'warn'); return; }
 
-  // Prüfe ob echte pano_ids vorhanden (keine Browser-Fallbacks)
-  const fakePanos = sel.filter(p => p.pano_id.startsWith('pos_'));
-  if (fakePanos.length === sel.length) {
-    setStatus('Nur Browser-Fallback-Positionen — kein echter StreetView-Panorama gefunden. Bitte streetview_server.py lokal starten für echte pano_ids.', 'error');
-    dbg('Cloud-Dispatch abgebrochen: alle pano_ids sind Browser-Fallbacks (pos_...).', 'err');
-    return;
-  }
-  if (fakePanos.length > 0) {
-    dbg(`Warnung: ${fakePanos.length} Fallback-Positionen werden ignoriert, ${sel.length - fakePanos.length} echte Panoramen werden übermittelt.`, 'warn');
-    sel = sel.filter(p => !p.pano_id.startsWith('pos_'));
-  }
-
-  // Duplikat-Check gegen bereits dispatched pano_ids
-  const alreadyDone = JSON.parse(localStorage.getItem('svex_dispatched_panos') || '[]');
-  const dupPanos = sel.filter(p => alreadyDone.includes(p.pano_id));
-  if (dupPanos.length > 0) {
-    const skip = confirm(
-      `${dupPanos.length} Panoramen wurden bereits angefragt:\n` +
-      dupPanos.map(p => p.pano_id.substring(0, 30)).join('\n') +
-      '\n\nTrotzdem erneut downloaden?'
-    );
-    if (!skip) { sel = sel.filter(p => !alreadyDone.includes(p.pano_id)); }
-    if (!sel.length) { setStatus('Nichts Neues zum Downloaden.', 'warn'); return; }
-  }
-
-  const pat = v('tok-pat');
+  const pat   = v('tok-pat');
   if (!pat) { setStatus('PAT fehlt.', 'error'); showTab('tab-tokens'); return; }
-  const owner = v('cfg-owner') || 'basecore';
-  const repo  = v('cfg-repo')  || 'streetview-explorer';
+
+  const owner = v('cfg-owner')    || 'basecore';
+  const repo  = v('cfg-repo')     || 'streetview-explorer';
   const wf    = v('cfg-workflow') || 'download.yml';
-  const br    = v('cfg-branch') || 'main';
+  const br    = v('cfg-branch')   || 'main';
 
   // Street/City korrekt aus Suchfeld lesen
   const streetRaw = v('street-input') || '';
-  // Nominatim gibt oft "Hausnr, Strassenname, Stadt, ..." zurück → wir wollen Strassenname
-  const parts = streetRaw.split(',').map(s => s.trim()).filter(Boolean);
-  // Wenn erstes Teil eine reine Zahl ist (Hausnummer), überspringe es
+  const parts     = streetRaw.split(',').map(s => s.trim()).filter(Boolean);
   const firstIsNumber = parts.length > 0 && /^\d+$/.test(parts[0]);
-  const street = firstIsNumber ? (parts[1] || parts[0]) : (parts[0] || 'unbekannt');
-  const city = firstIsNumber
+  const street = firstIsNumber ? (parts[1] || parts[0]) : (parts[0] || '');
+  const city   = firstIsNumber
     ? parts.slice(2).filter(p => !/^\d{5}$/.test(p) && p.length > 3).slice(0, 2).join(', ')
     : parts.slice(1).filter(p => !/^\d{5}$/.test(p) && p.length > 3).slice(0, 2).join(', ');
 
-  dbg(`Cloud Dispatch: ${owner}/${repo} wf=${wf} street="${street}" city="${city}" panos=${sel.length}`, 'cmd');
+  // Echte pano_ids trennen von Fallbacks
+  const realPanos = sel.filter(p => !p.pano_id.startsWith('pos_'));
+  const fakePanos = sel.filter(p =>  p.pano_id.startsWith('pos_'));
+
+  // Duplikat-Check nur für echte pano_ids
+  const alreadyDone = JSON.parse(localStorage.getItem('svex_dispatched_panos') || '[]');
+  let toDispatch    = realPanos.filter(p => !alreadyDone.includes(p.pano_id));
+  const dupCount    = realPanos.length - toDispatch.length;
+
+  if (dupCount > 0) {
+    const skip = confirm(
+      `${dupCount} Panoramen wurden bereits angefragt.\nTrotzdem erneut downloaden?`
+    );
+    if (skip) toDispatch = realPanos;
+  }
+
+  // Koordinaten aus Fallback-Positionen extrahieren (für reinen Koordinaten-Modus)
+  const coordsFromFallback = fakePanos.map(p => ({
+    lat: p.lat || 0,
+    lng: p.lng || 0,
+  }));
+
+  // Entscheide Dispatch-Modus
+  const hasPanoIds = toDispatch.length > 0;
+  const hasCoords  = coordsFromFallback.length > 0 || (hasPoint && singleMarker);
+  const hasStreet  = street.length > 2;
+
+  if (!hasPanoIds && !hasCoords && !hasStreet) {
+    setStatus('Nichts zum Dispatchen: kein Strassenname, keine Koordinaten, keine pano_ids.', 'error');
+    return;
+  }
+
+  // Koordinaten für Dispatch bestimmen
+  let dispatchLat = '', dispatchLng = '';
+  if (!hasPanoIds) {
+    if (fakePanos.length > 0) {
+      dispatchLat = fakePanos[0].lat?.toFixed(6) || '';
+      dispatchLng = fakePanos[0].lng?.toFixed(6) || '';
+    } else if (hasPoint && singleMarker) {
+      dispatchLat = singleMarker.getLatLng().lat.toFixed(6);
+      dispatchLng = singleMarker.getLatLng().lng.toFixed(6);
+    }
+  }
+
+  const modeLabel = hasPanoIds
+    ? `${toDispatch.length} pano_ids`
+    : (dispatchLat ? `Koordinaten ${dispatchLat},${dispatchLng}` : `Strasse: ${street}`);
+
+  dbg(`Cloud Dispatch: ${owner}/${repo} wf=${wf} Modus=${modeLabel}`, 'cmd');
+  dbg(`street="${street}" city="${city}" lat=${dispatchLat} lng=${dispatchLng}`, 'info');
 
   _cloudDispatching = true;
-  // Button temporär deaktivieren
   const btn = document.getElementById('btn-dl-cloud');
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ Sendet...'; }
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Sendet...'; }
 
   try {
+    const inputs = {
+      street:     street  || 'unbekannt',
+      city:       city    || '',
+      quality:    v('cfg-quality')    || 'medium',
+      sampling:   v('cfg-sampling')   || '10',
+      radius:     v('cfg-radius')     || '8',
+      historical: v('cfg-historical') || 'false',
+      api_key:    key,
+    };
+
+    // Koordinaten mitsenden wenn keine echten pano_ids
+    if (!hasPanoIds && dispatchLat) {
+      inputs.lat = dispatchLat;
+      inputs.lng = dispatchLng;
+    }
+
+    // Echte pano_ids als kommagetrennte Liste mitsenden
+    if (hasPanoIds) {
+      inputs.pano_ids = toDispatch.map(p => p.pano_id).join(',');
+    }
+
     const res = await fetch(
       `https://api.github.com/repos/${owner}/${repo}/actions/workflows/${wf}/dispatches`,
       {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${pat}`,
-          'Accept': 'application/vnd.github+json',
+          'Authorization':        `Bearer ${pat}`,
+          'Accept':               'application/vnd.github+json',
           'X-GitHub-Api-Version': '2022-11-28',
-          'Content-Type': 'application/json',
+          'Content-Type':         'application/json',
         },
-        body: JSON.stringify({
-          ref: br,
-          inputs: {
-            street,
-            city,
-            quality:    v('cfg-quality'),
-            sampling:   v('cfg-sampling'),
-            radius:     v('cfg-radius'),
-            historical: v('cfg-historical'),
-            api_key:    key,
-          },
-        }),
+        body: JSON.stringify({ ref: br, inputs }),
       }
     );
+
     dbg(`HTTP ${res.status}`, 'info');
+
     if (res.status === 204) {
-      // Speichere dispatched pano_ids für Duplikat-Check
-      const updated = [...new Set([...alreadyDone, ...sel.map(p => p.pano_id)])];
-      localStorage.setItem('svex_dispatched_panos', JSON.stringify(updated));
+      // Dispatched pano_ids merken
+      if (hasPanoIds) {
+        const updated = [...new Set([...alreadyDone, ...toDispatch.map(p => p.pano_id)])];
+        localStorage.setItem('svex_dispatched_panos', JSON.stringify(updated));
+      }
       localStorage.setItem('svex_last_dispatch', JSON.stringify({
         street, city,
-        pano_ids: sel.map(p => p.pano_id),
+        mode:      hasPanoIds ? 'pano_ids' : 'coords',
+        pano_ids:  hasPanoIds ? toDispatch.map(p => p.pano_id) : [],
+        lat:       dispatchLat,
+        lng:       dispatchLng,
         timestamp: new Date().toISOString(),
-        quality: v('cfg-quality'),
+        quality:   v('cfg-quality'),
       }));
-      setStatus(`✓ ${sel.length} Panoramen angefragt — GitHub Actions startet.`, 'success');
+
+      const msg = hasPanoIds
+        ? `✓ ${toDispatch.length} Panoramen angefragt`
+        : dispatchLat
+          ? `✓ Koordinaten (${dispatchLat}, ${dispatchLng}) an GitHub geschickt`
+          : `✓ Strasse "${street}, ${city}" an GitHub geschickt`;
+
+      setStatus(msg + ' — GitHub Actions startet.', 'success');
+      dbg(msg, 'ok');
       showTab('tab-jobs');
       setTimeout(loadCloudJobs, 4000);
     } else {
       const t = await res.text();
       setStatus(`HTTP ${res.status}: ${t.slice(0, 120)}`, 'error');
+      dbg(`Dispatch Fehler: ${t.slice(0, 200)}`, 'err');
     }
   } catch (e) {
     setStatus(`Fehler: ${e}`, 'error');
     dbg(`${e}`, 'err');
   } finally {
     _cloudDispatching = false;
-    if (btn) { btn.disabled = false; btn.textContent = '▶ Request'; }
+    if (btn) { btn.disabled = false; btn.innerHTML = '&#9654; Request'; }
   }
 }
 
