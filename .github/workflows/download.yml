@@ -170,27 +170,44 @@ jobs:
             PANO_FLAG="--pano-ids-file /tmp/pano_ids.json"
           fi
 
-          python streetview_headless.py \
-            --street   "${{ env.DISPATCH_STREET }}" \
-            --city     "${{ env.DISPATCH_CITY }}" \
-            --quality  "${{ github.event.inputs.quality }}" \
-            --sampling "${{ github.event.inputs.sampling }}" \
-            --radius   "${{ github.event.inputs.radius }}" \
-            --historical "${{ github.event.inputs.historical }}" \
-            --heading  "${{ github.event.inputs.heading }}" \
-            --pitch    "${{ github.event.inputs.pitch }}" \
-            --fov      "${{ github.event.inputs.fov }}" \
-            --zoom     "${{ github.event.inputs.zoom }}" \
-            --output-format "${{ github.event.inputs.output_format }}" \
-            --jpg-quality   "${{ github.event.inputs.jpg_quality }}" \
-            --date-from     "${{ github.event.inputs.date_from }}" \
-            --date-to       "${{ github.event.inputs.date_to }}" \
-            --max-age-months "${{ github.event.inputs.max_age_months }}" \
-            --source        "${{ github.event.inputs.source }}" \
-            --outdoor       "${{ github.event.inputs.outdoor }}" \
-            --output ./panoramas \
-            $PANO_FLAG
+          DATE_FROM="${{ github.event.inputs.date_from }}"
+          DATE_TO="${{ github.event.inputs.date_to }}"
+          MAX_AGE="${{ github.event.inputs.max_age_months }}"
+          SOURCE="${{ github.event.inputs.source }}"
+          OUTDOOR="${{ github.event.inputs.outdoor }}"
 
+          DATE_FROM_FLAG=""
+          DATE_TO_FLAG=""
+          MAX_AGE_FLAG=""
+          SOURCE_FLAG=""
+          OUTDOOR_FLAG=""
+
+          [ -n "$DATE_FROM" ] && DATE_FROM_FLAG="--date-from $DATE_FROM"
+          [ -n "$DATE_TO"   ] && DATE_TO_FLAG="--date-to $DATE_TO"
+          [ -n "$MAX_AGE"   ] && MAX_AGE_FLAG="--max-age-months $MAX_AGE"
+          [ -n "$SOURCE"    ] && SOURCE_FLAG="--source $SOURCE"
+          [ -n "$OUTDOOR"   ] && OUTDOOR_FLAG="--outdoor $OUTDOOR"
+
+          python streetview_headless.py \
+            --street     "${{ env.DISPATCH_STREET }}" \
+            --city       "${{ env.DISPATCH_CITY }}" \
+            --quality    "${{ github.event.inputs.quality }}" \
+            --sampling   "${{ github.event.inputs.sampling }}" \
+            --radius     "${{ github.event.inputs.radius }}" \
+            --historical "${{ github.event.inputs.historical }}" \
+            --heading    "${{ github.event.inputs.heading }}" \
+            --pitch      "${{ github.event.inputs.pitch }}" \
+            --fov        "${{ github.event.inputs.fov }}" \
+            --zoom       "${{ github.event.inputs.zoom }}" \
+            --output-format  "${{ github.event.inputs.output_format }}" \
+            --jpg-quality    "${{ github.event.inputs.jpg_quality }}" \
+            --output ./panoramas \
+            $DATE_FROM_FLAG \
+            $DATE_TO_FLAG \
+            $MAX_AGE_FLAG \
+            $SOURCE_FLAG \
+            $OUTDOOR_FLAG \
+            $PANO_FLAG
       - name: List downloaded files
         run: |
           echo "=== Heruntergeladene Dateien ==="
