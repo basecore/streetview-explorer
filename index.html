@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
-<title>StreetView Explorer v3.4</title>
+<title>StreetView Explorer v3.5</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
@@ -12,15 +12,14 @@
   --bg:#1a1918;--surface:#232220;--surface2:#2a2927;--surface3:#313028;
   --border:#3d3b38;--text:#e6e4e0;--muted:#8a8880;--faint:#555350;
   --primary:#4f9aaa;--success:#68a83f;--warn:#c9813a;--error:#cc5555;
-  --local:#68a83f;--cloud:#4f9aaa;--radius:10px;
-  --tab-h:56px;
+  --local:#68a83f;--cloud:#4f9aaa;--radius:10px;--tab-h:56px;
 }
 html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif}
 body{display:flex;flex-direction:column;min-height:100vh}
 .header{padding:14px 16px 0;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-shrink:0}
 .header h1{font-size:1.3rem;font-weight:700;letter-spacing:-.01em}
 .header-right{display:flex;align-items:center;gap:8px}
-.version-badge{font-size:.7rem;color:var(--muted);background:var(--surface2);border:1px solid var(--border);padding:2px 8px;border-radius:99px;white-space:nowrap}
+.version-badge{font-size:.7rem;color:var(--muted);background:var(--surface2);border:1px solid var(--border);padding:2px 8px;border-radius:99px}
 .gh-link{font-size:.75rem;color:var(--primary);text-decoration:none;display:flex;align-items:center;gap:4px}
 #status-bar{margin:8px 16px 0;padding:10px 14px;border-radius:var(--radius);font-weight:600;font-size:.85rem;display:none;border-left:4px solid var(--primary);background:var(--surface);flex-shrink:0}
 #status-bar.running{border-color:var(--primary);color:var(--primary)}
@@ -46,7 +45,6 @@ body{display:flex;flex-direction:column;min-height:100vh}
 .card:last-child{margin-bottom:0}
 .card h3{font-size:.9rem;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:6px}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.grid.g1{grid-template-columns:1fr}
 label{display:block;font-size:.78rem;color:var(--muted);margin-bottom:3px;font-weight:500}
 input,select{width:100%;padding:9px 12px;background:#181716;border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:.9rem;outline:none;transition:border-color .2s}
 input:focus,select:focus{border-color:var(--primary)}
@@ -65,34 +63,23 @@ input:focus,select:focus{border-color:var(--primary)}
 .btn-danger{background:var(--error);color:#fff}
 .btn-ghost{background:var(--surface3);color:var(--text);border:1px solid var(--border)}
 .btn-gps{background:#7c4dff;color:#fff}
-.btn-search{background:var(--primary);color:#fff;font-size:1rem;padding:13px 24px;border-radius:10px;width:100%;justify-content:center;letter-spacing:.01em}
+.btn-search{background:var(--primary);color:#fff;font-size:1rem;padding:13px 24px;border-radius:10px;width:100%;justify-content:center}
 .btn-finish{background:var(--warn);color:#fff}
 .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .map-toolbar{display:flex;gap:6px;flex-wrap:wrap;padding:10px 12px;background:var(--surface2);border-bottom:1px solid var(--border);align-items:center}
 .map-toolbar .btn{padding:9px 14px;font-size:.82rem}
 .coord-pill{background:#181716;border:1px solid var(--border);border-radius:99px;padding:5px 12px;font-size:.75rem;font-family:monospace;color:var(--primary);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .gps-card{background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin:8px 12px;display:none}
-.gps-addr{font-size:.82rem;color:var(--text);font-weight:500}
-.gps-coords{font-size:.75rem;color:var(--muted);font-family:monospace;margin-top:2px}
 .street-search-wrap{padding:8px 12px;background:var(--surface2);border-bottom:1px solid var(--border);display:none}
 .street-search-wrap .row{display:flex;gap:6px}
 .street-search-wrap input{flex:1}
 #map{height:calc(100vw * 0.58);min-height:220px;max-height:460px}
-
-/* ACTION BAR — das Herzstück */
-.action-bar{display:none;padding:12px;border-top:1px solid var(--border);background:var(--surface2)}
-.action-bar-inner{display:flex;flex-direction:column;gap:8px}
-.action-bar-hint{font-size:.8rem;color:var(--muted);display:flex;align-items:center;gap:6px}
+.action-bar{display:none;padding:12px;border-top:2px solid var(--primary);background:var(--surface2)}
+.action-bar-hint{font-size:.8rem;color:var(--muted);display:flex;align-items:center;gap:6px;margin-bottom:8px}
 .action-bar-hint .dot{width:8px;height:8px;border-radius:50%;background:var(--success);flex-shrink:0}
-.action-bar-hint .dot.orange{background:var(--warn)}
-.action-bar-btns{display:flex;gap:8px;flex-wrap:wrap}
-
-/* LINIE HINT */
-.line-hint{display:none;padding:8px 12px;background:#1a2030;border-bottom:1px solid var(--border);font-size:.8rem;color:#60a5fa;display:flex;align-items:center;justify-content:space-between;gap:8px}
-
+.line-hint-bar{display:none;padding:8px 12px;background:#1a2030;border-bottom:1px solid #2a3a5a;font-size:.82rem;color:#60a5fa;align-items:center;justify-content:space-between;gap:8px}
 .pano-bar{padding:10px 12px;border-top:1px solid var(--border);background:var(--surface2)}
 .pano-bar-top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:6px}
-.pano-bar-top strong{font-size:.88rem}
 .pano-dl-btns{display:flex;gap:6px;flex-wrap:wrap}
 .pano-dl-btns .btn{padding:8px 14px;font-size:.82rem}
 .pano-table-wrap{max-height:180px;overflow-y:auto}
@@ -144,7 +131,6 @@ tr:hover td{background:var(--surface3)}
   .header{padding:10px 10px 0}
   .header h1{font-size:1.1rem}
   .grid{grid-template-columns:1fr}
-  .quota-grid{grid-template-columns:1fr 1fr}
   .coord-pill{display:none}
   #status-bar{margin:6px 10px 0}
 }
@@ -159,7 +145,7 @@ tr:hover td{background:var(--surface3)}
 <div class="header">
   <h1>&#127757; StreetView Explorer</h1>
   <div class="header-right">
-    <span class="version-badge">v3.4</span>
+    <span class="version-badge">v3.5</span>
     <a class="gh-link" href="https://github.com/basecore/streetview-explorer" target="_blank">
       <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
       GitHub
@@ -192,12 +178,12 @@ tr:hover td{background:var(--surface3)}
   </div>
 
   <div class="offline-banner" id="offline-banner">
-    <b>&#9888; Server offline</b> &mdash; Punkte/Linien funktionieren trotzdem. Kein Download ohne <code>streetview_server.py</code>.
+    <b>&#9888; Server offline</b> &mdash; Karte funktioniert. Kein Download ohne <code>streetview_server.py</code>.
   </div>
 
   <div class="gps-card" id="gps-card">
-    <div class="gps-addr" id="gps-addr">Standort wird geladen...</div>
-    <div class="gps-coords" id="gps-coords"></div>
+    <div style="font-size:.82rem;font-weight:500" id="gps-addr">Standort wird geladen...</div>
+    <div style="font-size:.75rem;color:var(--muted);font-family:monospace;margin-top:2px" id="gps-coords"></div>
     <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
       <button class="btn btn-primary" style="padding:7px 14px;font-size:.8rem" onclick="useGpsAsPoint()">&#128204; Als Punkt</button>
       <button class="btn btn-ghost" style="padding:7px 14px;font-size:.8rem" onclick="useGpsAddrSearch()">&#128270; Strasse suchen</button>
@@ -205,10 +191,10 @@ tr:hover td{background:var(--surface3)}
   </div>
 
   <div class="map-toolbar">
-    <button class="btn btn-ghost" onclick="mapMode('click')" id="mapbtn-click" title="Einzelnen Punkt setzen">&#128204; Punkt</button>
-    <button class="btn btn-ghost" onclick="mapMode('line')"  id="mapbtn-line"  title="Linie zeichnen">&#9998; Linie</button>
-    <button class="btn btn-ghost" onclick="mapMode('street')" id="mapbtn-street" title="Strasse suchen">&#128270; Suche</button>
-    <button class="btn btn-gps"   onclick="getGPS()" title="Meinen Standort">&#128247;</button>
+    <button class="btn btn-ghost" onclick="mapMode('click')" id="mapbtn-click">&#128204; Punkt</button>
+    <button class="btn btn-ghost" onclick="mapMode('line')"  id="mapbtn-line">&#9998; Linie</button>
+    <button class="btn btn-ghost" onclick="mapMode('street')" id="mapbtn-street">&#128270; Suche</button>
+    <button class="btn btn-gps"   onclick="getGPS()">&#128247;</button>
     <button class="btn btn-danger" onclick="clearMap()" style="padding:9px 12px" title="Alles leeren">&#10005;</button>
     <div class="coord-pill" id="coord-display">Karte antippen...</div>
   </div>
@@ -220,28 +206,24 @@ tr:hover td{background:var(--surface3)}
     </div>
   </div>
 
-  <!-- Linie-Hinweis mit Abschliessen-Button (sichtbar beim Zeichnen) -->
-  <div id="line-hint-bar" style="display:none;padding:8px 12px;background:#1a2030;border-bottom:1px solid #2a3a5a;font-size:.82rem;color:#60a5fa;display:none;align-items:center;justify-content:space-between;gap:8px;">
-    <span id="line-hint-text">&#9998; Tippe Punkte auf die Karte &mdash; Doppeltippen oder:</span>
+  <div class="line-hint-bar" id="line-hint-bar">
+    <span id="line-hint-text">&#9998; Punkte setzen &mdash; Doppeltippen oder:</span>
     <button class="btn btn-finish" style="padding:7px 14px;font-size:.82rem;white-space:nowrap" onclick="finishLine()">&#10003; Linie abschlie&szlig;en</button>
   </div>
 
   <div id="map"></div>
 
-  <!-- ★ HAUPT-AKTIONSLEISTE ★ — erscheint nach Punkt oder Linie -->
+  <!-- HAUPT-AKTIONSLEISTE: erscheint nach Punkt oder fertiger Linie -->
   <div id="action-bar" class="action-bar">
-    <div class="action-bar-inner">
-      <div class="action-bar-hint">
-        <span class="dot" id="action-dot"></span>
-        <span id="action-hint-text">Bereit zur Suche</span>
-      </div>
-      <button class="btn btn-search" onclick="startSearch()">
-        &#128269; Panoramen suchen
-      </button>
+    <div class="action-bar-hint">
+      <span class="dot" id="action-dot"></span>
+      <span id="action-hint-text">Bereit</span>
     </div>
+    <button class="btn btn-search" onclick="startSearch()">
+      &#128269; Panoramen suchen
+    </button>
   </div>
 
-  <!-- Ergebnis-Leiste -->
   <div id="pano-found-bar" style="display:none">
     <div class="pano-bar">
       <div class="pano-bar-top">
@@ -270,20 +252,24 @@ tr:hover td{background:var(--surface3)}
     <div class="grid">
       <div><label>Bildqualit&auml;t</label>
         <select id="cfg-quality">
-          <option value="low">low &mdash; 32 Tiles (schnell)</option>
+          <option value="low">low &mdash; 32 Tiles</option>
           <option value="medium" selected>medium &mdash; 128 Tiles</option>
           <option value="high">high &mdash; 512 Tiles</option>
         </select></div>
-      <div><label>Sampling-Abstand (m)</label><input type="number" id="cfg-sampling" value="10" min="1" max="500"/>
+      <div><label>Sampling-Abstand (m)</label>
+        <input type="number" id="cfg-sampling" value="10" min="1" max="500"/>
         <p class="hint">5=dicht &middot; 15=schnell &middot; 30=grob</p></div>
-      <div><label>Suchradius (m)</label><input type="number" id="cfg-radius" value="8" min="1" max="200"/></div>
+      <div><label>Suchradius (m)</label>
+        <input type="number" id="cfg-radius" value="8" min="1" max="200"/></div>
       <div><label>Historische Aufnahmen</label>
         <select id="cfg-historical">
           <option value="false" selected>Nein</option>
           <option value="true">Ja (alle Epochen)</option>
         </select></div>
-      <div><label>Ausgabeordner</label><input type="text" id="cfg-output" value="./downloads"/></div>
-      <div><label>Max. Ergebnisse/Punkt</label><input type="number" id="cfg-maxresults" value="5" min="1" max="20"/></div>
+      <div><label>Ausgabeordner</label>
+        <input type="text" id="cfg-output" value="./downloads"/></div>
+      <div><label>Max. Ergebnisse/Punkt</label>
+        <input type="number" id="cfg-maxresults" value="5" min="1" max="20"/></div>
     </div>
   </div>
   <div class="card">
@@ -322,7 +308,7 @@ tr:hover td{background:var(--surface3)}
           <li><a href="https://console.cloud.google.com" target="_blank" class="hint-link">console.cloud.google.com</a></li>
           <li>APIs &rarr; Bibliothek &rarr; <b style="color:var(--text)">Map Tiles API</b> &rarr; Aktivieren</li>
           <li>APIs &rarr; Anmeldedaten &rarr; <b style="color:var(--text)">+ API-Schl&uuml;ssel</b></li>
-          <li>Abrechnung aktivieren (Pflicht f&uuml;r Nutzung)</li>
+          <li>Abrechnung aktivieren (Pflicht)</li>
         </ol>
         <p style="margin-top:6px"><b style="color:var(--text)">Kostenlos</b> bis 100.000 Tiles/Monat.</p>
       </div>
@@ -342,7 +328,7 @@ tr:hover td{background:var(--surface3)}
     <div class="actions"><button class="btn btn-primary" onclick="testPAT()">&#9654; Token testen</button></div>
     <div class="sep"></div>
     <details>
-      <summary style="cursor:pointer;font-size:.82rem;color:var(--muted)">&#128214; Anleitung: PAT erstellen</summary>
+      <summary style="cursor:pointer;font-size:.82rem;color:var(--muted)">&#128214; PAT erstellen</summary>
       <div style="font-size:.82rem;color:var(--muted);line-height:1.8;margin-top:8px">
         <ol style="margin-left:16px">
           <li><a href="https://github.com/settings/tokens?type=beta" target="_blank" class="hint-link">github.com/settings/tokens</a></li>
@@ -438,40 +424,37 @@ tr:hover td{background:var(--surface3)}
 </nav>
 
 <script>
-const APP_VERSION='v3.4', APP_DATE='2026-06-29', LOCAL_API='http://localhost:5000';
+const APP_VERSION='v3.5',LOCAL_API='http://localhost:5000';
 const TAB_IDS=['tab-map','tab-config','tab-tokens','tab-quota','tab-jobs','tab-debug'];
-let mode='local', jobsMode='local', mapDrawMode='click';
-let drawnLine=null, linePoints=[], singleMarker=null, gpsMarker=null;
-let foundPanos=[], currentJobId=null, currentES=null, serverOnline=false;
-let gpsLat=null, gpsLng=null, gpsAddr='';
-let hasPoint=false, hasLine=false;
+let mode='local',jobsMode='local',mapDrawMode='click';
+let drawnLine=null,linePoints=[],singleMarker=null,gpsMarker=null;
+let foundPanos=[],currentJobId=null,currentES=null,serverOnline=false;
+let gpsLat=null,gpsLng=null,gpsAddr='';
+let hasPoint=false,hasLine=false;
 
-const QUOTA_KEY='svex_quota';
-function quotaData(){
-  const d=localStorage.getItem(QUOTA_KEY);
-  if(d) try{return JSON.parse(d);}catch{}
-  const now=new Date();
-  return{month:`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`,used:0,limit:100000,stopPct:80};
-}
-function saveQuotaData(d){localStorage.setItem(QUOTA_KEY,JSON.stringify(d));}
+/* ── QUOTA ── */
+const QK='svex_quota';
+function quotaData(){const d=localStorage.getItem(QK);if(d)try{return JSON.parse(d);}catch{}const n=new Date();return{month:`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}`,used:0,limit:100000,stopPct:80};}
+function saveQuotaData(d){localStorage.setItem(QK,JSON.stringify(d));}
 
-const LEVELS={cmd:'dl-cmd',ok:'dl-ok',err:'dl-err',warn:'dl-warn',info:'dl-info',log:'dl'};
+/* ── LOG ── */
+const LV={cmd:'dl-cmd',ok:'dl-ok',err:'dl-err',warn:'dl-warn',info:'dl-info',log:'dl'};
 function dbg(msg,level='log'){
   const el=document.getElementById('debug-log');
-  const ts=new Date().toLocaleTimeString();
-  const line=document.createElement('span');
-  line.className=LEVELS[level]||'dl';
-  line.textContent=`[${ts}]  ${msg}\n`;
-  el.appendChild(line);el.scrollTop=el.scrollHeight;
+  const sp=document.createElement('span');
+  sp.className=LV[level]||'dl';
+  sp.textContent=`[${new Date().toLocaleTimeString()}]  ${msg}\n`;
+  el.appendChild(sp);el.scrollTop=el.scrollHeight;
 }
 function clearDebugLog(){document.getElementById('debug-log').innerHTML='';}
 function copyLog(){navigator.clipboard.writeText(document.getElementById('debug-log').innerText).then(()=>setStatus('Kopiert.','success'));}
 
+/* ── UI ── */
 function showTab(id){
   TAB_IDS.forEach(t=>document.getElementById(t).classList.toggle('active',t===id));
   document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',TAB_IDS[i]===id));
-  TAB_IDS.forEach(t=>{const mb=document.getElementById('mobt-'+t);if(mb)mb.classList.toggle('active',t===id);});
-  if(id==='tab-jobs') loadLocalJobs();
+  TAB_IDS.forEach(t=>{const m=document.getElementById('mobt-'+t);if(m)m.classList.toggle('active',t===id);});
+  if(id==='tab-jobs')loadLocalJobs();
 }
 function setStatus(msg,type='running'){
   const b=document.getElementById('status-bar');
@@ -482,14 +465,14 @@ function v(id){return(document.getElementById(id)||{}).value?.trim()||'';}
 function togglePw(id){const e=document.getElementById(id);e.type=e.type==='password'?'text':'password';}
 function escH(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 
+/* ── MODE ── */
 function setMode(m){
   mode=m;
   document.getElementById('msw-local').className='msw-btn'+(m==='local'?' act-local':'');
   document.getElementById('msw-cloud').className='msw-btn'+(m==='cloud'?' act-cloud':'');
   document.getElementById('btn-dl-local').style.display=m==='local'?'inline-flex':'none';
   document.getElementById('btn-dl-cloud').style.display=m==='cloud'?'inline-flex':'none';
-  dbg(`Modus: ${m}`,'info');
-  checkServer();
+  dbg(`Modus: ${m}`,'info');checkServer();
 }
 function setJobsMode(m){
   jobsMode=m;
@@ -497,120 +480,89 @@ function setJobsMode(m){
   document.getElementById('jobs-cloud').style.display=m==='cloud'?'block':'none';
   document.getElementById('jobsw-local').className='msw-btn'+(m==='local'?' act-local':'');
   document.getElementById('jobsw-cloud').className='msw-btn'+(m==='cloud'?' act-cloud':'');
-  if(m==='cloud') loadCloudJobs(); else loadLocalJobs();
+  if(m==='cloud')loadCloudJobs();else loadLocalJobs();
 }
 
-// ── AKTIONSLEISTE ────────────────────────────────────────────
+/* ── ACTION BAR ── */
 function updateActionBar(){
   const bar=document.getElementById('action-bar');
-  const dot=document.getElementById('action-dot');
   const txt=document.getElementById('action-hint-text');
-  if(hasPoint){
-    bar.style.display='block';
-    dot.className='dot';
-    txt.textContent='Punkt gesetzt \u2014 Panoramen in der N\u00e4he suchen';
-  } else if(hasLine){
-    bar.style.display='block';
-    dot.className='dot';
-    txt.textContent=`Linie mit ${linePoints.length} Punkten \u2014 Panoramen entlang der Strecke suchen`;
-  } else {
-    bar.style.display='none';
-  }
+  if(hasPoint){bar.style.display='block';txt.textContent='Punkt gesetzt \u2014 Panoramen in der N\u00e4he suchen';}
+  else if(hasLine){bar.style.display='block';txt.textContent=`Linie (${linePoints.length} Pkt.) \u2014 Panoramen entlang suchen`;}
+  else{bar.style.display='none';}
 }
 function updateLineHint(){
   const bar=document.getElementById('line-hint-bar');
-  const txt=document.getElementById('line-hint-text');
-  if(mapDrawMode==='line' && linePoints.length>0){
-    bar.style.display='flex';
-    txt.textContent=`&#9998; ${linePoints.length} Punkt${linePoints.length>1?'e':''} \u2014 Doppeltippen oder:`;
-  } else {
-    bar.style.display='none';
-  }
+  if(mapDrawMode==='line'&&linePoints.length>0){bar.style.display='flex';document.getElementById('line-hint-text').textContent=`${linePoints.length} Punkt(e) \u2014 Doppeltippen oder:`;}
+  else{bar.style.display='none';}
 }
 
-// ── KARTE ────────────────────────────────────────────────────
+/* ── MAP ── */
 const map=L.map('map',{tap:true}).setView([50.11,8.68],13);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-  attribution:'&copy; <a href="https://openstreetmap.org">OSM</a>',maxZoom:19
-}).addTo(map);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; <a href="https://openstreetmap.org">OSM</a>',maxZoom:19}).addTo(map);
 const panoLayer=L.layerGroup().addTo(map);
-
-map.on('click',e=>{
-  if(mapDrawMode==='click') placeSingleMarker(e.latlng);
-  else if(mapDrawMode==='line') addLinePoint(e.latlng);
-});
-map.on('dblclick',e=>{
-  if(mapDrawMode==='line'){L.DomEvent.stop(e);finishLine();}
-});
-map.on('mousemove',e=>{
-  document.getElementById('coord-display').textContent=`${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`;
-});
+map.on('click',e=>{if(mapDrawMode==='click')placeSingleMarker(e.latlng);else if(mapDrawMode==='line')addLinePoint(e.latlng);});
+map.on('dblclick',e=>{if(mapDrawMode==='line'){L.DomEvent.stop(e);finishLine();}});
+map.on('mousemove',e=>{document.getElementById('coord-display').textContent=`${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`;});
 
 function mapMode(m){
   mapDrawMode=m;
-  ['click','line','street'].forEach(k=>{
-    const b=document.getElementById(`mapbtn-${k}`);
-    if(!b) return;
-    b.style.background=k===m?'var(--primary)':'';b.style.color=k===m?'#fff':'';
-  });
+  ['click','line','street'].forEach(k=>{const b=document.getElementById('mapbtn-'+k);if(!b)return;b.style.background=k===m?'var(--primary)':'';b.style.color=k===m?'#fff':'';});
   document.getElementById('street-search-bar').style.display=m==='street'?'block':'none';
   document.getElementById('line-hint-bar').style.display='none';
-  if(m==='line') setStatus('Tippe Punkte. Doppeltippen oder Button zum Abschlie\u00dfen.','running');
-  if(m==='click') setStatus('Tippe einen Punkt auf die Karte.','running');
-  if(m==='street') document.getElementById('street-input').focus();
+  if(m==='line')setStatus('Punkte setzen. Doppeltippen oder Button zum Abschlie\u00dfen.','running');
+  if(m==='click')setStatus('Punkt auf die Karte tippen.','running');
+  if(m==='street')document.getElementById('street-input').focus();
 }
-
 function placeSingleMarker(latlng){
-  if(singleMarker) map.removeLayer(singleMarker);
+  if(singleMarker)map.removeLayer(singleMarker);
   singleMarker=L.marker([latlng.lat,latlng.lng]).addTo(map);
-  hasPoint=true; hasLine=false;
+  hasPoint=true;hasLine=false;
   document.getElementById('coord-display').textContent=`${latlng.lat.toFixed(5)}, ${latlng.lng.toFixed(5)}`;
   dbg(`Punkt: ${latlng.lat.toFixed(6)}, ${latlng.lng.toFixed(6)}`,'info');
   foundPanos=[];updatePanoBar();updateActionBar();
-  setStatus('Punkt gesetzt \u2014 jetzt \u201ePanoramen suchen\u201c tippen.','success');
+  setStatus('Punkt gesetzt \u2014 jetzt \u201ePanoramen suchen\u201c dr\u00fccken.','success');
 }
 function addLinePoint(latlng){
   linePoints.push(latlng);
-  if(drawnLine) map.removeLayer(drawnLine);
-  if(linePoints.length>=2) drawnLine=L.polyline(linePoints,{color:'#4f9aaa',weight:3,opacity:.85}).addTo(map);
+  if(drawnLine)map.removeLayer(drawnLine);
+  if(linePoints.length>=2)drawnLine=L.polyline(linePoints,{color:'#4f9aaa',weight:3,opacity:.85}).addTo(map);
   L.circleMarker([latlng.lat,latlng.lng],{radius:4,color:'#4f9aaa',fillColor:'#4f9aaa',fillOpacity:1}).addTo(panoLayer);
   dbg(`Linienpunkt ${linePoints.length}: ${latlng.lat.toFixed(6)}, ${latlng.lng.toFixed(6)}`,'info');
   updateLineHint();
-  setStatus(`${linePoints.length} Punkte \u2014 Doppeltippen oder \u201eLinie abschlie\u00dfen\u201c.`,'running');
+  setStatus(`${linePoints.length} Punkte \u2014 Doppeltippen oder Linie abschlie\u00dfen.`,'running');
 }
 function finishLine(){
   if(linePoints.length<2){setStatus('Mindestens 2 Punkte n\u00f6tig.','warn');return;}
-  dbg(`Linie fertig: ${linePoints.length} Punkte`,'ok');
-  hasLine=true; hasPoint=false;
+  hasLine=true;hasPoint=false;
   document.getElementById('line-hint-bar').style.display='none';
   updateActionBar();
-  setStatus(`Linie (${linePoints.length} Punkte) \u2014 jetzt \u201ePanoramen suchen\u201c tippen.`,'success');
+  dbg(`Linie: ${linePoints.length} Punkte`,'ok');
+  setStatus(`Linie (${linePoints.length} Punkte) \u2014 jetzt \u201ePanoramen suchen\u201c dr\u00fccken.`,'success');
 }
 function clearMap(){
   if(singleMarker){map.removeLayer(singleMarker);singleMarker=null;}
   if(drawnLine){map.removeLayer(drawnLine);drawnLine=null;}
-  panoLayer.clearLayers();linePoints=[];foundPanos=[];
-  hasPoint=false;hasLine=false;
+  panoLayer.clearLayers();linePoints=[];foundPanos=[];hasPoint=false;hasLine=false;
   updatePanoBar();updateActionBar();
   document.getElementById('line-hint-bar').style.display='none';
   dbg('Karte geleert','info');setStatus('Geleert.','success');
 }
 
-// ── SUCHE STARTEN (Haupt-Button) ─────────────────────────────
+/* ── SUCHE STARTEN ── */
 function startSearch(){
-  const googleKey=v('tok-google');
-  if(!googleKey){setStatus('Google API-Key im Keys-Tab eingeben.','error');showTab('tab-tokens');return;}
-  if(hasPoint && singleMarker){
-    // Einzelpunkt: generiere 1-Punkt-Linie mit Radius-Sampling
-    const latlng=singleMarker.getLatLng();
-    linePoints=[latlng,L.latLng(latlng.lat+0.00001,latlng.lng+0.00001)];
-    dbg(`Einzelpunkt-Suche: ${latlng.lat.toFixed(6)}, ${latlng.lng.toFixed(6)}`,'info');
+  const key=v('tok-google');
+  if(!key){setStatus('Google API-Key im Keys-Tab eingeben.','error');showTab('tab-tokens');return;}
+  if(hasPoint&&singleMarker){
+    const ll=singleMarker.getLatLng();
+    linePoints=[ll,L.latLng(ll.lat+0.00001,ll.lng+0.00001)];
+    dbg(`Einzelpunkt-Suche: ${ll.lat.toFixed(6)}, ${ll.lng.toFixed(6)}`,'info');
   }
-  if(linePoints.length<1){setStatus('Kein Punkt oder Linie gesetzt.','warn');return;}
+  if(!linePoints.length){setStatus('Kein Punkt oder Linie gesetzt.','warn');return;}
   discoverPanosAlongLine();
 }
 
-// ── GPS ──────────────────────────────────────────────────────
+/* ── GPS ── */
 function getGPS(){
   if(!navigator.geolocation){setStatus('GPS nicht verf\u00fcgbar.','error');return;}
   setStatus('GPS wird abgefragt...','running');
@@ -620,14 +572,14 @@ function getGPS(){
     const acc=pos.coords.accuracy;
     dbg(`GPS: ${gpsLat.toFixed(6)}, ${gpsLng.toFixed(6)} \u00b1${acc.toFixed(0)}m`,'ok');
     setStatus(`Standort gefunden (\u00b1${acc.toFixed(0)}m)`,'success');
-    if(gpsMarker) map.removeLayer(gpsMarker);
+    if(gpsMarker)map.removeLayer(gpsMarker);
     gpsMarker=L.circleMarker([gpsLat,gpsLng],{radius:10,color:'#7c4dff',fillColor:'#7c4dff',fillOpacity:.6,weight:2}).addTo(map);
     map.setView([gpsLat,gpsLng],16);
     document.getElementById('gps-card').style.display='block';
     document.getElementById('gps-coords').textContent=`${gpsLat.toFixed(6)}, ${gpsLng.toFixed(6)} (\u00b1${acc.toFixed(0)}m)`;
     document.getElementById('gps-addr').textContent='Adresse wird gesucht...';
     try{
-      const r=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${gpsLat}&lon=${gpsLng}&format=json`,{headers:{'User-Agent':'streetview-explorer/3.4'}});
+      const r=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${gpsLat}&lon=${gpsLng}&format=json`,{headers:{'User-Agent':'svex/3.5'}});
       const d=await r.json();
       gpsAddr=d.display_name||`${gpsLat.toFixed(5)}, ${gpsLng.toFixed(5)}`;
       const a=d.address||{};
@@ -636,53 +588,43 @@ function getGPS(){
       gpsMarker.bindPopup(`<b>${escH(short)}</b><br><small>${gpsLat.toFixed(5)}, ${gpsLng.toFixed(5)}</small>`).openPopup();
       dbg(`Adresse: ${short}`,'ok');
     }catch(e){gpsAddr=`${gpsLat.toFixed(5)}, ${gpsLng.toFixed(5)}`;document.getElementById('gps-addr').textContent=gpsAddr;dbg(`Geocode Fehler: ${e}`,'warn');}
-  },err=>{dbg(`GPS Fehler: ${err.message}`,'err');setStatus(`GPS Fehler: ${err.message}`,'error');},{enableHighAccuracy:true,timeout:10000});
+  },err=>{dbg(`GPS Fehler: ${err.message}`,'err');setStatus(`GPS: ${err.message}`,'error');},{enableHighAccuracy:true,timeout:10000});
 }
-function useGpsAsPoint(){
-  if(gpsLat===null){setStatus('Kein GPS.','warn');return;}
-  placeSingleMarker(L.latLng(gpsLat,gpsLng));
-  map.setView([gpsLat,gpsLng],17);
-}
-function useGpsAddrSearch(){
-  if(!gpsAddr){setStatus('Kein GPS.','warn');return;}
-  document.getElementById('street-input').value=gpsAddr;
-  mapMode('street');geocodeStreet();
-}
+function useGpsAsPoint(){if(gpsLat===null){setStatus('Kein GPS.','warn');return;}placeSingleMarker(L.latLng(gpsLat,gpsLng));map.setView([gpsLat,gpsLng],17);}
+function useGpsAddrSearch(){if(!gpsAddr){setStatus('Kein GPS.','warn');return;}document.getElementById('street-input').value=gpsAddr;mapMode('street');geocodeStreet();}
 
-// ── GEOCODE ──────────────────────────────────────────────────
+/* ── GEOCODE ── */
 async function geocodeStreet(){
-  const q=v('street-input');if(!q) return;
+  const q=v('street-input');if(!q)return;
   dbg(`Geocode: ${q}`,'info');setStatus(`Suche: ${q}...`,'running');
   try{
-    const r=await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&polygon_geojson=1&limit=1`,{headers:{'User-Agent':'streetview-explorer/3.4'}});
+    const r=await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&polygon_geojson=1&limit=1`,{headers:{'User-Agent':'svex/3.5'}});
     const data=await r.json();
     if(!data.length){setStatus('Nicht gefunden.','warn');return;}
     const geo=data[0].geojson||{},t=geo.type,c=geo.coordinates||[];
-    dbg(`Geocode OK: ${data[0].display_name} type=${t}`,'ok');
+    dbg(`Geocode OK: ${data[0].display_name} (${t})`,'ok');
     linePoints=[];if(drawnLine){map.removeLayer(drawnLine);drawnLine=null;}panoLayer.clearLayers();
     let pts=[];
-    if(t==='LineString') pts=c.map(([lo,la])=>L.latLng(la,lo));
-    else if(t==='MultiLineString') pts=c.flat().map(([lo,la])=>L.latLng(la,lo));
+    if(t==='LineString')pts=c.map(([lo,la])=>L.latLng(la,lo));
+    else if(t==='MultiLineString')pts=c.flat().map(([lo,la])=>L.latLng(la,lo));
     else{const bb=data[0].boundingbox;pts=[L.latLng((+bb[0]+ +bb[1])/2,(+bb[2]+ +bb[3])/2)];}
     if(pts.length>=2){
       linePoints=pts;drawnLine=L.polyline(pts,{color:'#c9813a',weight:3}).addTo(map);
       map.fitBounds(drawnLine.getBounds(),{padding:[20,20]});
       hasLine=true;hasPoint=false;updateActionBar();
-      setStatus(`${q} gefunden \u2014 jetzt \u201ePanoramen suchen\u201c tippen.`,'success');
-    } else if(pts.length===1){
-      placeSingleMarker(pts[0]);map.setView(pts[0],17);
-    }
+      setStatus(`${q} gefunden \u2014 \u201ePanoramen suchen\u201c dr\u00fccken.`,'success');
+    }else if(pts.length===1){placeSingleMarker(pts[0]);map.setView(pts[0],17);}
   }catch(e){dbg(`Geocode Fehler: ${e}`,'err');setStatus(`Fehler: ${e}`,'error');}
 }
 
-// ── PANORAMA DISCOVERY ───────────────────────────────────────
+/* ── PANORAMA DISCOVERY ── */
 async function discoverPanosAlongLine(){
-  const googleKey=v('tok-google');
-  if(!googleKey){setStatus('Google API-Key fehlt.','error');showTab('tab-tokens');return;}
+  const key=v('tok-google');
+  if(!key){setStatus('API-Key fehlt.','error');return;}
   const sampling=parseInt(v('cfg-sampling'))||10,radius=parseInt(v('cfg-radius'))||8;
   const pts=linePoints.map(p=>({lat:p.lat,lng:p.lng}));
   const samples=pts.length>1?interpolate(pts,sampling):pts;
-  dbg(`Suche: ${samples.length} Samples (alle ${sampling}m) | Server: ${serverOnline}`,'info');
+  dbg(`Suche: ${samples.length} Samples, alle ${sampling}m, Server=${serverOnline}`,'info');
   setStatus(`<span class="spin"></span>Suche ${samples.length} Punkte...`,'running');
   document.getElementById('action-bar').style.display='none';
   foundPanos=[];panoLayer.clearLayers();const seen=new Set();
@@ -691,46 +633,47 @@ async function discoverPanosAlongLine(){
     try{
       let panos=[];
       if(serverOnline){
-        const res=await fetch(`${LOCAL_API}/api/query`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lat:p.lat,lng:p.lng,radius,api_key:googleKey})});
+        const res=await fetch(`${LOCAL_API}/api/query`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lat:p.lat,lng:p.lng,radius,api_key:key})});
         const d=await res.json();panos=d.panoramas||[];
-      } else {
+        dbg(`P${i}: ${panos.length} Panos vom Server`,'info');
+      }else{
         const fid=`pos_${p.lat.toFixed(5)}_${p.lng.toFixed(5)}`.replace(/[.-]/g,'_');
         panos=[{pano_id:fid,lat:p.lat,lng:p.lng,date:'?',url:`https://www.google.com/maps/@${p.lat},${p.lng},3a,75y,0h,90t/`}];
+        dbg(`P${i}: Browser-Fallback lat=${p.lat.toFixed(5)}`,'warn');
       }
       for(const pano of panos){
         if(!seen.has(pano.pano_id)){
           seen.add(pano.pano_id);foundPanos.push(pano);
           const col=serverOnline?'#68a83f':'#c9813a';
           L.circleMarker([pano.lat||p.lat,pano.lng||p.lng],{radius:6,color:col,fillColor:col,fillOpacity:.7,weight:2})
-            .bindPopup(`<b>${pano.pano_id}</b><br>${pano.date||'?'}${pano.url?`<br><a href="${pano.url}" target="_blank">In Google Maps</a>`:''}`)
+            .bindPopup(`<b>${pano.pano_id}</b><br>${pano.date||'?'}${pano.url?`<br><a href="${pano.url}" target="_blank">Google Maps</a>`:''}`)
             .addTo(panoLayer);
         }
       }
     }catch(e){dbg(`Fehler P${i}: ${e}`,'err');}
-    if(i%5===0) updatePanoBar();
+    if(i%5===0)updatePanoBar();
   }
-  updatePanoBar();
-  // Action-Bar neu zeigen fuer neue Suche
-  updateActionBar();
+  updatePanoBar();updateActionBar();
   if(!serverOnline){
-    setStatus(`${foundPanos.length} Positionen markiert (ohne Server, nur Karte).`,'warn');
-    dbg('Browser-Modus. Starte streetview_server.py f\u00fcr echte Downloads.','warn');
-  } else {
-    setStatus(`${foundPanos.length} Panoramen gefunden \u2014 jetzt \u201eLokal laden\u201c dr\u00fccken.`,'success');
+    setStatus(`${foundPanos.length} Positionen markiert (Browser-Modus, kein Download).`,'warn');
+    dbg('Starte streetview_server.py f\u00fcr echte Downloads.','warn');
+  }else{
+    setStatus(`${foundPanos.length} Panoramen gefunden \u2014 \u201eLokal laden\u201c dr\u00fccken.`,'success');
+    dbg(`Suche fertig: ${foundPanos.length} Panoramen`,'ok');
   }
 }
 
 function interpolate(pts,everyM){
-  if(pts.length<2) return pts;
+  if(pts.length<2)return pts;
   const out=[pts[0]];let carry=0;
   for(let i=1;i<pts.length;i++){
     const seg=haversine(pts[i-1].lat,pts[i-1].lng,pts[i].lat,pts[i].lng);
-    if(!seg) continue;
+    if(!seg)continue;
     let d=carry;
     while(d+everyM<=seg){d+=everyM;const r=d/seg;out.push({lat:pts[i-1].lat+(pts[i].lat-pts[i-1].lat)*r,lng:pts[i-1].lng+(pts[i].lng-pts[i-1].lng)*r});}
     carry=seg-d;
   }
-  if(out[out.length-1]!==pts[pts.length-1]) out.push(pts[pts.length-1]);
+  if(out[out.length-1]!==pts[pts.length-1])out.push(pts[pts.length-1]);
   return out;
 }
 function haversine(la1,lo1,la2,lo2){
@@ -742,54 +685,53 @@ function updatePanoBar(){
   const bar=document.getElementById('pano-found-bar');
   if(!foundPanos.length){bar.style.display='none';return;}
   bar.style.display='block';
-  document.getElementById('pano-count-label').textContent=`${foundPanos.length} Panoramen${serverOnline?'':' (Browser-Modus)'}  gefunden`;
+  document.getElementById('pano-count-label').textContent=`${foundPanos.length} Panoramen${serverOnline?'':' (Browser-Modus)'} gefunden`;
   document.getElementById('pano-tbody').innerHTML=foundPanos.map((p,i)=>
     `<tr><td>${i+1}</td><td><code style="font-size:.7rem">${escH(p.pano_id.substring(0,22))}</code></td><td>${escH(p.date||'?')}</td><td>${(p.lat||0).toFixed(4)}</td><td>${(p.lng||0).toFixed(4)}</td></tr>`
   ).join('');
 }
 function togglePanoTable(){const w=document.getElementById('pano-table-wrap');w.style.display=w.style.display==='none'?'block':'none';}
 
-// ── DOWNLOAD ─────────────────────────────────────────────────
+/* ── DOWNLOAD ── */
 async function startDownload(m){
-  if(!serverOnline&&m==='local'){setStatus('Server offline. Starte streetview_server.py','error');return;}
-  const googleKey=v('tok-google');
-  if(!googleKey){setStatus('API-Key fehlt.','error');showTab('tab-tokens');return;}
+  if(!serverOnline&&m==='local'){setStatus('Server offline. streetview_server.py starten.','error');return;}
+  const key=v('tok-google');if(!key){setStatus('API-Key fehlt.','error');return;}
   const qd=quotaData();
   const TILES={low:32,medium:128,high:512};
-  const estTiles=foundPanos.length*(TILES[v('cfg-quality')]||128);
+  const est=foundPanos.length*(TILES[v('cfg-quality')]||128);
   const stopAt=Math.floor(qd.limit*(qd.stopPct||80)/100);
-  if(qd.used+estTiles>stopAt){setStatus(`Quota-Schutz: ${estTiles} Tiles w\u00fcrden Limit \u00fcberschreiten.`,'warn');return;}
-  if(m==='local') await startLocalDownload(googleKey);
-  else await startCloudDownload(googleKey);
-  qd.used+=estTiles;saveQuotaData(qd);loadQuota();
+  if(qd.used+est>stopAt){setStatus(`Quota-Schutz: est. ${est} Tiles \u00fcberschreiten Limit.`,'warn');return;}
+  if(m==='local')await dlLocal(key);else await dlCloud(key);
+  qd.used+=est;saveQuotaData(qd);loadQuota();
 }
-async function startLocalDownload(googleKey){
-  const params={street:v('street-input')||'Karte',city:'',quality:v('cfg-quality'),sampling:v('cfg-sampling'),radius:v('cfg-radius'),historical:v('cfg-historical'),output:v('cfg-output'),api_key:googleKey,pano_ids:foundPanos.map(p=>p.pano_id)};
-  dbg(`CMD: streetview-dl --quality ${params.quality} [${params.pano_ids.length} pano_ids]`,'cmd');
+async function dlLocal(key){
+  const p={street:v('street-input')||'Karte',city:'',quality:v('cfg-quality'),sampling:v('cfg-sampling'),radius:v('cfg-radius'),historical:v('cfg-historical'),output:v('cfg-output'),api_key:key,pano_ids:foundPanos.map(p=>p.pano_id)};
+  dbg(`CMD: streetview-dl --quality ${p.quality} [${p.pano_ids.length} pano_ids]`,'cmd');
   try{
-    const r=await fetch(`${LOCAL_API}/api/start`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(params)});
+    const r=await fetch(`${LOCAL_API}/api/start`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});
     const d=await r.json();if(!r.ok){setStatus(`Fehler: ${d.error}`,'error');return;}
-    currentJobId=d.job_id;setStatus(`Job: ${d.job_id}`,'running');showTab('tab-debug');listenSSE(d.job_id);
-  }catch(e){setStatus(`Fehler: ${e}`,'error');}
+    currentJobId=d.job_id;setStatus(`Job gestartet: ${d.job_id}`,'running');showTab('tab-debug');listenSSE(d.job_id);
+  }catch(e){setStatus(`Fehler: ${e}`,'error');dbg(`${e}`,'err');}
 }
-async function startCloudDownload(googleKey){
+async function dlCloud(key){
   const pat=v('tok-pat');if(!pat){setStatus('PAT fehlt.','error');showTab('tab-tokens');return;}
-  const owner=v('cfg-owner')||'basecore',repo=v('cfg-repo')||'streetview-explorer',workflow=v('cfg-workflow')||'download.yml',branch=v('cfg-branch')||'main';
-  dbg(`Cloud: ${owner}/${repo} ${workflow}`,'cmd');
+  const owner=v('cfg-owner')||'basecore',repo=v('cfg-repo')||'streetview-explorer',wf=v('cfg-workflow')||'download.yml',br=v('cfg-branch')||'main';
+  dbg(`Cloud Dispatch: ${owner}/${repo} wf=${wf}`,'cmd');
   try{
-    const res=await fetch(`https://api.github.com/repos/${owner}/${repo}/actions/workflows/${workflow}/dispatches`,{
+    const res=await fetch(`https://api.github.com/repos/${owner}/${repo}/actions/workflows/${wf}/dispatches`,{
       method:'POST',headers:{'Authorization':`Bearer ${pat}`,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','Content-Type':'application/json'},
-      body:JSON.stringify({ref:branch,inputs:{street:v('street-input')||'Karte',city:'',quality:v('cfg-quality'),sampling:v('cfg-sampling'),radius:v('cfg-radius'),historical:v('cfg-historical'),api_key:googleKey}})
+      body:JSON.stringify({ref:br,inputs:{street:v('street-input')||'Karte',city:'',quality:v('cfg-quality'),sampling:v('cfg-sampling'),radius:v('cfg-radius'),historical:v('cfg-historical'),api_key:key}})
     });
+    dbg(`HTTP ${res.status}`,'info');
     if(res.status===204){setStatus('Cloud-Job gestartet.','success');showTab('tab-jobs');setTimeout(loadCloudJobs,3000);}
     else{const t=await res.text();setStatus(`HTTP ${res.status}: ${t.slice(0,100)}`,'error');}
   }catch(e){setStatus(`Fehler: ${e}`,'error');}
 }
 function listenSSE(jobId){
-  if(currentES) currentES.close();
+  if(currentES)currentES.close();
   currentES=new EventSource(`${LOCAL_API}/api/log/${jobId}`);
   currentES.onmessage=e=>{
-    const msg=JSON.parse(e.data);if(msg.type==='ping') return;
+    const msg=JSON.parse(e.data);if(msg.type==='ping')return;
     const cls=msg.type==='cmd'?'cmd':msg.type==='done'?(msg.rc===0?'ok':'err'):msg.type==='error'?'err':'log';
     dbg(msg.data,cls);
     if(msg.type==='done'){if(msg.rc===0)setStatus('Fertig!','success');else setStatus(`Fehler (exit=${msg.rc})`,'error');currentES.close();loadLocalJobs();}
@@ -797,6 +739,114 @@ function listenSSE(jobId){
   currentES.onerror=()=>dbg('SSE unterbrochen.','err');
 }
 
-// ── TOKEN TESTS ──────────────────────────────────────────────
+/* ── TOKEN TESTS ── */
 function tokenChanged(t){
-  if(t==='google'){document.getElementById('tok-google-dot').className='
+  if(t==='google'){document.getElementById('tok-google-dot').className='tok-dot';document.getElementById('tok-google-label').textContent='Nicht getestet';const rb=document.getElementById('google-result-box');rb.style.display='none';rb.className='api-result-box';}
+  if(t==='pat'){document.getElementById('tok-pat-dot').className='tok-dot';document.getElementById('tok-pat-label').textContent='Nicht getestet';}
+}
+async function testGoogle(){
+  const key=v('tok-google');if(!key){setStatus('API-Key eingeben.','error');return;}
+  const dot=document.getElementById('tok-google-dot'),lbl=document.getElementById('tok-google-label'),rb=document.getElementById('google-result-box');
+  dot.className='tok-dot checking';lbl.textContent='Teste...';rb.style.display='none';
+  dbg(`POST tile.googleapis.com/v1/createSession?key=[KEY]`,'cmd');
+  try{
+    const r=await fetch(`https://tile.googleapis.com/v1/createSession?key=${key}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mapType:'streetview',language:'en-US',region:'US'})});
+    let data={};try{data=await r.json();}catch{}
+    dbg(`HTTP ${r.status} | session=${data.session||'-'} | error=${data.error?.message||'-'}`,'info');
+    rb.style.display='block';rb.textContent=`HTTP ${r.status}\nsession: ${data.session||'(keiner)'}\nerror: ${data.error?.message||'(kein Fehler)'}`;
+    if(r.status===200&&data.session){dot.className='tok-dot ok';lbl.textContent='Key g\u00fcltig \u2713';rb.className='api-result-box ok';setStatus('Key g\u00fcltig.','success');dbg('Key OK','ok');}
+    else if(r.status===403){const msg=data.error?.message||'';const reason=msg.includes('keyInvalid')?'Key ung\u00fcltig':msg.includes('not enabled')||msg.includes('accessNotConfigured')?'Map Tiles API nicht aktiviert':'Billing fehlt';dot.className='tok-dot err';lbl.textContent=reason;rb.className='api-result-box err';setStatus(reason,'error');}
+    else if(r.status===400){dot.className='tok-dot ok';lbl.textContent='Key akzeptiert \u2713';rb.className='api-result-box ok';setStatus('Key akzeptiert.','success');}
+    else{dot.className='tok-dot err';lbl.textContent=`HTTP ${r.status}`;rb.className='api-result-box err';}
+  }catch(e){dot.className='tok-dot err';lbl.textContent='Netzwerkfehler';rb.style.display='block';rb.className='api-result-box err';rb.textContent=`${e}`;setStatus(`Fehler: ${e}`,'error');}
+}
+async function testPAT(){
+  const pat=v('tok-pat');if(!pat){setStatus('PAT eingeben.','error');return;}
+  const owner=v('cfg-owner')||'basecore',repo=v('cfg-repo')||'streetview-explorer';
+  const dot=document.getElementById('tok-pat-dot'),lbl=document.getElementById('tok-pat-label'),det=document.getElementById('tok-pat-detail');
+  dot.className='tok-dot checking';lbl.textContent='Teste...';
+  try{
+    const r=await fetch(`https://api.github.com/repos/${owner}/${repo}/actions/workflows`,{headers:{'Authorization':`Bearer ${pat}`,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'}});
+    dbg(`PAT HTTP ${r.status}`,'info');
+    if(r.ok){const d=await r.json();const wf=(d.workflows||[]);dot.className='tok-dot ok';lbl.textContent=`G\u00fcltig \u2713 (${wf.length} Workflows)`;det.textContent=wf.map(w=>w.name).join(', ');setStatus('PAT g\u00fcltig.','success');}
+    else if(r.status===401){dot.className='tok-dot err';lbl.textContent='Ung\u00fcltig (401)';setStatus('PAT ung\u00fcltig.','error');}
+    else if(r.status===404){dot.className='tok-dot err';lbl.textContent='Repo nicht gefunden';}
+    else{dot.className='tok-dot err';lbl.textContent=`HTTP ${r.status}`;}
+  }catch(e){dot.className='tok-dot err';lbl.textContent=`Fehler: ${e}`;}
+}
+
+/* ── QUOTA ── */
+function loadQuota(){
+  const qd=quotaData();const now=new Date(),cm=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  if(qd.month!==cm){qd.month=cm;qd.used=0;saveQuotaData(qd);}
+  const limit=parseInt(v('quota-limit'))||qd.limit||100000;
+  const pct=Math.min(100,Math.round(qd.used/limit*100));
+  const bar=document.getElementById('quota-bar');
+  bar.style.width=`${pct}%`;bar.className='quota-bar'+(pct>=80?' danger':pct>=60?' warn':'');
+  document.getElementById('quota-used-label').textContent=`${qd.used.toLocaleString()} Tiles`;
+  document.getElementById('quota-pct-label').textContent=`${pct}%`;
+  document.getElementById('quota-limit-label').textContent=limit.toLocaleString();
+  document.getElementById('quota-month').textContent=`Monat: ${qd.month}`;
+  document.getElementById('qs-used').textContent=qd.used.toLocaleString();
+  document.getElementById('qs-pct').textContent=`${pct}%`;
+  document.getElementById('qs-remaining').textContent=(limit-qd.used).toLocaleString();
+  document.getElementById('qs-panos').textContent=Math.floor((limit-qd.used)/128).toLocaleString();
+  document.getElementById('quota-limit').value=limit;
+  document.getElementById('quota-stop-pct').value=qd.stopPct||80;
+  document.getElementById('quota-manual').value=qd.used;
+}
+function saveQuota(){const qd=quotaData();qd.limit=parseInt(v('quota-limit'))||100000;qd.stopPct=parseInt(v('quota-stop-pct'))||80;qd.used=parseInt(v('quota-manual'))||0;saveQuotaData(qd);loadQuota();setStatus('Quota gespeichert.','success');}
+function resetQuota(){const qd=quotaData();qd.used=0;saveQuotaData(qd);loadQuota();setStatus('Zur\u00fcckgesetzt.','success');}
+
+/* ── SERVER CHECK ── */
+async function checkServer(){
+  try{const r=await fetch(`${LOCAL_API}/api/status`,{signal:AbortSignal.timeout(1500)});serverOnline=r.ok;}
+  catch{serverOnline=false;}
+  const d2=document.getElementById('srv-dot2'),l2=document.getElementById('srv-label2');
+  if(d2)d2.className='srv-dot'+(serverOnline?' online':' offline');
+  if(l2)l2.textContent=serverOnline?'Lokaler Server online':'Server offline \u2014 starte streetview_server.py';
+  const ob=document.getElementById('offline-banner');if(ob)ob.style.display=(!serverOnline&&mode==='local')?'block':'none';
+}
+setInterval(checkServer,5000);
+
+/* ── JOBS ── */
+async function loadLocalJobs(){
+  const list=document.getElementById('local-jobs-list');
+  if(!serverOnline){list.innerHTML='<p style="color:var(--muted)">Server offline.</p>';return;}
+  try{
+    const r=await fetch(`${LOCAL_API}/api/jobs`);const jobs=await r.json();
+    if(!jobs.length){list.innerHTML='<p style="color:var(--muted)">Noch keine Jobs.</p>';return;}
+    list.innerHTML=jobs.slice().reverse().map(j=>{
+      const b=j.status==='success'?'<span class="badge b-s">Fertig</span>':j.status==='error'?'<span class="badge b-f">Fehler</span>':j.status==='running'?'<span class="badge b-r"><span class="spin"></span>L\u00e4uft</span>':'<span class="badge b-q">'+j.status+'</span>';
+      return `<div class="run-entry">${b} <b>${escH(j.street)}</b> <span style="font-size:.78rem;color:var(--muted);margin-left:6px">${j.quality}</span></div>`;
+    }).join('');
+  }catch(e){list.innerHTML=`<p style="color:var(--error)">${e}</p>`;}
+}
+async function loadCloudJobs(){
+  const pat=v('tok-pat'),owner=v('cfg-owner')||'basecore',repo=v('cfg-repo')||'streetview-explorer',wf=v('cfg-workflow')||'download.yml';
+  const list=document.getElementById('cloud-jobs-list');
+  if(!pat){list.innerHTML='<p style="color:var(--muted)">PAT eingeben.</p>';return;}
+  list.innerHTML='<p style="color:var(--muted)"><span class="spin"></span>L\u00e4dt...</p>';
+  try{
+    const r=await fetch(`https://api.github.com/repos/${owner}/${repo}/actions/workflows/${wf}/runs?per_page=10`,{headers:{'Authorization':`Bearer ${pat}`,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'}});
+    if(!r.ok){list.innerHTML=`<p style="color:var(--error)">Fehler ${r.status}</p>`;return;}
+    const data=await r.json();const runs=data.workflow_runs||[];
+    if(!runs.length){list.innerHTML='<p style="color:var(--muted)">Keine Jobs.</p>';return;}
+    list.innerHTML=runs.map(run=>{
+      const b=run.status==='completed'?(run.conclusion==='success'?'<span class="badge b-s">Fertig</span>':'<span class="badge b-f">Fehler</span>'):'<span class="badge b-r"><span class="spin"></span>L\u00e4uft</span>';
+      const dt=new Date(run.created_at).toLocaleString('de-DE');
+      return `<div class="run-entry"><div style="font-weight:600;margin-bottom:4px">${b} #${run.run_number}</div><div style="font-size:.75rem;color:var(--muted);margin-bottom:6px">${dt}</div><a href="${run.html_url}" target="_blank" class="btn btn-ghost" style="padding:5px 10px;font-size:.75rem;text-decoration:none">Ansehen &rarr;</a></div>`;
+    }).join('');
+  }catch(e){list.innerHTML=`<p style="color:var(--error)">${e}</p>`;}
+}
+setInterval(()=>{if(jobsMode==='cloud'&&document.getElementById('tab-jobs').classList.contains('active'))loadCloudJobs();},15000);
+setInterval(()=>{if(jobsMode==='local'&&document.getElementById('tab-jobs').classList.contains('active'))loadLocalJobs();},5000);
+
+/* ── INIT ── */
+dbg(`StreetView Explorer ${APP_VERSION} gestartet`,'ok');
+dbg('Browser-Modus aktiv (kein lokaler Server n\u00f6tig f\u00fcr Karte/Suche)','info');
+dbg('F\u00fcr Downloads: python3 streetview_server.py starten','warn');
+loadQuota();checkServer();setMode('local');
+</script>
+</body>
+</html>
