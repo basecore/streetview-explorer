@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+downloads/
+state/
+*.json
+!requirements*.txt
+.env
+*.log
+*.jpg
+*.png
+*.webp

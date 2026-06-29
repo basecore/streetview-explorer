@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>StreetView Explorer Map</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  html,body{margin:0;padding:0;height:100%;background:#111}
+  #map{height:100vh;width:100vw}
+  #toolbar{
+    position:absolute;top:12px;left:60px;z-index:9999;
+    display:flex;gap:8px;flex-wrap:wrap;
+  }
+  .tbtn{
+    padding:8px 14px;border-radius:8px;border:none;cursor:pointer;
+    font-size:13px;font-weight:600;background:#2563eb;color:#fff;
+    box-shadow:0 2px 8px rgba(0,0,0,.3);
+  }
+  .tbtn.active{background:#16a34a}
+  .tbtn.danger{background:#dc2626}
+  #status{
+    position:absolute;bottom:12px;left:50%;transform:translateX(-50%);
+    background:rgba(0,0,0,.72);color:#fff;padding:8px 18px;
+    border-radius:999px;font-size:13px;z-index:9999;
+    pointer-events:none;
+  }
+  .pano-marker{
+    width:12px;height:12px;border-radius:50%;
+    background:#facc15;border:2px solid #92400e;
+    box-shadow:0 0 6px rgba(250,204,21,.8);
+  }
+</style>
+</head>
+<body>
+<div id="toolbar">
+  <button class="tbtn" id="btnMode" onclick="toggleMode()">📍 Punkt-Modus</button>
+  <button class="tbtn" id="btnRoute" onclick="startRoute()">〰 Route zeichnen</button>
+  <button class="tbtn danger" id="btnClear" onclick="clearAll()">🗑 Alles löschen</button>
+  <button class="tbtn" id="btnFinish" style="display:none" onclick="finishRoute()">✅ Route fertig</button>
+</div>
+<div id="map"></div>
+<div id="status">Klick auf die Karte für einen Panorama-Punkt</div>
+
+<script>
+const map = L.map('map').setView([51.1657,10.4515],6);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+  attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  maxZoom:19
+}).addTo(map);
+
+let mode = 'point'; // 'point' | 'route'
+let routePoints = [];
+let routePolyline = null;
+let markers = [];
+let selectedMarker = null;
+
+function setStatus(msg){document.getElementById('status').textContent=msg}
+
+function toggleMode(){
+  if(mode==='route') return;
+  mode = mode==='point' ? 'info' : 'point';
+  document.getElementById('btnMode').textContent =
+    mode==='point' ? '📍 Punkt-Modus' : '🔍 Info-Modus';
+  setStatus(mode==='point' ? 'Klick → nächste Panorama suchen' : 'Modus: Info');
+}
+
+function startRoute(){
+  mode='route';
+  routePoints=[];
+  document.getElementById('btnFinish').style.display='';
+  document.getElementById('btnRoute').classList.add('active');
+  setStatus('Klicke Wegpunkte auf die Karte. "Route fertig" zum Abschließen.');
+}
+
+function finishRoute(){
+  if(routePoints.length<2){setStatus('Mindestens 2 Punkte nötig.');return;}
+  mode='point';
+  document.getElementById('btnFinish').style.display='none';
+  document.getElementById('btnRoute').classList.remove('active');
+  const payload = JSON.stringify({type:'route', points:routePoints});
+  setStatus('Route gespeichert mit '+routePoints.length+' Wegpunkten.');
+  if(window.pybridge){window.pybridge.on_route(payload);}
+  else{console.log('SVEX_ROUTE:'+payload);}
+}
+
+function clearAll(){
+  markers.forEach(m=>map.removeLayer(m));
+  markers=[];
+  if(routePolyline){map.removeLayer(routePolyline);routePolyline=null;}
+  routePoints=[];
+  selectedMarker=null;
+  setStatus('Alles gelöscht.');
+  if(window.pybridge){window.pybridge.on_clear();}
+  else{console.log('SVEX_CLEAR');}
+}
+
+function addPanoMarker(lat,lng,pano_id,color){
+  const icon = L.divIcon({className:'',html:`<div class="pano-marker" style="background:${color||'#facc15'}"></div>`,iconSize:[12,12]});
+  const m = L.marker([lat,lng],{icon}).addTo(map);
+  m.bindPopup(`<b>${pano_id}</b><br>${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+  markers.push(m);
+  return m;
+}
+
+map.on('click',function(e){
+  const {lat,lng} = e.latlng;
+  if(mode==='route'){
+    routePoints.push([lat,lng]);
+    if(routePolyline){map.removeLayer(routePolyline);}
+    routePolyline = L.polyline(routePoints,{color:'#3b82f6',weight:4,opacity:0.85}).addTo(map);
+    const dot = L.circleMarker([lat,lng],{radius:5,color:'#3b82f6',fillOpacity:1}).addTo(map);
+    markers.push(dot);
+    setStatus('Wegpunkt '+routePoints.length+' gesetzt.');
+    return;
+  }
+  setStatus('Suche Panorama bei '+lat.toFixed(5)+', '+lng.toFixed(5)+' …');
+  const payload = JSON.stringify({type:'point',lat,lng});
+  if(window.pybridge){window.pybridge.on_click(payload);}
+  else{console.log('SVEX_CLICK:'+payload);}
+});
+
+// Called from Python to place a found panorama marker
+window.addMarker = function(lat,lng,pano_id,color){
+  const m = addPanoMarker(lat,lng,pano_id,color);
+  m.openPopup();
+  setStatus('Panorama gefunden: '+pano_id);
+};
+
+window.setStatus = setStatus;
+</script>
+</body>
+</html>
