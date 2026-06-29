@@ -1,0 +1,89 @@
+name: Download Street View Panoramas
+
+on:
+  workflow_dispatch:
+    inputs:
+      street:
+        description: 'Strassenname (z. B. Berger Strasse)'
+        required: true
+        default: 'Berger Strasse'
+      city:
+        description: 'Stadt (z. B. Frankfurt am Main)'
+        required: true
+        default: 'Frankfurt am Main'
+      quality:
+        description: 'Bildqualitaet'
+        required: true
+        default: 'medium'
+        type: choice
+        options:
+          - low
+          - medium
+          - high
+      sampling:
+        description: 'Sampling-Abstand in Metern (5=vollstaendig, 15=schneller)'
+        required: true
+        default: '10'
+      radius:
+        description: 'Suchradius pro Punkt in Metern'
+        required: true
+        default: '8'
+      historical:
+        description: 'Historische Aufnahmen laden'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+      api_key:
+        description: 'Google Maps API Key'
+        required: true
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests Pillow streetview-dl
+          echo "[OK] Pakete installiert"
+          streetview-dl --version || echo "[WARN] streetview-dl version check failed"
+
+      - name: Run headless downloader
+        env:
+          GOOGLE_MAPS_API_KEY: ${{ github.event.inputs.api_key }}
+        run: |
+          python streetview_headless.py \
+            --street "${{ github.event.inputs.street }}" \
+            --city   "${{ github.event.inputs.city }}" \
+            --quality "${{ github.event.inputs.quality }}" \
+            --sampling "${{ github.event.inputs.sampling }}" \
+            --radius "${{ github.event.inputs.radius }}" \
+            --historical "${{ github.event.inputs.historical }}" \
+            --output ./panoramas
+
+      - name: List downloaded files
+        run: |
+          echo "=== Heruntergeladene Dateien ==="
+          find ./panoramas -type f | sort
+          echo "Gesamt: $(find ./panoramas -type f | wc -l) Dateien"
+
+      - name: Upload panoramas as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: panoramas-${{ github.event.inputs.street }}-${{ github.event.inputs.city }}
+          path: ./panoramas/
+          retention-days: 7
+          if-no-files-found: warn
