@@ -18,13 +18,9 @@ import os
 import subprocess
 import sys
 import time
-import traceback
 from datetime import datetime
 from pathlib import Path
 
-# ---------------------------------------------------------------------------
-# Logging
-# ---------------------------------------------------------------------------
 logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s  [%(levelname)-7s]  %(message)s",
@@ -32,9 +28,7 @@ logging.basicConfig(
 )
 log = logging.getLogger("svex-headless")
 
-# ---------------------------------------------------------------------------
-# Geo helpers
-# ---------------------------------------------------------------------------
+
 def haversine(la1, lo1, la2, lo2):
     R = 6_371_000
     p1, p2 = math.radians(la1), math.radians(la2)
@@ -67,8 +61,9 @@ def interpolate(coords, every_m):
 
 def geocode_street(street, city):
     import requests
+
     q = f"{street}, {city}"
-    log.info("Geocode: %s", q)
+    log.info("Geocode Versuch 1: %s", q)
     r = requests.get(
         "https://nominatim.openstreetmap.org/search",
         params={"q": q, "format": "json", "polygon_geojson": 1, "limit": 1},
@@ -77,8 +72,40 @@ def geocode_street(street, city):
     )
     r.raise_for_status()
     data = r.json()
+
     if not data:
-        raise RuntimeError(f"Nicht gefunden: {q}")
+        log.warning("Versuch 1 erfolglos, versuche strukturierte Abfrage...")
+        r2 = requests.get(
+            "https://nominatim.openstreetmap.org/search",
+            params={
+                "street": street,
+                "city": city,
+                "format": "json",
+                "polygon_geojson": 1,
+                "limit": 1,
+                "addressdetails": 1,
+            },
+            headers={"User-Agent": "streetview-explorer/2.0-headless"},
+            timeout=20,
+        )
+        r2.raise_for_status()
+        data = r2.json()
+
+    if not data:
+        log.error(
+            "Geocode fehlgeschlagen fuer: \"%s\"\n"
+            "  TIPP: Nutze den exakten Strassennamen aus OpenStreetMap.\n"
+            "  Richtig:   --street 'Berger Strasse'  --city 'Frankfurt am Main'\n"
+            "  Falsch:    --street 'Karte'  (kein gueltiger Strassenname)\n"
+            "  Testen:    https://nominatim.openstreetmap.org/ui/search.html?q=%s",
+            q, q.replace(" ", "+")
+        )
+        raise RuntimeError(
+            f"Nicht gefunden: \"{q}\"\n"
+            f"Bitte einen gueltigen Strassennamen + Stadt angeben.\n"
+            f"Beispiel: --street 'Berger Strasse'  --city 'Frankfurt am Main'"
+        )
+
     geo = data[0].get("geojson", {})
     t, c = geo.get("type"), geo.get("coordinates", [])
     log.info("Geometrie: %s  Punkte: %d", t, len(c))
@@ -131,20 +158,17 @@ def build_download_cmd(url_file, outdir, quality, historical):
     return cmd
 
 
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
 def main():
     parser = argparse.ArgumentParser(description="StreetView Explorer Headless")
-    parser.add_argument("--street",    required=True)
-    parser.add_argument("--city",      required=True)
-    parser.add_argument("--quality",   default="medium", choices=["low", "medium", "high"])
-    parser.add_argument("--sampling",  type=int,   default=10)
-    parser.add_argument("--radius",    type=int,   default=8)
-    parser.add_argument("--max-results", type=int, default=5)
-    parser.add_argument("--pause",     type=float, default=0.3)
-    parser.add_argument("--historical", default="false")
-    parser.add_argument("--output",    default="./panoramas")
+    parser.add_argument("--street",      required=True, help="Strassenname (z.B. Berger Strasse)")
+    parser.add_argument("--city",        required=True, help="Stadt (z.B. Frankfurt am Main)")
+    parser.add_argument("--quality",     default="medium", choices=["low", "medium", "high"])
+    parser.add_argument("--sampling",    type=int,   default=10)
+    parser.add_argument("--radius",      type=int,   default=8)
+    parser.add_argument("--max-results", type=int,   default=5)
+    parser.add_argument("--pause",       type=float, default=0.3)
+    parser.add_argument("--historical",  default="false")
+    parser.add_argument("--output",      default="./panoramas")
     args = parser.parse_args()
 
     historical = args.historical.lower() == "true"
@@ -166,21 +190,18 @@ def main():
     log.info("  Output   : %s", outdir)
     log.info("=" * 60)
 
-    # 1. Geocode
     try:
         coords = geocode_street(args.street, args.city)
     except Exception as e:
-        log.error("Geocode fehlgeschlagen: %s", e)
+        log.error("Geocode fehlgeschlagen:\n%s", e)
         sys.exit(1)
 
-    # 2. Interpolate
     points = interpolate(coords, args.sampling)
-    total  = len(points)
+    total = len(points)
     log.info("Sample-Punkte: %d", total)
 
-    # 3. Query panoramas
     pano_ids = set()
-    panos    = []
+    panos = []
     dup_streak = 0
 
     for idx, (lat, lng) in enumerate(points, 1):
@@ -213,7 +234,6 @@ def main():
         log.warning("Keine Panoramen gefunden. Pruefe API-Key und Strassenname.")
         sys.exit(0)
 
-    # 4. Write URL file
     import re
     safe = re.sub(r"[^\w]", "_", f"{args.street}_{args.city}").lower()
     url_file = outdir / f"streetview_urls_{safe}.txt"
@@ -223,9 +243,8 @@ def main():
                 f"https://www.google.com/maps/@{p['lat']},{p['lng']},"
                 f"3a,75y,0h,90t/data=!3m7!1e1!3m5!1s{p['pano_id']}!\n"
             )
-    log.info("URL-Datei geschrieben: %s (%d Eintraege)", url_file, len(panos))
+    log.info("URL-Datei: %s (%d Eintraege)", url_file, len(panos))
 
-    # 5. Write metadata JSON
     meta_file = outdir / f"metadata_{safe}.json"
     meta_file.write_text(json.dumps({
         "street": args.street,
@@ -238,9 +257,8 @@ def main():
         "timestamp": datetime.now().isoformat(timespec="seconds"),
         "panoramas": panos,
     }, indent=2, ensure_ascii=False))
-    log.info("Metadaten geschrieben: %s", meta_file)
+    log.info("Metadaten: %s", meta_file)
 
-    # 6. Download
     TILES = {"low": 32, "medium": 128, "high": 512}
     est_tiles = len(panos) * TILES.get(args.quality, 128)
     if historical:
@@ -264,7 +282,7 @@ def main():
 
     downloaded = list(outdir.glob("**/*.jpg")) + list(outdir.glob("**/*.png"))
     log.info("=" * 60)
-    log.info("FERTIG: %d Bilder heruntergeladen -> %s", len(downloaded), outdir)
+    log.info("FERTIG: %d Bilder -> %s", len(downloaded), outdir)
     log.info("=" * 60)
 
 
