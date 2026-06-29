@@ -160,15 +160,16 @@ def build_download_cmd(url_file, outdir, quality, historical):
 
 def main():
     parser = argparse.ArgumentParser(description="StreetView Explorer Headless")
-    parser.add_argument("--street",      required=True, help="Strassenname (z.B. Berger Strasse)")
-    parser.add_argument("--city",        required=True, help="Stadt (z.B. Frankfurt am Main)")
-    parser.add_argument("--quality",     default="medium", choices=["low", "medium", "high"])
-    parser.add_argument("--sampling",    type=int,   default=10)
-    parser.add_argument("--radius",      type=int,   default=8)
-    parser.add_argument("--max-results", type=int,   default=5)
-    parser.add_argument("--pause",       type=float, default=0.3)
-    parser.add_argument("--historical",  default="false")
-    parser.add_argument("--output",      default="./panoramas")
+    parser.add_argument("--street",         required=True, help="Strassenname")
+    parser.add_argument("--city",           required=True, help="Stadt")
+    parser.add_argument("--quality",        default="medium", choices=["low","medium","high"])
+    parser.add_argument("--sampling",       type=int,   default=10)
+    parser.add_argument("--radius",         type=int,   default=8)
+    parser.add_argument("--max-results",    type=int,   default=5)
+    parser.add_argument("--pause",          type=float, default=0.3)
+    parser.add_argument("--historical",     default="false")
+    parser.add_argument("--output",         default="./panoramas")
+    parser.add_argument("--pano-ids-file",  default=None, help="JSON-Datei mit vorher gefundenen pano_ids (ueberspringt Geocoding)")
     args = parser.parse_args()
 
     historical = args.historical.lower() == "true"
@@ -190,48 +191,80 @@ def main():
     log.info("  Output   : %s", outdir)
     log.info("=" * 60)
 
-    try:
-        coords = geocode_street(args.street, args.city)
-    except Exception as e:
-        log.error("Geocode fehlgeschlagen:\n%s", e)
-        sys.exit(1)
-
-    points = interpolate(coords, args.sampling)
-    total = len(points)
-    log.info("Sample-Punkte: %d", total)
-
-    pano_ids = set()
     panos = []
-    dup_streak = 0
 
-    for idx, (lat, lng) in enumerate(points, 1):
-        log.info("[%d/%d] Query lat=%.6f lng=%.6f", idx, total, lat, lng)
-        results = query_point(lat, lng, args.radius, args.max_results)
-        new = 0
-        for p in results:
-            pid = p.get("pano_id")
-            if pid and pid not in pano_ids:
-                pano_ids.add(pid)
+    # ── MODUS A: pano_ids direkt uebergeben → kein Geocoding noetig ──
+    if args.pano_ids_file:
+        log.info("pano-ids-file gesetzt: %s  -> Geocoding wird uebersprungen", args.pano_ids_file)
+        try:
+            with open(args.pano_ids_file) as f:
+                pano_ids_list = json.load(f)
+            log.info("Geladene pano_ids: %d", len(pano_ids_list))
+            for pid in pano_ids_list:
                 panos.append({
                     "pano_id": pid,
-                    "lat": p.get("lat", lat),
-                    "lng": p.get("lng", lng),
-                    "date": p.get("date", "?"),
+                    "lat": 0.0,
+                    "lng": 0.0,
+                    "date": "?",
                 })
-                new += 1
-                log.info("  [NEU] pano_id=%s  date=%s", pid, p.get("date", "?"))
-        dup_streak = (dup_streak + 1) if new == 0 else 0
-        log.debug("  neu=%d  gesamt=%d  dup_streak=%d", new, len(pano_ids), dup_streak)
-        if dup_streak >= 8:
-            log.info("  8x keine neuen pano_ids - Abschnitt vollstaendig.")
-            dup_streak = 0
-        time.sleep(args.pause)
+        except Exception as e:
+            log.error("Fehler beim Lesen von pano-ids-file: %s", e)
+            sys.exit(1)
 
-    log.info("=" * 60)
-    log.info("Gefundene Panoramen: %d", len(panos))
+    # ── MODUS B: Geocoding + Discovery ──
+    else:
+        street = args.street.strip()
+        city   = args.city.strip()
+        INVALID = {"unbekannt", "karte", "map", "unknown", ""}
+        if street.lower() in INVALID:
+            log.error(
+                "Ungültiger Strassenname: \"%s\"\n"
+                "  Bitte im Karte-Tab eine Strasse suchen (z.B. 'Berger Strasse, Frankfurt am Main')\n"
+                "  und dann 'Panoramen suchen' + 'Lokal laden' drücken.",
+                street
+            )
+            sys.exit(1)
+
+        try:
+            coords = geocode_street(street, city)
+        except Exception as e:
+            log.error("Geocode fehlgeschlagen:\n%s", e)
+            sys.exit(1)
+
+        points = interpolate(coords, args.sampling)
+        total  = len(points)
+        log.info("Sample-Punkte: %d", total)
+
+        pano_ids = set()
+        dup_streak = 0
+
+        for idx, (lat, lng) in enumerate(points, 1):
+            log.info("[%d/%d] Query lat=%.6f lng=%.6f", idx, total, lat, lng)
+            results = query_point(lat, lng, args.radius, args.max_results)
+            new = 0
+            for p in results:
+                pid = p.get("pano_id")
+                if pid and pid not in pano_ids:
+                    pano_ids.add(pid)
+                    panos.append({
+                        "pano_id": pid,
+                        "lat": p.get("lat", lat),
+                        "lng": p.get("lng", lng),
+                        "date": p.get("date", "?"),
+                    })
+                    new += 1
+                    log.info("  [NEU] pano_id=%s  date=%s", pid, p.get("date", "?"))
+            dup_streak = (dup_streak + 1) if new == 0 else 0
+            if dup_streak >= 8:
+                log.info("  8x keine neuen pano_ids - Abschnitt vollstaendig.")
+                dup_streak = 0
+            time.sleep(args.pause)
+
+        log.info("=" * 60)
+        log.info("Gefundene Panoramen: %d", len(panos))
 
     if not panos:
-        log.warning("Keine Panoramen gefunden. Pruefe API-Key und Strassenname.")
+        log.warning("Keine Panoramen gefunden.")
         sys.exit(0)
 
     import re
@@ -247,15 +280,15 @@ def main():
 
     meta_file = outdir / f"metadata_{safe}.json"
     meta_file.write_text(json.dumps({
-        "street": args.street,
-        "city": args.city,
-        "quality": args.quality,
-        "sampling_m": args.sampling,
-        "radius_m": args.radius,
-        "historical": historical,
-        "panoramas_found": len(panos),
-        "timestamp": datetime.now().isoformat(timespec="seconds"),
-        "panoramas": panos,
+        "street":           args.street,
+        "city":             args.city,
+        "quality":          args.quality,
+        "sampling_m":       args.sampling,
+        "radius_m":         args.radius,
+        "historical":       historical,
+        "panoramas_found":  len(panos),
+        "timestamp":        datetime.now().isoformat(timespec="seconds"),
+        "panoramas":        panos,
     }, indent=2, ensure_ascii=False))
     log.info("Metadaten: %s", meta_file)
 
