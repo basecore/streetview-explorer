@@ -272,33 +272,181 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--pr
 <!-- TAB: EINSTELLUNGEN -->
 <div class="tab-content" id="tab-config">
 <div class="tab-body tab-body-bare">
+
   <div class="card">
-    <h3>&#127981; Parameter</h3>
+    <h3>🏭 Basis-Parameter</h3>
     <div class="grid">
-      <div><label>Bildqualit&auml;t</label>
+      <div>
+        <label>Bildqualität</label>
         <select id="cfg-quality">
-          <option value="low">low &mdash; 32 Tiles</option>
-          <option value="medium" selected>medium &mdash; 128 Tiles</option>
-          <option value="high">high &mdash; 512 Tiles</option>
-        </select></div>
-      <div><label>Sampling-Abstand (m)</label>
+          <option value="low">low — 32 Tiles/Pano</option>
+          <option value="medium" selected>medium — 128 Tiles/Pano</option>
+          <option value="high">high — 512 Tiles/Pano</option>
+        </select>
+        <p class="hint">Direkt proportional zum API-Quota-Verbrauch.</p>
+      </div>
+      <div>
+        <label>Sampling-Abstand (m)</label>
         <input type="number" id="cfg-sampling" value="10" min="1" max="500"/>
-        <p class="hint">5=dicht &middot; 15=schnell &middot; 30=grob</p></div>
-      <div><label>Suchradius (m)</label>
-        <input type="number" id="cfg-radius" value="8" min="1" max="200"/></div>
-      <div><label>Historische Aufnahmen</label>
-        <select id="cfg-historical">
-          <option value="false" selected>Nein</option>
-          <option value="true">Ja (alle Epochen)</option>
-        </select></div>
-      <div><label>Ausgabeordner</label>
-        <input type="text" id="cfg-output" value="./downloads"/></div>
-      <div><label>Max. Ergebnisse/Punkt</label>
-        <input type="number" id="cfg-maxresults" value="5" min="1" max="20"/></div>
+        <p class="hint">5 = sehr dicht · 15 = schnell · 30 = grob</p>
+      </div>
+      <div>
+        <label>Suchradius (m)</label>
+        <input type="number" id="cfg-radius" value="8" min="1" max="200"/>
+        <p class="hint">Radius um jeden Sample-Punkt.</p>
+      </div>
+      <div>
+        <label>Max. Ergebnisse/Punkt</label>
+        <input type="number" id="cfg-maxresults" value="5" min="1" max="20"/>
+      </div>
+      <div>
+        <label>Ausgabeordner</label>
+        <input type="text" id="cfg-output" value="./downloads"/>
+      </div>
+      <div>
+        <label>Pause zwischen Anfragen (s)</label>
+        <input type="number" id="cfg-pause" value="0.3" min="0" max="5" step="0.1"/>
+        <p class="hint">Verhindert Rate-Limiting.</p>
+      </div>
     </div>
   </div>
+
   <div class="card">
-    <h3>&#9729; GitHub Actions</h3>
+    <h3>🕰 Historische Aufnahmen</h3>
+    <div class="grid">
+      <div>
+        <label>Historische Suche</label>
+        <select id="cfg-historical">
+          <option value="false" selected>Nein — nur aktuellste</option>
+          <option value="true">Ja — alle verfügbaren Epochen</option>
+        </select>
+        <p class="hint">Erhöht Tiles ~2.5x (alle Epochen).</p>
+      </div>
+      <div>
+        <label>Datum von (YYYY-MM)</label>
+        <input type="text" id="cfg-date-from" placeholder="2015-01"/>
+        <p class="hint">Leer = kein Filter</p>
+      </div>
+      <div>
+        <label>Datum bis (YYYY-MM)</label>
+        <input type="text" id="cfg-date-to" placeholder="2024-12"/>
+      </div>
+      <div>
+        <label>Max. Alter (Monate)</label>
+        <input type="number" id="cfg-max-age" value="" placeholder="z.B. 24" min="1"/>
+        <p class="hint">Nur Aufnahmen jünger als X Monate.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>🎥 Field of View & Framing</h3>
+    <div class="grid">
+      <div>
+        <label>Heading (Blickrichtung °)</label>
+        <input type="number" id="cfg-heading" value="0" min="0" max="360"/>
+        <p class="hint">0 = Nord · 90 = Ost · 180 = Süd · 270 = West</p>
+      </div>
+      <div>
+        <label>Pitch (Neigung °)</label>
+        <input type="number" id="cfg-pitch" value="0" min="-90" max="90"/>
+        <p class="hint">0 = horizontal · 90 = hoch · -90 = runter</p>
+      </div>
+      <div>
+        <label>FOV — Field of View (°)</label>
+        <input type="number" id="cfg-fov" value="90" min="10" max="120"/>
+        <p class="hint">Standard: 90° · Klein = Zoom · Groß = Weitwinkel</p>
+      </div>
+      <div>
+        <label>Zoom-Level</label>
+        <select id="cfg-zoom">
+          <option value="0">0 — Weitwinkel</option>
+          <option value="1">1</option>
+          <option value="2" selected>2 — Standard</option>
+          <option value="3">3</option>
+          <option value="4">4 — Tele</option>
+          <option value="5">5 — Max. Zoom</option>
+        </select>
+      </div>
+      <div>
+        <label>Bildbreite (px)</label>
+        <input type="number" id="cfg-width" value="640" min="64" max="2048" step="64"/>
+      </div>
+      <div>
+        <label>Bildhöhe (px)</label>
+        <input type="number" id="cfg-height" value="640" min="64" max="2048" step="64"/>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>🔍 Filter</h3>
+    <div class="grid">
+      <div>
+        <label>Nur Outdoor</label>
+        <select id="cfg-outdoor">
+          <option value="" selected>Kein Filter</option>
+          <option value="true">Ja — nur Outdoor</option>
+          <option value="false">Nein — nur Indoor</option>
+        </select>
+      </div>
+      <div>
+        <label>Nur Google-Aufnahmen</label>
+        <select id="cfg-source">
+          <option value="" selected>Alle (Google + User)</option>
+          <option value="google">Nur offizielle Google</option>
+          <option value="user">Nur User-Beiträge</option>
+        </select>
+      </div>
+      <div>
+        <label>Min. Bildqualitätswert</label>
+        <input type="number" id="cfg-min-quality-score" value="" placeholder="0.0–1.0" min="0" max="1" step="0.05"/>
+        <p class="hint">Leer = kein Filter</p>
+      </div>
+      <div>
+        <label>Max. Distanz vom Punkt (m)</label>
+        <input type="number" id="cfg-max-dist" value="" placeholder="z.B. 15" min="1" max="500"/>
+        <p class="hint">Filtert weit entfernte Panoramen.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>🖼 Cropping & Output</h3>
+    <div class="grid">
+      <div>
+        <label>Ausgabeformat</label>
+        <select id="cfg-format">
+          <option value="jpg" selected>JPEG</option>
+          <option value="png">PNG</option>
+          <option value="webp">WebP</option>
+        </select>
+      </div>
+      <div>
+        <label>JPEG-Qualität (%)</label>
+        <input type="number" id="cfg-jpg-quality" value="85" min="10" max="100"/>
+      </div>
+      <div>
+        <label>Crop links (px)</label>
+        <input type="number" id="cfg-crop-left" value="0" min="0"/>
+      </div>
+      <div>
+        <label>Crop rechts (px)</label>
+        <input type="number" id="cfg-crop-right" value="0" min="0"/>
+      </div>
+      <div>
+        <label>Crop oben (px)</label>
+        <input type="number" id="cfg-crop-top" value="0" min="0"/>
+      </div>
+      <div>
+        <label>Crop unten (px)</label>
+        <input type="number" id="cfg-crop-bottom" value="0" min="0"/>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>⚙️ GitHub Actions</h3>
     <div class="grid">
       <div><label>Owner</label><input type="text" id="cfg-owner" value="basecore"/></div>
       <div><label>Repository</label><input type="text" id="cfg-repo" value="streetview-explorer"/></div>
@@ -306,14 +454,27 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--pr
       <div><label>Workflow</label><input type="text" id="cfg-workflow" value="download.yml"/></div>
     </div>
   </div>
-</div>
-</div>
 
+</div>
+</div>
 <!-- TAB: API-KEYS -->
 <div class="tab-content" id="tab-tokens">
 <div class="tab-body tab-body-bare">
+
+  <div class="card" style="background:#1a2a1a;border-color:#2a4a2a;margin-bottom:14px">
+    <div style="display:flex;align-items:center;gap:8px;font-size:.82rem;color:#68a83f">
+      <span style="font-size:1.1rem">🔒</span>
+      <span><b style="color:#8cd060">AES-256-GCM verschlüsselt</b> — Keys werden gerätegebunden im localStorage gespeichert. Kein Server, kein Klartext.</span>
+    </div>
+    <div class="actions" style="margin-top:10px">
+      <button class="btn btn-local" onclick="saveAllKeys()">💾 Keys speichern</button>
+      <button class="btn btn-ghost" onclick="loadAllKeys()">📂 Keys laden</button>
+      <button class="btn btn-danger" onclick="clearAllKeys()">🗑 Keys löschen</button>
+    </div>
+  </div>
+
   <div class="card">
-    <h3>&#128273; Google Maps API-Key</h3>
+    <h3>🔑 Google Maps API-Key</h3>
     <div class="pw-wrap" style="margin-bottom:8px">
       <input type="password" id="tok-google" placeholder="AIza..." oninput="tokenChanged('google')"/>
       <button class="eye" onclick="togglePw('tok-google')">Anzeigen</button>
@@ -323,24 +484,25 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--pr
       <span class="tok-label" id="tok-google-label">Nicht getestet</span>
       <span class="tok-detail" id="tok-google-detail"></span>
     </div>
-    <div class="actions"><button class="btn btn-primary" onclick="testGoogle()">&#9654; Key testen</button></div>
+    <div class="actions"><button class="btn btn-primary" onclick="testGoogle()">▶ Key testen</button></div>
     <div class="api-result-box" id="google-result-box"></div>
     <div class="sep"></div>
     <details>
-      <summary style="cursor:pointer;font-size:.82rem;color:var(--muted)">&#128214; Anleitung: API-Key erstellen</summary>
+      <summary style="cursor:pointer;font-size:.82rem;color:var(--muted)">📖 Anleitung: API-Key erstellen</summary>
       <div style="font-size:.82rem;color:var(--muted);line-height:1.8;margin-top:8px">
         <ol style="margin-left:16px">
           <li><a href="https://console.cloud.google.com" target="_blank" class="hint-link">console.cloud.google.com</a></li>
-          <li>APIs &rarr; Bibliothek &rarr; <b style="color:var(--text)">Map Tiles API</b> &rarr; Aktivieren</li>
-          <li>APIs &rarr; Anmeldedaten &rarr; <b style="color:var(--text)">+ API-Schl&uuml;ssel</b></li>
+          <li>APIs → Bibliothek → <b style="color:var(--text)">Map Tiles API</b> → Aktivieren</li>
+          <li>APIs → Anmeldedaten → <b style="color:var(--text)">+ API-Schlüssel</b></li>
           <li>Abrechnung aktivieren (Pflicht)</li>
         </ol>
         <p style="margin-top:6px"><b style="color:var(--text)">Kostenlos</b> bis 100.000 Tiles/Monat.</p>
       </div>
     </details>
   </div>
+
   <div class="card">
-    <h3>&#128273; GitHub PAT (Cloud-Modus)</h3>
+    <h3>🔑 GitHub PAT (Cloud-Modus)</h3>
     <div class="pw-wrap" style="margin-bottom:8px">
       <input type="password" id="tok-pat" placeholder="github_pat_..." oninput="tokenChanged('pat')"/>
       <button class="eye" onclick="togglePw('tok-pat')">Anzeigen</button>
@@ -350,18 +512,19 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--pr
       <span class="tok-label" id="tok-pat-label">Nicht getestet</span>
       <span class="tok-detail" id="tok-pat-detail"></span>
     </div>
-    <div class="actions"><button class="btn btn-primary" onclick="testPAT()">&#9654; Token testen</button></div>
+    <div class="actions"><button class="btn btn-primary" onclick="testPAT()">▶ Token testen</button></div>
     <div class="sep"></div>
     <details>
-      <summary style="cursor:pointer;font-size:.82rem;color:var(--muted)">&#128214; PAT erstellen</summary>
+      <summary style="cursor:pointer;font-size:.82rem;color:var(--muted)">📖 PAT erstellen</summary>
       <div style="font-size:.82rem;color:var(--muted);line-height:1.8;margin-top:8px">
         <ol style="margin-left:16px">
           <li><a href="https://github.com/settings/tokens?type=beta" target="_blank" class="hint-link">github.com/settings/tokens</a></li>
-          <li>Repo: streetview-explorer &middot; Permissions: Actions Read+Write</li>
+          <li>Repo: streetview-explorer · Permissions: Actions Read+Write</li>
         </ol>
       </div>
     </details>
   </div>
+
 </div>
 </div>
 
@@ -372,7 +535,8 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--pr
     <h3>&#128202; Tile-Verbrauch</h3>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
       <span style="font-size:.8rem;color:var(--muted)" id="quota-month"></span>
-      <button class="btn btn-ghost" style="padding:5px 10px;font-size:.77rem" onclick="loadQuota()">&#8635;</button>
+      <button class="btn btn-ghost" style="padding:5px 10px;font-size:.77rem" onclick="loadQuota()">↺ Lokal</button>
+      <button class="btn btn-primary" style="padding:5px 10px;font-size:.77rem" onclick="recalcQuotaFromGitHub().then(loadQuota)">☁ GitHub sync</button>
     </div>
     <div class="quota-bar-wrap"><div class="quota-bar" id="quota-bar" style="width:0%"></div></div>
     <div class="quota-numbers">
@@ -468,6 +632,81 @@ let foundPanos=[],currentJobId=null,currentES=null,serverOnline=false;
 let gpsLat=null,gpsLng=null,gpsAddr='';
 let hasPoint=false,hasLine=false;
 
+/* ── CRYPTO: API-Keys verschlüsselt speichern ── */
+const CRYPTO_SALT = 'svex-v3.5-salt-x9k2';
+
+async function deriveKey(password) {
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw', enc.encode(password + CRYPTO_SALT), { name: 'PBKDF2' }, false, ['deriveKey']
+  );
+  return crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt: enc.encode(CRYPTO_SALT), iterations: 100000, hash: 'SHA-256' },
+    keyMaterial, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']
+  );
+}
+
+async function encryptValue(plaintext) {
+  // Fingerprint als Passwort: UserAgent + Sprache (gerätegebunden, kein Server nötig)
+  const fp = navigator.userAgent + navigator.language;
+  const key = await deriveKey(fp);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const enc = new TextEncoder();
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(plaintext));
+  const combined = new Uint8Array(iv.byteLength + ct.byteLength);
+  combined.set(iv, 0); combined.set(new Uint8Array(ct), iv.byteLength);
+  return btoa(String.fromCharCode(...combined));
+}
+
+async function decryptValue(cipherB64) {
+  try {
+    const fp = navigator.userAgent + navigator.language;
+    const key = await deriveKey(fp);
+    const combined = Uint8Array.from(atob(cipherB64), c => c.charCodeAt(0));
+    const iv = combined.slice(0, 12);
+    const ct = combined.slice(12);
+    const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
+    return new TextDecoder().decode(pt);
+  } catch { return ''; }
+}
+
+async function saveSecureKey(name, value) {
+  if (!value) { localStorage.removeItem('svex_sec_' + name); return; }
+  const enc = await encryptValue(value);
+  localStorage.setItem('svex_sec_' + name, enc);
+}
+
+async function loadSecureKey(name) {
+  const enc = localStorage.getItem('svex_sec_' + name);
+  if (!enc) return '';
+  return decryptValue(enc);
+}
+
+async function saveAllKeys() {
+  await saveSecureKey('google', v('tok-google'));
+  await saveSecureKey('pat',    v('tok-pat'));
+  setStatus('API-Keys verschlüsselt gespeichert ✓', 'success');
+  dbg('Keys gespeichert (AES-256-GCM, gerätegebunden)', 'ok');
+}
+
+async function loadAllKeys() {
+  const g = await loadSecureKey('google');
+  const p = await loadSecureKey('pat');
+  if (g) { document.getElementById('tok-google').value = g; dbg('Google Key geladen', 'ok'); }
+  if (p) { document.getElementById('tok-pat').value    = p; dbg('GitHub PAT geladen',  'ok'); }
+  if (g || p) setStatus('Gespeicherte API-Keys geladen ✓', 'success');
+}
+
+function clearAllKeys() {
+  if (!confirm('Gespeicherte API-Keys wirklich löschen?')) return;
+  localStorage.removeItem('svex_sec_google');
+  localStorage.removeItem('svex_sec_pat');
+  document.getElementById('tok-google').value = '';
+  document.getElementById('tok-pat').value    = '';
+  setStatus('API-Keys gelöscht.', 'warn');
+  dbg('Gespeicherte Keys gelöscht', 'warn');
+}
+  
 /* ── QUOTA ── */
 const QK='svex_quota';
 function quotaData(){const d=localStorage.getItem(QK);if(d)try{return JSON.parse(d);}catch{}const n=new Date();return{month:`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}`,used:0,limit:100000,stopPct:80};}
@@ -629,6 +868,73 @@ function getGPS(){
 function useGpsAsPoint(){if(gpsLat===null){setStatus('Kein GPS.','warn');return;}placeSingleMarker(L.latLng(gpsLat,gpsLng));map.setView([gpsLat,gpsLng],17);}
 function useGpsAddrSearch(){if(!gpsAddr){setStatus('Kein GPS.','warn');return;}document.getElementById('street-input').value=gpsAddr;mapMode('street');geocodeStreet();}
 
+async function recalcQuotaFromGitHub() {
+  const pat   = v('tok-pat');
+  const owner = v('cfg-owner') || 'basecore';
+  const repo  = v('cfg-repo')  || 'streetview-explorer';
+  const wf    = v('cfg-workflow') || 'download.yml';
+  if (!pat) return;
+
+  try {
+    const r = await fetch(
+      `https://api.github.com/repos/${owner}/${repo}/actions/workflows/${wf}/runs?per_page=100&status=completed`,
+      { headers: { 'Authorization': `Bearer ${pat}`, 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' } }
+    );
+    if (!r.ok) return;
+    const data = await r.json();
+    const runs = data.workflow_runs || [];
+
+    // Nur Runs im aktuellen Monat zählen
+    const now  = new Date();
+    const y    = now.getFullYear();
+    const m    = now.getMonth(); // 0-indexed
+    const TILES = { low: 32, medium: 128, high: 512 };
+
+    let totalTiles = 0;
+    let totalPanos = 0;
+    const counted  = [];
+
+    for (const run of runs) {
+      const d = new Date(run.created_at);
+      if (d.getFullYear() !== y || d.getMonth() !== m) continue;
+      if (run.conclusion !== 'success') continue;
+
+      // Inputs aus dem Run lesen (falls vorhanden)
+      const inputs = run.inputs || {};
+      const quality = inputs.quality || 'medium';
+      const tilesPerPano = TILES[quality] || 128;
+
+      // Versuche Pano-Anzahl aus Artifact-Namen zu lesen (z.B. "panoramas_12_panos")
+      // Fallback: 1 Pano pro Run als Minimum
+      let panoCount = 1;
+      const match = run.name ? run.name.match(/(\d+)\s*pan/i) : null;
+      if (match) panoCount = parseInt(match[1]);
+
+      const tiles = panoCount * tilesPerPano;
+      totalTiles += tiles;
+      totalPanos += panoCount;
+      counted.push({ run_number: run.run_number, quality, panoCount, tiles, date: run.created_at.slice(0,10) });
+    }
+
+    dbg(`Quota aus GitHub: ${runs.length} Runs analysiert, ${counted.length} im aktuellen Monat, ~${totalTiles} Tiles`, 'ok');
+
+    // Manuelle Korrektur: nimm den höheren Wert aus localStorage und GitHub
+    const qd = quotaData();
+    const currentMonth = `${y}-${String(m+1).padStart(2,'0')}`;
+    if (qd.month === currentMonth) {
+      if (totalTiles > qd.used) {
+        qd.used = totalTiles;
+        saveQuotaData(qd);
+        dbg(`Quota aktualisiert: ${totalTiles} Tiles (aus ${counted.length} GitHub-Runs)`, 'ok');
+        loadQuota();
+      }
+    }
+    return counted;
+  } catch (e) {
+    dbg(`Quota-GitHub-Fehler: ${e}`, 'warn');
+  }
+}
+  
 /* ── GEOCODE ── */
 async function geocodeStreet(){
   const q=v('street-input');if(!q)return;
@@ -1219,7 +1525,10 @@ setInterval(()=>{if(jobsMode==='local'&&document.getElementById('tab-jobs').clas
 dbg(`StreetView Explorer ${APP_VERSION} gestartet`,'ok');
 dbg('Browser-Modus aktiv (kein lokaler Server n\u00f6tig f\u00fcr Karte/Suche)','info');
 dbg('F\u00fcr Downloads: python3 streetview_server.py starten','warn');
-loadQuota();checkServer();setMode('local');
+loadQuota();
+checkServer();
+setMode('local');
+loadAllKeys();  // gespeicherte Keys automatisch laden
 </script>
 </body>
 </html>
