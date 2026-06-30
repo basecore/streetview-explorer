@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
-<title>StreetView Explorer v3.5</title>
+<title>StreetView Explorer v3.7</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
@@ -153,7 +153,7 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--pr
 <div class="header">
   <h1>&#127757; StreetView Explorer</h1>
   <div class="header-right">
-    <span class="version-badge">v3.5</span>
+    <span class="version-badge">v3.7</span>
     <a class="gh-link" href="https://github.com/basecore/streetview-explorer" target="_blank">
       <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
       GitHub
@@ -624,7 +624,7 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--pr
   </div>
 </nav>
 <script>
-const APP_VERSION='v3.5',LOCAL_API='http://localhost:5000';
+const APP_VERSION='v3.7',LOCAL_API='http://localhost:5000';
 const TAB_IDS=['tab-map','tab-config','tab-tokens','tab-quota','tab-jobs','tab-debug'];
 let mode='local',jobsMode='local',mapDrawMode='click';
 let drawnLine=null,linePoints=[],singleMarker=null,gpsMarker=null;
@@ -633,7 +633,7 @@ let gpsLat=null,gpsLng=null,gpsAddr='';
 let hasPoint=false,hasLine=false;
 
 /* ── CRYPTO: API-Keys verschlüsselt speichern ── */
-const CRYPTO_SALT = 'svex-v3.5-salt-x9k2';
+const CRYPTO_SALT = 'svex-v3.7-salt-x9k2';
 
 async function deriveKey(password) {
   const enc = new TextEncoder();
@@ -969,6 +969,27 @@ async function geocodeStreet(){
 }
 
 /* ── PANORAMA DISCOVERY ── */
+async function queryPanosBrowser(lat, lng, radius, key) {
+  const url = `https://maps.googleapis.com/maps/api/streetview/metadata?location=${lat},${lng}&radius=${radius}&key=${key}&source=outdoor`;
+  try {
+    const r = await fetch(url);
+    const d = await r.json();
+    if (d.status === 'OK' && d.pano_id) {
+      return [{
+        pano_id: d.pano_id,
+        lat:     d.location?.lat  || lat,
+        lng:     d.location?.lng  || lng,
+        date:    d.date           || '?',
+        url:     `https://www.google.com/maps/@${d.location?.lat||lat},${d.location?.lng||lng},3a,75y,0h,90t/`
+      }];
+    }
+    return [];
+  } catch(e) {
+    dbg(`Metadata-API Fehler: ${e}`, 'warn');
+    return [];
+  }
+}
+
 async function discoverPanosAlongLine(){
   const key=v('tok-google');
   if(!key){setStatus('API-Key fehlt.','error');return;}
@@ -989,9 +1010,13 @@ async function discoverPanosAlongLine(){
         const d=await res.json();panos=d.panoramas||[];
         dbg(`P${i}: ${panos.length} Panos vom Server`,'info');
       }else{
-        const fid=`pos_${p.lat.toFixed(5)}_${p.lng.toFixed(5)}`.replace(/[.-]/g,'_');
-        panos=[{pano_id:fid,lat:p.lat,lng:p.lng,date:'?',url:`https://www.google.com/maps/@${p.lat},${p.lng},3a,75y,0h,90t/`}];
-        dbg(`P${i}: Browser-Fallback lat=${p.lat.toFixed(5)}`,'warn');
+        // v3.7: echte Metadata-API statt Fake-ID
+        panos = await queryPanosBrowser(p.lat, p.lng, radius, key);
+        if(panos.length > 0){
+          dbg(`P${i}: status=OK pano_id=${panos[0].pano_id.substring(0,16)}...`,'ok');
+        } else {
+          dbg(`P${i}: kein Panorama gefunden (radius=${radius}m)`,'warn');
+        }
       }
       for(const pano of panos){
         if(!seen.has(pano.pano_id)){
@@ -1016,10 +1041,16 @@ async function discoverPanosAlongLine(){
 
   updatePanoBar();updateActionBar();
   if(!serverOnline){
-    setStatus(`${foundPanos.length} Positionen markiert (Browser-Modus, kein Download).`,'warn');
-    dbg('Starte streetview_server.py f\u00fcr echte Downloads.','warn');
-  }else{
-    setStatus(`${foundPanos.length} Panoramen gefunden \u2014 Ausw\u00e4hlen und \u201eLokal laden\u201c dr\u00fccken.`,'success');
+    const realCount=foundPanos.filter(p=>!p.pano_id.startsWith('pos_')).length;
+    if(realCount>0){
+      setStatus(`${foundPanos.length} echte Panoramen gefunden (Browser-Modus). Cloud-Download möglich.`,'success');
+      dbg(`Suche fertig: ${foundPanos.length} echte pano_ids via Metadata-API`,'ok');
+    } else {
+      setStatus(`${foundPanos.length} Positionen — keine Panoramen im Umkreis gefunden.`,'warn');
+      dbg('Tipp: Suchradius erhöhen oder anderen Punkt wählen.','warn');
+    }
+  } else {
+    setStatus(`${foundPanos.length} Panoramen gefunden — Auswählen und „Lokal laden" drücken.`,'success');
     dbg(`Suche fertig: ${foundPanos.length} Panoramen`,'ok');
   }
 }
