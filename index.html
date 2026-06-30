@@ -87,7 +87,6 @@ table{width:100%;border-collapse:collapse;font-size:.78rem}
 th{background:var(--surface3);padding:6px 8px;text-align:left;color:var(--muted);font-weight:600;position:sticky;top:0}
 td{padding:5px 8px;border-bottom:1px solid var(--border);vertical-align:middle}
 tr:hover td{background:var(--surface3)}
-/* Checkbox Spalte */
 .cb-col{width:28px;text-align:center}
 input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--primary)}
 .sel-bar{display:flex;align-items:center;gap:8px;padding:6px 0 4px;font-size:.78rem;color:var(--muted);flex-wrap:wrap}
@@ -174,7 +173,6 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--pr
 
 <div class="main-content">
 
-<!-- TAB: KARTE -->
 <div class="tab-content active" id="tab-map">
 <div class="tab-body" style="padding:0;overflow:hidden">
 
@@ -186,7 +184,7 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--pr
   </div>
 
   <div class="offline-banner" id="offline-banner">
-    <b>&#9888; Server offline</b> &mdash; Karte funktioniert. Kein Download ohne <code>streetview_server.py</code>.
+    <b>&#9888; Server offline</b> &mdash; Karte funktioniert. Kein lokaler Download ohne <code>streetview_server.py</code>.
   </div>
 
   <div class="gps-card" id="gps-card">
@@ -200,9 +198,10 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--pr
 
   <div class="map-toolbar">
     <button class="btn btn-ghost" onclick="mapMode('click')" id="mapbtn-click">&#128204; Punkt</button>
-    <button class="btn btn-ghost" onclick="mapMode('line')"  id="mapbtn-line">&#9998; Linie</button>
+    <button class="btn btn-ghost" onclick="mapMode('line')" id="mapbtn-line">&#9998; Linie</button>
+    <button class="btn btn-ghost" onclick="mapMode('area')" id="mapbtn-area">&#11036; Fläche</button>
     <button class="btn btn-ghost" onclick="mapMode('street')" id="mapbtn-street">&#128270; Suche</button>
-    <button class="btn btn-gps"   onclick="getGPS()">&#128247;</button>
+    <button class="btn btn-gps" onclick="getGPS()">&#128247;</button>
     <button class="btn btn-danger" onclick="clearMap()" style="padding:9px 12px" title="Alles leeren">&#10005;</button>
     <div class="coord-pill" id="coord-display">Karte antippen...</div>
   </div>
@@ -216,7 +215,7 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--pr
 
   <div class="line-hint-bar" id="line-hint-bar">
     <span id="line-hint-text">&#9998; Punkte setzen &mdash; Doppeltippen oder:</span>
-    <button class="btn btn-finish" style="padding:7px 14px;font-size:.82rem;white-space:nowrap" onclick="finishLine()">&#10003; Linie abschlie&szlig;en</button>
+    <button class="btn btn-finish" id="draw-finish-btn" style="padding:7px 14px;font-size:.82rem;white-space:nowrap" onclick="finishDrawing()">&#10003; Abschlie&szlig;en</button>
   </div>
 
   <div id="map"></div>
@@ -226,12 +225,9 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--pr
       <span class="dot" id="action-dot"></span>
       <span id="action-hint-text">Bereit</span>
     </div>
-    <button class="btn btn-search" onclick="startSearch()">
-      &#128269; Panoramen suchen
-    </button>
+    <button class="btn btn-search" onclick="startSearch()">&#128269; Panoramen suchen</button>
   </div>
 
-  <!-- PANORAMA ERGEBNIS-LEISTE -->
   <div id="pano-found-bar" style="display:none">
     <div class="pano-bar">
       <div class="pano-bar-top">
@@ -244,7 +240,6 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--pr
         </div>
       </div>
 
-      <!-- Auswahl-Leiste -->
       <div class="sel-bar" id="sel-bar" style="display:none">
         <input type="checkbox" id="cb-all" onchange="toggleSelectAll(this.checked)" title="Alle auswählen"/>
         <label for="cb-all" style="font-size:.78rem;cursor:pointer;color:var(--muted)">Alle</label>
@@ -269,7 +264,6 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--pr
 </div>
 </div>
 
-<!-- TAB: EINSTELLUNGEN -->
 <div class="tab-content" id="tab-config">
 <div class="tab-body tab-body-bare">
 
@@ -283,17 +277,15 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--pr
           <option value="medium" selected>medium — 128 Tiles/Pano</option>
           <option value="high">high — 512 Tiles/Pano</option>
         </select>
-        <p class="hint">Direkt proportional zum API-Quota-Verbrauch.</p>
       </div>
       <div>
         <label>Sampling-Abstand (m)</label>
         <input type="number" id="cfg-sampling" value="10" min="1" max="500"/>
-        <p class="hint">5 = sehr dicht · 15 = schnell · 30 = grob</p>
+        <p class="hint">Für Fläche: Rasterabstand innerhalb der Polygonfläche.</p>
       </div>
       <div>
         <label>Suchradius (m)</label>
         <input type="number" id="cfg-radius" value="8" min="1" max="200"/>
-        <p class="hint">Radius um jeden Sample-Punkt.</p>
       </div>
       <div>
         <label>Max. Ergebnisse/Punkt</label>
@@ -306,7 +298,6 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--pr
       <div>
         <label>Pause zwischen Anfragen (s)</label>
         <input type="number" id="cfg-pause" value="0.3" min="0" max="5" step="0.1"/>
-        <p class="hint">Verhindert Rate-Limiting.</p>
       </div>
     </div>
   </div>
@@ -320,43 +311,19 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--pr
           <option value="false" selected>Nein — nur aktuellste</option>
           <option value="true">Ja — alle verfügbaren Epochen</option>
         </select>
-        <p class="hint">Erhöht Tiles ~2.5x (alle Epochen).</p>
       </div>
-      <div>
-        <label>Datum von (YYYY-MM)</label>
-        <input type="text" id="cfg-date-from" placeholder="2015-01"/>
-        <p class="hint">Leer = kein Filter</p>
-      </div>
-      <div>
-        <label>Datum bis (YYYY-MM)</label>
-        <input type="text" id="cfg-date-to" placeholder="2024-12"/>
-      </div>
-      <div>
-        <label>Max. Alter (Monate)</label>
-        <input type="number" id="cfg-max-age" value="" placeholder="z.B. 24" min="1"/>
-        <p class="hint">Nur Aufnahmen jünger als X Monate.</p>
-      </div>
+      <div><label>Datum von YYYY-MM</label><input type="text" id="cfg-date-from" placeholder="2015-01"/></div>
+      <div><label>Datum bis YYYY-MM</label><input type="text" id="cfg-date-to" placeholder="2024-12"/></div>
+      <div><label>Max. Alter Monate</label><input type="number" id="cfg-max-age" value="" placeholder="z.B. 24" min="1"/></div>
     </div>
   </div>
 
   <div class="card">
     <h3>🎥 Field of View & Framing</h3>
     <div class="grid">
-      <div>
-        <label>Heading (Blickrichtung °)</label>
-        <input type="number" id="cfg-heading" value="0" min="0" max="360"/>
-        <p class="hint">0 = Nord · 90 = Ost · 180 = Süd · 270 = West</p>
-      </div>
-      <div>
-        <label>Pitch (Neigung °)</label>
-        <input type="number" id="cfg-pitch" value="0" min="-90" max="90"/>
-        <p class="hint">0 = horizontal · 90 = hoch · -90 = runter</p>
-      </div>
-      <div>
-        <label>FOV — Field of View (°)</label>
-        <input type="number" id="cfg-fov" value="90" min="10" max="120"/>
-        <p class="hint">Standard: 90° · Klein = Zoom · Groß = Weitwinkel</p>
-      </div>
+      <div><label>Heading °</label><input type="number" id="cfg-heading" value="0" min="0" max="360"/></div>
+      <div><label>Pitch °</label><input type="number" id="cfg-pitch" value="0" min="-90" max="90"/></div>
+      <div><label>FOV °</label><input type="number" id="cfg-fov" value="90" min="10" max="120"/></div>
       <div>
         <label>Zoom-Level</label>
         <select id="cfg-zoom">
@@ -368,14 +335,8 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--pr
           <option value="5">5 — Max. Zoom</option>
         </select>
       </div>
-      <div>
-        <label>Bildbreite (px)</label>
-        <input type="number" id="cfg-width" value="640" min="64" max="2048" step="64"/>
-      </div>
-      <div>
-        <label>Bildhöhe (px)</label>
-        <input type="number" id="cfg-height" value="640" min="64" max="2048" step="64"/>
-      </div>
+      <div><label>Bildbreite px</label><input type="number" id="cfg-width" value="640" min="64" max="2048" step="64"/></div>
+      <div><label>Bildhöhe px</label><input type="number" id="cfg-height" value="640" min="64" max="2048" step="64"/></div>
     </div>
   </div>
 
@@ -391,23 +352,15 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--pr
         </select>
       </div>
       <div>
-        <label>Nur Google-Aufnahmen</label>
+        <label>Quelle</label>
         <select id="cfg-source">
-          <option value="" selected>Alle (Google + User)</option>
-          <option value="google">Nur offizielle Google</option>
-          <option value="user">Nur User-Beiträge</option>
+          <option value="" selected>Alle</option>
+          <option value="google">Nur Google</option>
+          <option value="user">Nur User</option>
         </select>
       </div>
-      <div>
-        <label>Min. Bildqualitätswert</label>
-        <input type="number" id="cfg-min-quality-score" value="" placeholder="0.0–1.0" min="0" max="1" step="0.05"/>
-        <p class="hint">Leer = kein Filter</p>
-      </div>
-      <div>
-        <label>Max. Distanz vom Punkt (m)</label>
-        <input type="number" id="cfg-max-dist" value="" placeholder="z.B. 15" min="1" max="500"/>
-        <p class="hint">Filtert weit entfernte Panoramen.</p>
-      </div>
+      <div><label>Min. Qualitätswert</label><input type="number" id="cfg-min-quality-score" value="" placeholder="0.0–1.0" min="0" max="1" step="0.05"/></div>
+      <div><label>Max. Distanz m</label><input type="number" id="cfg-max-dist" value="" placeholder="z.B. 15" min="1" max="500"/></div>
     </div>
   </div>
 
@@ -422,26 +375,11 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--pr
           <option value="webp">WebP</option>
         </select>
       </div>
-      <div>
-        <label>JPEG-Qualität (%)</label>
-        <input type="number" id="cfg-jpg-quality" value="85" min="10" max="100"/>
-      </div>
-      <div>
-        <label>Crop links (px)</label>
-        <input type="number" id="cfg-crop-left" value="0" min="0"/>
-      </div>
-      <div>
-        <label>Crop rechts (px)</label>
-        <input type="number" id="cfg-crop-right" value="0" min="0"/>
-      </div>
-      <div>
-        <label>Crop oben (px)</label>
-        <input type="number" id="cfg-crop-top" value="0" min="0"/>
-      </div>
-      <div>
-        <label>Crop unten (px)</label>
-        <input type="number" id="cfg-crop-bottom" value="0" min="0"/>
-      </div>
+      <div><label>JPEG-Qualität %</label><input type="number" id="cfg-jpg-quality" value="85" min="10" max="100"/></div>
+      <div><label>Crop links px</label><input type="number" id="cfg-crop-left" value="0" min="0"/></div>
+      <div><label>Crop rechts px</label><input type="number" id="cfg-crop-right" value="0" min="0"/></div>
+      <div><label>Crop oben px</label><input type="number" id="cfg-crop-top" value="0" min="0"/></div>
+      <div><label>Crop unten px</label><input type="number" id="cfg-crop-bottom" value="0" min="0"/></div>
     </div>
   </div>
 
@@ -457,14 +395,14 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--pr
 
 </div>
 </div>
-<!-- TAB: API-KEYS -->
+
 <div class="tab-content" id="tab-tokens">
 <div class="tab-body tab-body-bare">
 
   <div class="card" style="background:#1a2a1a;border-color:#2a4a2a;margin-bottom:14px">
     <div style="display:flex;align-items:center;gap:8px;font-size:.82rem;color:#68a83f">
       <span style="font-size:1.1rem">🔒</span>
-      <span><b style="color:#8cd060">AES-256-GCM verschlüsselt</b> — Keys werden gerätegebunden im localStorage gespeichert. Kein Server, kein Klartext.</span>
+      <span><b style="color:#8cd060">AES-256-GCM verschlüsselt</b> — Keys werden gerätegebunden im localStorage gespeichert.</span>
     </div>
     <div class="actions" style="margin-top:10px">
       <button class="btn btn-local" onclick="saveAllKeys()">💾 Keys speichern</button>
@@ -487,22 +425,11 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--pr
     <div class="actions"><button class="btn btn-primary" onclick="testGoogle()">▶ Key testen</button></div>
     <div class="api-result-box" id="google-result-box"></div>
     <div class="sep"></div>
-    <details>
-      <summary style="cursor:pointer;font-size:.82rem;color:var(--muted)">📖 Anleitung: API-Key erstellen</summary>
-      <div style="font-size:.82rem;color:var(--muted);line-height:1.8;margin-top:8px">
-        <ol style="margin-left:16px">
-          <li><a href="https://console.cloud.google.com" target="_blank" class="hint-link">console.cloud.google.com</a></li>
-          <li>APIs → Bibliothek → <b style="color:var(--text)">Map Tiles API</b> → Aktivieren</li>
-          <li>APIs → Anmeldedaten → <b style="color:var(--text)">+ API-Schlüssel</b></li>
-          <li>Abrechnung aktivieren (Pflicht)</li>
-        </ol>
-        <p style="margin-top:6px"><b style="color:var(--text)">Kostenlos</b> bis 100.000 Tiles/Monat.</p>
-      </div>
-    </details>
+    <p class="hint">Benötigt wird die <b>Google Map Tiles API</b> mit aktivierter Abrechnung.</p>
   </div>
 
   <div class="card">
-    <h3>🔑 GitHub PAT (Cloud-Modus)</h3>
+    <h3>🔑 GitHub PAT Cloud-Modus</h3>
     <div class="pw-wrap" style="margin-bottom:8px">
       <input type="password" id="tok-pat" placeholder="github_pat_..." oninput="tokenChanged('pat')"/>
       <button class="eye" onclick="togglePw('tok-pat')">Anzeigen</button>
@@ -513,27 +440,16 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--pr
       <span class="tok-detail" id="tok-pat-detail"></span>
     </div>
     <div class="actions"><button class="btn btn-primary" onclick="testPAT()">▶ Token testen</button></div>
-    <div class="sep"></div>
-    <details>
-      <summary style="cursor:pointer;font-size:.82rem;color:var(--muted)">📖 PAT erstellen</summary>
-      <div style="font-size:.82rem;color:var(--muted);line-height:1.8;margin-top:8px">
-        <ol style="margin-left:16px">
-          <li><a href="https://github.com/settings/tokens?type=beta" target="_blank" class="hint-link">github.com/settings/tokens</a></li>
-          <li>Repo: streetview-explorer · Permissions: Actions Read+Write</li>
-        </ol>
-      </div>
-    </details>
   </div>
 
 </div>
 </div>
 
-<!-- TAB: QUOTA -->
 <div class="tab-content" id="tab-quota">
 <div class="tab-body tab-body-bare">
   <div class="card">
     <h3>&#128202; Tile-Verbrauch</h3>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;gap:6px;flex-wrap:wrap">
       <span style="font-size:.8rem;color:var(--muted)" id="quota-month"></span>
       <button class="btn btn-ghost" style="padding:5px 10px;font-size:.77rem" onclick="loadQuota()">↺ Lokal</button>
       <button class="btn btn-primary" style="padding:5px 10px;font-size:.77rem" onclick="recalcQuotaFromGitHub().then(loadQuota)">☁ GitHub sync</button>
@@ -548,15 +464,13 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--pr
       <div class="qstat"><div class="qval" id="qs-remaining">-</div><div class="qlbl">Verbleibend</div></div>
       <div class="qstat"><div class="qval" id="qs-panos">-</div><div class="qlbl">Panoramen</div></div>
     </div>
-    <p class="hint" style="margin-top:10px">Lokaler Sch&auml;tzwert &mdash; <a href="https://console.cloud.google.com/billing" target="_blank" class="hint-link">Cloud Console</a> f&uuml;r echten Stand.</p>
   </div>
   <div class="card">
     <h3>&#9881; Einstellungen</h3>
     <div class="grid">
       <div><label>Monatliches Limit</label><input type="number" id="quota-limit" value="100000" min="1000"/></div>
-      <div><label>Stopp bei (%)</label><input type="number" id="quota-stop-pct" value="80" min="10" max="100"/></div>
-      <div><label>Manueller Startwert</label><input type="number" id="quota-manual" value="0" min="0"/>
-        <p class="hint">Aus Cloud Console eintragen.</p></div>
+      <div><label>Stopp bei %</label><input type="number" id="quota-stop-pct" value="80" min="10" max="100"/></div>
+      <div><label>Manueller Startwert</label><input type="number" id="quota-manual" value="0" min="0"/></div>
     </div>
     <div class="actions">
       <button class="btn btn-primary" onclick="saveQuota()">Speichern</button>
@@ -566,18 +480,16 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--pr
 </div>
 </div>
 
-<!-- TAB: JOBS -->
 <div class="tab-content" id="tab-jobs">
 <div class="tab-body tab-body-bare">
 
   <div class="jobs-hint">
-    <b>&#128204; So funktioniert der Workflow:</b>
+    <b>&#128204; Workflow:</b>
     <ol>
-      <li><b>Karte-Tab</b> &rarr; Strasse suchen oder Punkt/Linie setzen</li>
-      <li><b>&#128269; Panoramen suchen</b> dr&uuml;cken</li>
-      <li>Panoramen in der Tabelle <b>ausw&auml;hlen</b> (Checkboxen)</li>
-      <li><b>Lokal laden</b> oder <b>Cloud</b> dr&uuml;cken &rarr; Job startet</li>
-      <li>Hier im <b>Jobs-Tab</b> siehst du den Fortschritt</li>
+      <li>Karte: Punkt, Linie, Fläche, Straße oder GPS setzen</li>
+      <li><b>Panoramen suchen</b> drücken</li>
+      <li>Panoramen in Tabelle oder per Marker auswählen</li>
+      <li><b>Request</b> startet Cloud-Job über GitHub Actions</li>
     </ol>
   </div>
 
@@ -597,7 +509,6 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--pr
 </div>
 </div>
 
-<!-- TAB: DEBUG -->
 <div class="tab-content" id="tab-debug">
 <div class="tab-body tab-body-bare">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
@@ -611,111 +522,101 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--pr
 </div>
 </div>
 
-</div><!-- /main-content -->
+</div>
 
 <nav class="tabs-bottom">
   <div class="tabs-bottom-inner">
-    <button class="mob-tab active" id="mobt-tab-map"    onclick="showTab('tab-map')">   <span class="ico">&#128205;</span>Karte</button>
-    <button class="mob-tab"        id="mobt-tab-config" onclick="showTab('tab-config')"><span class="ico">&#9881;</span>Einst.</button>
-    <button class="mob-tab"        id="mobt-tab-tokens" onclick="showTab('tab-tokens')"><span class="ico">&#128273;</span>Keys</button>
-    <button class="mob-tab"        id="mobt-tab-quota"  onclick="showTab('tab-quota')"> <span class="ico">&#128202;</span>Quota</button>
-    <button class="mob-tab"        id="mobt-tab-jobs"   onclick="showTab('tab-jobs')">  <span class="ico">&#128203;</span>Jobs</button>
-    <button class="mob-tab"        id="mobt-tab-debug"  onclick="showTab('tab-debug')"> <span class="ico">&#128030;</span>Debug</button>
+    <button class="mob-tab active" id="mobt-tab-map" onclick="showTab('tab-map')"><span class="ico">&#128205;</span>Karte</button>
+    <button class="mob-tab" id="mobt-tab-config" onclick="showTab('tab-config')"><span class="ico">&#9881;</span>Einst.</button>
+    <button class="mob-tab" id="mobt-tab-tokens" onclick="showTab('tab-tokens')"><span class="ico">&#128273;</span>Keys</button>
+    <button class="mob-tab" id="mobt-tab-quota" onclick="showTab('tab-quota')"><span class="ico">&#128202;</span>Quota</button>
+    <button class="mob-tab" id="mobt-tab-jobs" onclick="showTab('tab-jobs')"><span class="ico">&#128203;</span>Jobs</button>
+    <button class="mob-tab" id="mobt-tab-debug" onclick="showTab('tab-debug')"><span class="ico">&#128030;</span>Debug</button>
   </div>
 </nav>
+
 <script>
 const APP_VERSION='v3.8',LOCAL_API='http://localhost:5000';
 const TAB_IDS=['tab-map','tab-config','tab-tokens','tab-quota','tab-jobs','tab-debug'];
 let mode='cloud',jobsMode='cloud',mapDrawMode='click';
-let drawnLine=null,linePoints=[],singleMarker=null,gpsMarker=null;
+let drawnLine=null,drawnArea=null,linePoints=[],areaPoints=[],singleMarker=null,gpsMarker=null;
 let foundPanos=[],currentJobId=null,currentES=null,serverOnline=false;
 let gpsLat=null,gpsLng=null,gpsAddr='';
-let hasPoint=false,hasLine=false;
+let hasPoint=false,hasLine=false,hasArea=false;
 
-/* ── CRYPTO: API-Keys verschlüsselt speichern ── */
-const CRYPTO_SALT = 'svex-v3.8-salt-x9k2';
+const CRYPTO_SALT='svex-v3.8-salt-x9k2';
 
-async function deriveKey(password) {
-  const enc = new TextEncoder();
-  const keyMaterial = await crypto.subtle.importKey(
-    'raw', enc.encode(password + CRYPTO_SALT), { name: 'PBKDF2' }, false, ['deriveKey']
-  );
+async function deriveKey(password){
+  const enc=new TextEncoder();
+  const km=await crypto.subtle.importKey('raw',enc.encode(password+CRYPTO_SALT),{name:'PBKDF2'},false,['deriveKey']);
   return crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt: enc.encode(CRYPTO_SALT), iterations: 100000, hash: 'SHA-256' },
-    keyMaterial, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']
+    {name:'PBKDF2',salt:enc.encode(CRYPTO_SALT),iterations:100000,hash:'SHA-256'},
+    km,{name:'AES-GCM',length:256},false,['encrypt','decrypt']
   );
 }
-
-async function encryptValue(plaintext) {
-  // Fingerprint als Passwort: UserAgent + Sprache (gerätegebunden, kein Server nötig)
-  const fp = navigator.userAgent + navigator.language;
-  const key = await deriveKey(fp);
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const enc = new TextEncoder();
-  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(plaintext));
-  const combined = new Uint8Array(iv.byteLength + ct.byteLength);
-  combined.set(iv, 0); combined.set(new Uint8Array(ct), iv.byteLength);
+async function encryptValue(plaintext){
+  const fp=navigator.userAgent+navigator.language;
+  const key=await deriveKey(fp);
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,new TextEncoder().encode(plaintext));
+  const combined=new Uint8Array(iv.byteLength+ct.byteLength);
+  combined.set(iv,0);combined.set(new Uint8Array(ct),iv.byteLength);
   return btoa(String.fromCharCode(...combined));
 }
-
-async function decryptValue(cipherB64) {
-  try {
-    const fp = navigator.userAgent + navigator.language;
-    const key = await deriveKey(fp);
-    const combined = Uint8Array.from(atob(cipherB64), c => c.charCodeAt(0));
-    const iv = combined.slice(0, 12);
-    const ct = combined.slice(12);
-    const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
+async function decryptValue(cipherB64){
+  try{
+    const fp=navigator.userAgent+navigator.language;
+    const key=await deriveKey(fp);
+    const combined=Uint8Array.from(atob(cipherB64),c=>c.charCodeAt(0));
+    const iv=combined.slice(0,12),ct=combined.slice(12);
+    const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv},key,ct);
     return new TextDecoder().decode(pt);
-  } catch { return ''; }
+  }catch{return '';}
 }
-
-async function saveSecureKey(name, value) {
-  if (!value) { localStorage.removeItem('svex_sec_' + name); return; }
-  const enc = await encryptValue(value);
-  localStorage.setItem('svex_sec_' + name, enc);
+async function saveSecureKey(name,value){
+  if(!value){localStorage.removeItem('svex_sec_'+name);return;}
+  localStorage.setItem('svex_sec_'+name,await encryptValue(value));
 }
-
-async function loadSecureKey(name) {
-  const enc = localStorage.getItem('svex_sec_' + name);
-  if (!enc) return '';
-  return decryptValue(enc);
+async function loadSecureKey(name){
+  const enc=localStorage.getItem('svex_sec_'+name);
+  return enc?decryptValue(enc):'';
 }
-
-async function saveAllKeys() {
-  await saveSecureKey('google', v('tok-google'));
-  await saveSecureKey('pat',    v('tok-pat'));
-  setStatus('API-Keys verschlüsselt gespeichert ✓', 'success');
-  dbg('Keys gespeichert (AES-256-GCM, gerätegebunden)', 'ok');
+async function saveAllKeys(){
+  await saveSecureKey('google',v('tok-google'));
+  await saveSecureKey('pat',v('tok-pat'));
+  setStatus('API-Keys verschlüsselt gespeichert ✓','success');
+  dbg('Keys gespeichert','ok');
 }
-
-async function loadAllKeys() {
-  const g = await loadSecureKey('google');
-  const p = await loadSecureKey('pat');
-  if (g) { document.getElementById('tok-google').value = g; dbg('Google Key geladen', 'ok'); }
-  if (p) { document.getElementById('tok-pat').value    = p; dbg('GitHub PAT geladen',  'ok'); }
-  if (g || p) setStatus('Gespeicherte API-Keys geladen ✓', 'success');
+async function loadAllKeys(){
+  const g=await loadSecureKey('google');
+  const p=await loadSecureKey('pat');
+  if(g){document.getElementById('tok-google').value=g;dbg('Google Key geladen','ok');}
+  if(p){document.getElementById('tok-pat').value=p;dbg('GitHub PAT geladen','ok');}
+  if(g||p)setStatus('Gespeicherte API-Keys geladen ✓','success');
 }
-
-function clearAllKeys() {
-  if (!confirm('Gespeicherte API-Keys wirklich löschen?')) return;
+function clearAllKeys(){
+  if(!confirm('Gespeicherte API-Keys wirklich löschen?'))return;
   localStorage.removeItem('svex_sec_google');
   localStorage.removeItem('svex_sec_pat');
-  document.getElementById('tok-google').value = '';
-  document.getElementById('tok-pat').value    = '';
-  setStatus('API-Keys gelöscht.', 'warn');
-  dbg('Gespeicherte Keys gelöscht', 'warn');
+  document.getElementById('tok-google').value='';
+  document.getElementById('tok-pat').value='';
+  setStatus('API-Keys gelöscht.','warn');
+  dbg('Gespeicherte Keys gelöscht','warn');
 }
-  
-/* ── QUOTA ── */
+
 const QK='svex_quota';
-function quotaData(){const d=localStorage.getItem(QK);if(d)try{return JSON.parse(d);}catch{}const n=new Date();return{month:`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}`,used:0,limit:100000,stopPct:80};}
+function quotaData(){
+  const d=localStorage.getItem(QK);
+  if(d)try{return JSON.parse(d);}catch{}
+  const n=new Date();
+  return{month:`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}`,used:0,limit:100000,stopPct:80};
+}
 function saveQuotaData(d){localStorage.setItem(QK,JSON.stringify(d));}
 
-/* ── LOG ── */
 const LV={cmd:'dl-cmd',ok:'dl-ok',err:'dl-err',warn:'dl-warn',info:'dl-info',log:'dl'};
 function dbg(msg,level='log'){
   const el=document.getElementById('debug-log');
+  if(!el)return;
   const sp=document.createElement('span');
   sp.className=LV[level]||'dl';
   sp.textContent=`[${new Date().toLocaleTimeString()}]  ${msg}\n`;
@@ -723,21 +624,6 @@ function dbg(msg,level='log'){
 }
 function clearDebugLog(){document.getElementById('debug-log').innerHTML='';}
 function copyLog(){navigator.clipboard.writeText(document.getElementById('debug-log').innerText).then(()=>setStatus('Kopiert.','success'));}
-
-/* ── UI ── */
-function showTab(id){
-  TAB_IDS.forEach(t=>document.getElementById(t).classList.toggle('active',t===id));
-  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',TAB_IDS[i]===id));
-  TAB_IDS.forEach(t=>{const m=document.getElementById('mobt-'+t);if(m)m.classList.toggle('active',t===id);});
-  if(id==='tab-jobs'){
-    if(jobsMode==='cloud'){
-      if(_cloudJobsRefreshTimer)clearTimeout(_cloudJobsRefreshTimer);
-      loadCloudJobs();
-    }else{
-      loadLocalJobs();
-    }
-  }
-}
 function setStatus(msg,type='running'){
   const b=document.getElementById('status-bar');
   b.style.display='block';b.className=type;
@@ -749,13 +635,23 @@ function escH(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;'
 function gmapsPanoUrl(lat,lng,panoId='',heading=0,pitch=0,fov=90){
   const vp=`${lat},${lng}`;
   let url=`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${encodeURIComponent(vp)}&heading=${heading||0}&pitch=${pitch||0}&fov=${fov||90}`;
-  if(panoId && !String(panoId).startsWith('pos_')){
+  if(panoId&&!String(panoId).startsWith('pos_')){
     url+=`&pano=${encodeURIComponent(panoId)}`;
   }
   return url;
 }
 
-/* ── MODE ── */
+function showTab(id){
+  TAB_IDS.forEach(t=>document.getElementById(t).classList.toggle('active',t===id));
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',TAB_IDS[i]===id));
+  TAB_IDS.forEach(t=>{const m=document.getElementById('mobt-'+t);if(m)m.classList.toggle('active',t===id);});
+  if(id==='tab-jobs'){
+    if(jobsMode==='cloud'){
+      if(_cloudJobsRefreshTimer)clearTimeout(_cloudJobsRefreshTimer);
+      loadCloudJobs();
+    }else loadLocalJobs();
+  }
+}
 function setMode(m){
   mode=m;
   document.getElementById('msw-local').className='msw-btn'+(m==='local'?' act-local':'');
@@ -763,7 +659,6 @@ function setMode(m){
   document.getElementById('btn-dl-local').style.display=m==='local'?'inline-flex':'none';
   document.getElementById('btn-dl-cloud').style.display=m==='cloud'?'inline-flex':'none';
   dbg(`Modus: ${m}`,'info');
-  // Jobs-Tab immer synchron halten
   setJobsMode(m==='cloud'?'cloud':'local');
   checkServer(m==='local');
 }
@@ -777,442 +672,459 @@ function setJobsMode(m){
   if(m==='cloud')loadCloudJobs();else loadLocalJobs();
 }
 
-/* ── ACTION BAR ── */
 function updateActionBar(){
   const bar=document.getElementById('action-bar');
   const txt=document.getElementById('action-hint-text');
-  if(hasPoint){bar.style.display='block';txt.textContent='Punkt gesetzt \u2014 Panoramen in der N\u00e4he suchen';}
-  else if(hasLine){bar.style.display='block';txt.textContent=`Linie (${linePoints.length} Pkt.) \u2014 Panoramen entlang suchen`;}
-  else{bar.style.display='none';}
+  if(hasPoint){
+    bar.style.display='block';
+    txt.textContent='Punkt gesetzt — Panoramen in der Nähe suchen';
+  }else if(hasLine){
+    bar.style.display='block';
+    txt.textContent=`Linie (${linePoints.length} Pkt.) — Panoramen entlang suchen`;
+  }else if(hasArea){
+    bar.style.display='block';
+    txt.textContent=`Fläche (${areaPoints.length} Eckpunkte) — Panoramen in der Fläche suchen`;
+  }else{
+    bar.style.display='none';
+  }
 }
 function updateLineHint(){
   const bar=document.getElementById('line-hint-bar');
-  if(mapDrawMode==='line'&&linePoints.length>0){bar.style.display='flex';document.getElementById('line-hint-text').textContent=`${linePoints.length} Punkt(e) \u2014 Doppeltippen oder:`;}
-  else{bar.style.display='none';}
+  const txt=document.getElementById('line-hint-text');
+  const btn=document.getElementById('draw-finish-btn');
+  if(mapDrawMode==='line'&&linePoints.length>0){
+    bar.style.display='flex';
+    txt.textContent=`${linePoints.length} Linienpunkt(e) — Doppeltippen oder:`;
+    if(btn)btn.innerHTML='&#10003; Linie abschlie&szlig;en';
+  }else if(mapDrawMode==='area'&&areaPoints.length>0){
+    bar.style.display='flex';
+    txt.textContent=`${areaPoints.length} Flächenpunkt(e) — mindestens 3, dann:`;
+    if(btn)btn.innerHTML='&#10003; Fläche abschlie&szlig;en';
+  }else{
+    bar.style.display='none';
+  }
 }
 
-/* ── MAP ── */
-const map=L.map('map',{tap:true}).setView([50.11,8.68],13);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; <a href="https://openstreetmap.org">OSM</a>',maxZoom:19}).addTo(map);
+const map=L.map('map',{tap:true,doubleClickZoom:false}).setView([50.11,8.68],13);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+  attribution:'&copy; <a href="https://openstreetmap.org">OSM</a>',
+  maxZoom:19
+}).addTo(map);
 const panoLayer=L.layerGroup().addTo(map);
-map.on('click',e=>{if(mapDrawMode==='click')placeSingleMarker(e.latlng);else if(mapDrawMode==='line')addLinePoint(e.latlng);});
-map.on('dblclick',e=>{if(mapDrawMode==='line'){L.DomEvent.stop(e);finishLine();}});
-map.on('mousemove',e=>{document.getElementById('coord-display').textContent=`${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`;});
+const drawLayer=L.layerGroup().addTo(map);
+
+map.on('click',e=>{
+  if(mapDrawMode==='click')placeSingleMarker(e.latlng);
+  else if(mapDrawMode==='line')addLinePoint(e.latlng);
+  else if(mapDrawMode==='area')addAreaPoint(e.latlng);
+});
+map.on('dblclick',e=>{
+  if(mapDrawMode==='line'||mapDrawMode==='area'){
+    L.DomEvent.stop(e);
+    finishDrawing();
+  }
+});
+map.on('mousemove',e=>{
+  document.getElementById('coord-display').textContent=`${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`;
+});
 
 function mapMode(m){
   mapDrawMode=m;
-  ['click','line','street'].forEach(k=>{const b=document.getElementById('mapbtn-'+k);if(!b)return;b.style.background=k===m?'var(--primary)':'';b.style.color=k===m?'#fff':'';});
+  ['click','line','area','street'].forEach(k=>{
+    const b=document.getElementById('mapbtn-'+k);
+    if(!b)return;
+    b.style.background=k===m?'var(--primary)':'';
+    b.style.color=k===m?'#fff':'';
+  });
   document.getElementById('street-search-bar').style.display=m==='street'?'block':'none';
   document.getElementById('line-hint-bar').style.display='none';
-  if(m==='line')setStatus('Punkte setzen. Doppeltippen oder Button zum Abschlie\u00dfen.','running');
+  if(m==='line')setStatus('Linienpunkte setzen. Doppeltippen oder Button zum Abschließen.','running');
+  if(m==='area')setStatus('Flächen-Eckpunkte setzen. Mindestens 3 Punkte, dann abschließen.','running');
   if(m==='click')setStatus('Punkt auf die Karte tippen.','running');
   if(m==='street')document.getElementById('street-input').focus();
+  updateLineHint();
 }
 function placeSingleMarker(latlng){
   if(singleMarker)map.removeLayer(singleMarker);
   singleMarker=L.marker([latlng.lat,latlng.lng]).addTo(map);
-  hasPoint=true;hasLine=false;
+
+  linePoints=[latlng];
+  areaPoints=[];
+  hasPoint=true;
+  hasLine=false;
+  hasArea=false;
+
+  if(drawnLine){map.removeLayer(drawnLine);drawnLine=null;}
+  if(drawnArea){map.removeLayer(drawnArea);drawnArea=null;}
+  drawLayer.clearLayers();
+
   document.getElementById('coord-display').textContent=`${latlng.lat.toFixed(5)}, ${latlng.lng.toFixed(5)}`;
   dbg(`Punkt: ${latlng.lat.toFixed(6)}, ${latlng.lng.toFixed(6)}`,'info');
-  foundPanos=[];updatePanoBar();updateActionBar();
-  setStatus('Punkt gesetzt \u2014 jetzt \u201ePanoramen suchen\u201c dr\u00fccken.','success');
+
+  updateActionBar();
+  setStatus('Punkt gesetzt — jetzt „Panoramen suchen“ drücken.','success');
 }
 function addLinePoint(latlng){
   linePoints.push(latlng);
+  areaPoints=[];
+  hasArea=false;
+  hasPoint=false;
+
   if(drawnLine)map.removeLayer(drawnLine);
+  if(drawnArea){map.removeLayer(drawnArea);drawnArea=null;}
   if(linePoints.length>=2)drawnLine=L.polyline(linePoints,{color:'#4f9aaa',weight:3,opacity:.85}).addTo(map);
-  L.circleMarker([latlng.lat,latlng.lng],{radius:4,color:'#4f9aaa',fillColor:'#4f9aaa',fillOpacity:1}).addTo(panoLayer);
+  L.circleMarker([latlng.lat,latlng.lng],{
+    radius:4,color:'#4f9aaa',fillColor:'#4f9aaa',fillOpacity:1,bubblingMouseEvents:false
+  }).addTo(drawLayer);
+
   dbg(`Linienpunkt ${linePoints.length}: ${latlng.lat.toFixed(6)}, ${latlng.lng.toFixed(6)}`,'info');
   updateLineHint();
-  setStatus(`${linePoints.length} Punkte \u2014 Doppeltippen oder Linie abschlie\u00dfen.`,'running');
+  setStatus(`${linePoints.length} Punkte — Doppeltippen oder Linie abschließen.`,'running');
 }
 function finishLine(){
-  if(linePoints.length<2){setStatus('Mindestens 2 Punkte n\u00f6tig.','warn');return;}
-  hasLine=true;hasPoint=false;
+  if(linePoints.length<2){setStatus('Mindestens 2 Punkte nötig.','warn');return;}
+  hasLine=true;hasPoint=false;hasArea=false;
   document.getElementById('line-hint-bar').style.display='none';
   updateActionBar();
   dbg(`Linie: ${linePoints.length} Punkte`,'ok');
-  setStatus(`Linie (${linePoints.length} Punkte) \u2014 jetzt \u201ePanoramen suchen\u201c dr\u00fccken.`,'success');
+  setStatus(`Linie (${linePoints.length} Punkte) — jetzt „Panoramen suchen“ drücken.`,'success');
+}
+function addAreaPoint(latlng){
+  areaPoints.push(latlng);
+  linePoints=[];
+  hasLine=false;
+  hasPoint=false;
+
+  if(drawnArea)map.removeLayer(drawnArea);
+  if(drawnLine){map.removeLayer(drawnLine);drawnLine=null;}
+
+  if(areaPoints.length>=3){
+    drawnArea=L.polygon(areaPoints,{color:'#c9813a',weight:3,opacity:.85,fillOpacity:.18}).addTo(map);
+    hasArea=true;
+  }else if(areaPoints.length>=2){
+    drawnArea=L.polyline(areaPoints,{color:'#c9813a',weight:3,opacity:.85,dashArray:'5,5'}).addTo(map);
+  }
+
+  L.circleMarker([latlng.lat,latlng.lng],{
+    radius:4,color:'#c9813a',fillColor:'#c9813a',fillOpacity:1,bubblingMouseEvents:false
+  }).addTo(drawLayer);
+
+  dbg(`Flächenpunkt ${areaPoints.length}: ${latlng.lat.toFixed(6)}, ${latlng.lng.toFixed(6)}`,'info');
+  updateLineHint();
+
+  if(areaPoints.length<3){
+    setStatus(`${areaPoints.length} Punkt(e) — mindestens 3 für eine Fläche.`,'running');
+  }else{
+    updateActionBar();
+    setStatus(`${areaPoints.length} Eckpunkte — Fläche abschließen oder weitere Punkte setzen.`,'running');
+  }
+}
+function finishArea(){
+  if(areaPoints.length<3){
+    setStatus('Mindestens 3 Punkte für eine Fläche nötig.','warn');
+    return;
+  }
+  if(drawnArea)map.removeLayer(drawnArea);
+  drawnArea=L.polygon(areaPoints,{color:'#c9813a',weight:3,opacity:.9,fillOpacity:.22}).addTo(map);
+  hasArea=true;hasLine=false;hasPoint=false;
+  document.getElementById('line-hint-bar').style.display='none';
+  updateActionBar();
+  dbg(`Fläche: ${areaPoints.length} Eckpunkte`,'ok');
+  setStatus(`Fläche (${areaPoints.length} Eckpunkte) — jetzt „Panoramen suchen“ drücken.`,'success');
+}
+function finishDrawing(){
+  if(mapDrawMode==='area')finishArea();
+  else finishLine();
 }
 function clearMap(){
   if(singleMarker){map.removeLayer(singleMarker);singleMarker=null;}
   if(drawnLine){map.removeLayer(drawnLine);drawnLine=null;}
-  panoLayer.clearLayers();linePoints=[];foundPanos=[];hasPoint=false;hasLine=false;
+  if(drawnArea){map.removeLayer(drawnArea);drawnArea=null;}
+  if(gpsMarker){map.removeLayer(gpsMarker);gpsMarker=null;}
+  panoLayer.clearLayers();
+  drawLayer.clearLayers();
+  linePoints=[];areaPoints=[];foundPanos=[];
+  hasPoint=false;hasLine=false;hasArea=false;
   updatePanoBar();updateActionBar();
   document.getElementById('line-hint-bar').style.display='none';
-  dbg('Karte geleert','info');setStatus('Geleert.','success');
+  dbg('Karte geleert','info');
+  setStatus('Geleert.','success');
 }
 
-/* ── SUCHE STARTEN ── */
 function startSearch(){
   const key=v('tok-google');
-  if(!key){setStatus('Google API-Key im Keys-Tab eingeben.','error');showTab('tab-tokens');return;}
-  if(hasPoint&&singleMarker){
+  if(!key){
+    setStatus('Google API-Key im Keys-Tab eingeben.','error');
+    showTab('tab-tokens');
+    return;
+  }
+
+  if(hasPoint&&singleMarker&&!hasArea){
     const ll=singleMarker.getLatLng();
     linePoints=[ll];
     dbg(`Einzelpunkt-Suche im Umkreis: ${ll.lat.toFixed(6)}, ${ll.lng.toFixed(6)}`,'info');
   }
-  if(!linePoints.length){setStatus('Kein Punkt oder Linie gesetzt.','warn');return;}
+
+  if(!linePoints.length&&gpsLat!==null&&!hasArea){
+    linePoints=[L.latLng(gpsLat,gpsLng)];
+    hasPoint=true;hasLine=false;hasArea=false;
+    updateActionBar();
+    dbg(`GPS-Punkt automatisch verwendet: ${gpsLat.toFixed(6)}, ${gpsLng.toFixed(6)}`,'info');
+  }
+
+  if(!linePoints.length&&!(hasArea&&areaPoints.length>=3)){
+    setStatus('Kein Punkt, keine Linie oder Fläche gesetzt. Bitte Karte antippen, Fläche zeichnen, Strasse suchen oder GPS verwenden.','warn');
+    return;
+  }
+
   discoverPanosAlongLine();
 }
 
-/* ── GPS ── */
 function getGPS(){
-  if(!navigator.geolocation){setStatus('GPS nicht verf\u00fcgbar.','error');return;}
+  if(!navigator.geolocation){setStatus('GPS nicht verfügbar.','error');return;}
   setStatus('GPS wird abgefragt...','running');
   dbg('Geolocation gestartet','info');
   navigator.geolocation.getCurrentPosition(async pos=>{
     gpsLat=pos.coords.latitude;gpsLng=pos.coords.longitude;
     const acc=pos.coords.accuracy;
-    dbg(`GPS: ${gpsLat.toFixed(6)}, ${gpsLng.toFixed(6)} \u00b1${acc.toFixed(0)}m`,'ok');
-    setStatus(`Standort gefunden (\u00b1${acc.toFixed(0)}m)`,'success');
+    dbg(`GPS: ${gpsLat.toFixed(6)}, ${gpsLng.toFixed(6)} ±${acc.toFixed(0)}m`,'ok');
+    setStatus(`Standort gefunden (±${acc.toFixed(0)}m) — Panoramen suchen ist bereit.`,'success');
+
     if(gpsMarker)map.removeLayer(gpsMarker);
-    gpsMarker=L.circleMarker([gpsLat,gpsLng],{radius:10,color:'#7c4dff',fillColor:'#7c4dff',fillOpacity:.6,weight:2}).addTo(map);
+    gpsMarker=L.circleMarker([gpsLat,gpsLng],{
+      radius:10,color:'#7c4dff',fillColor:'#7c4dff',fillOpacity:.6,weight:2,bubblingMouseEvents:false
+    }).addTo(map);
     map.setView([gpsLat,gpsLng],16);
+
     document.getElementById('gps-card').style.display='block';
-    document.getElementById('gps-coords').textContent=`${gpsLat.toFixed(6)}, ${gpsLng.toFixed(6)} (\u00b1${acc.toFixed(0)}m)`;
+    document.getElementById('gps-coords').textContent=`${gpsLat.toFixed(6)}, ${gpsLng.toFixed(6)} (±${acc.toFixed(0)}m)`;
     document.getElementById('gps-addr').textContent='Adresse wird gesucht...';
+
+    linePoints=[L.latLng(gpsLat,gpsLng)];
+    areaPoints=[];
+    hasPoint=true;hasLine=false;hasArea=false;
+    updateActionBar();
+    dbg(`GPS-Punkt automatisch als Suchpunkt gesetzt: ${gpsLat.toFixed(6)}, ${gpsLng.toFixed(6)}`,'info');
+
     try{
-      const r=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${gpsLat}&lon=${gpsLng}&format=json`,{headers:{'User-Agent':'svex/3.5'}});
+      const r=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${gpsLat}&lon=${gpsLng}&format=json`,{headers:{'User-Agent':'svex/3.8'}});
       const d=await r.json();
       gpsAddr=d.display_name||`${gpsLat.toFixed(5)}, ${gpsLng.toFixed(5)}`;
       const a=d.address||{};
       const short=[a.road,a.house_number,a.city||a.town||a.village].filter(Boolean).join(' ');
-      document.getElementById('gps-addr').textContent='\uD83D\uDCCD '+escH(short||gpsAddr);
-      gpsMarker.bindPopup(`<b>${escH(short)}</b><br><small>${gpsLat.toFixed(5)}, ${gpsLng.toFixed(5)}</small>`).openPopup();
-      dbg(`Adresse: ${short}`,'ok');
-    }catch(e){gpsAddr=`${gpsLat.toFixed(5)}, ${gpsLng.toFixed(5)}`;document.getElementById('gps-addr').textContent=gpsAddr;dbg(`Geocode Fehler: ${e}`,'warn');}
-  },err=>{dbg(`GPS Fehler: ${err.message}`,'err');setStatus(`GPS: ${err.message}`,'error');},{enableHighAccuracy:true,timeout:10000});
-}
-function useGpsAsPoint(){if(gpsLat===null){setStatus('Kein GPS.','warn');return;}placeSingleMarker(L.latLng(gpsLat,gpsLng));map.setView([gpsLat,gpsLng],17);}
-function useGpsAddrSearch(){if(!gpsAddr){setStatus('Kein GPS.','warn');return;}document.getElementById('street-input').value=gpsAddr;mapMode('street');geocodeStreet();}
-
-async function recalcQuotaFromGitHub() {
-  const pat   = v('tok-pat');
-  const owner = v('cfg-owner') || 'basecore';
-  const repo  = v('cfg-repo')  || 'streetview-explorer';
-  const wf    = v('cfg-workflow') || 'download.yml';
-  if (!pat) return;
-
-  try {
-    const r = await fetch(
-      `https://api.github.com/repos/${owner}/${repo}/actions/workflows/${wf}/runs?per_page=100&status=completed`,
-      { headers: { 'Authorization': `Bearer ${pat}`, 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' } }
-    );
-    if (!r.ok) return;
-    const data = await r.json();
-    const runs = data.workflow_runs || [];
-
-    // Nur Runs im aktuellen Monat zählen
-    const now  = new Date();
-    const y    = now.getFullYear();
-    const m    = now.getMonth(); // 0-indexed
-    const TILES = { low: 32, medium: 128, high: 512 };
-
-    let totalTiles = 0;
-    let totalPanos = 0;
-    const counted  = [];
-
-    for (const run of runs) {
-      const d = new Date(run.created_at);
-      if (d.getFullYear() !== y || d.getMonth() !== m) continue;
-      if (run.conclusion !== 'success') continue;
-
-      // Inputs aus dem Run lesen (falls vorhanden)
-      const inputs = run.inputs || {};
-      const quality = inputs.quality || 'medium';
-      const tilesPerPano = TILES[quality] || 128;
-
-      // Versuche Pano-Anzahl aus Artifact-Namen zu lesen (z.B. "panoramas_12_panos")
-      // Fallback: 1 Pano pro Run als Minimum
-      let panoCount = 1;
-      const match = run.name ? run.name.match(/(\d+)\s*pan/i) : null;
-      if (match) panoCount = parseInt(match[1]);
-
-      const tiles = panoCount * tilesPerPano;
-      totalTiles += tiles;
-      totalPanos += panoCount;
-      counted.push({ run_number: run.run_number, quality, panoCount, tiles, date: run.created_at.slice(0,10) });
+      document.getElementById('gps-addr').textContent='📍 '+escH(short||gpsAddr);
+      gpsMarker.bindPopup(`<b>${escH(short||'GPS')}</b><br><small>${gpsLat.toFixed(5)}, ${gpsLng.toFixed(5)}</small>`).openPopup();
+      dbg(`Adresse: ${short||gpsAddr}`,'ok');
+    }catch(e){
+      gpsAddr=`${gpsLat.toFixed(5)}, ${gpsLng.toFixed(5)}`;
+      document.getElementById('gps-addr').textContent=gpsAddr;
+      dbg(`Geocode Fehler: ${e}`,'warn');
     }
-
-    dbg(`Quota aus GitHub: ${runs.length} Runs analysiert, ${counted.length} im aktuellen Monat, ~${totalTiles} Tiles`, 'ok');
-
-    // Manuelle Korrektur: nimm den höheren Wert aus localStorage und GitHub
-    const qd = quotaData();
-    const currentMonth = `${y}-${String(m+1).padStart(2,'0')}`;
-    if (qd.month === currentMonth) {
-      if (totalTiles > qd.used) {
-        qd.used = totalTiles;
-        saveQuotaData(qd);
-        dbg(`Quota aktualisiert: ${totalTiles} Tiles (aus ${counted.length} GitHub-Runs)`, 'ok');
-        loadQuota();
-      }
-    }
-    return counted;
-  } catch (e) {
-    dbg(`Quota-GitHub-Fehler: ${e}`, 'warn');
-  }
+  },err=>{
+    dbg(`GPS Fehler: ${err.message}`,'err');
+    setStatus(`GPS: ${err.message}`,'error');
+  },{enableHighAccuracy:true,timeout:10000});
 }
-  
-/* ── GEOCODE ── */
+function useGpsAsPoint(){
+  if(gpsLat===null){setStatus('Kein GPS.','warn');return;}
+  placeSingleMarker(L.latLng(gpsLat,gpsLng));
+  map.setView([gpsLat,gpsLng],17);
+}
+function useGpsAddrSearch(){
+  if(!gpsAddr){setStatus('Kein GPS.','warn');return;}
+  document.getElementById('street-input').value=gpsAddr;
+  mapMode('street');
+  geocodeStreet();
+}
+
 async function geocodeStreet(){
   const q=v('street-input');if(!q)return;
-  dbg(`Geocode: ${q}`,'info');setStatus(`Suche: ${q}...`,'running');
+  dbg(`Geocode: ${q}`,'info');
+  setStatus(`Suche: ${q}...`,'running');
   try{
-    const r=await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&polygon_geojson=1&limit=1`,{headers:{'User-Agent':'svex/3.5'}});
+    const r=await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&polygon_geojson=1&limit=1`,{headers:{'User-Agent':'svex/3.8'}});
     const data=await r.json();
-    if(!data.length){setStatus('Nicht gefunden. Tipp: Exakten Strassennamen + Stadt eingeben (z.B. Berger Strasse, Frankfurt am Main)','warn');return;}
+    if(!data.length){
+      setStatus('Nicht gefunden. Exakten Straßennamen + Stadt eingeben.','warn');
+      return;
+    }
     const geo=data[0].geojson||{},t=geo.type,c=geo.coordinates||[];
     dbg(`Geocode OK: ${data[0].display_name} (${t})`,'ok');
-    linePoints=[];if(drawnLine){map.removeLayer(drawnLine);drawnLine=null;}panoLayer.clearLayers();
+
+    linePoints=[];areaPoints=[];
+    if(drawnLine){map.removeLayer(drawnLine);drawnLine=null;}
+    if(drawnArea){map.removeLayer(drawnArea);drawnArea=null;}
+    drawLayer.clearLayers();
+
     let pts=[];
     if(t==='LineString')pts=c.map(([lo,la])=>L.latLng(la,lo));
     else if(t==='MultiLineString')pts=c.flat().map(([lo,la])=>L.latLng(la,lo));
-    else{const bb=data[0].boundingbox;pts=[L.latLng((+bb[0]+ +bb[1])/2,(+bb[2]+ +bb[3])/2)];}
+    else if(t==='Polygon'){
+      pts=c[0].map(([lo,la])=>L.latLng(la,lo));
+      areaPoints=pts.slice(0,-1);
+      drawnArea=L.polygon(areaPoints,{color:'#c9813a',weight:3,opacity:.85,fillOpacity:.18}).addTo(map);
+      map.fitBounds(drawnArea.getBounds(),{padding:[20,20]});
+      hasArea=true;hasPoint=false;hasLine=false;
+      updateActionBar();
+      setStatus(`${q} als Fläche gefunden — „Panoramen suchen“ drücken.`,'success');
+      return;
+    }else{
+      const bb=data[0].boundingbox;
+      pts=[L.latLng((+bb[0]+ +bb[1])/2,(+bb[2]+ +bb[3])/2)];
+    }
+
     if(pts.length>=2){
-      linePoints=pts;drawnLine=L.polyline(pts,{color:'#c9813a',weight:3}).addTo(map);
+      linePoints=pts;
+      drawnLine=L.polyline(pts,{color:'#c9813a',weight:3}).addTo(map);
       map.fitBounds(drawnLine.getBounds(),{padding:[20,20]});
-      hasLine=true;hasPoint=false;updateActionBar();
-      setStatus(`${q} gefunden \u2014 \u201ePanoramen suchen\u201c dr\u00fccken.`,'success');
-    }else if(pts.length===1){placeSingleMarker(pts[0]);map.setView(pts[0],17);}
-  }catch(e){dbg(`Geocode Fehler: ${e}`,'err');setStatus(`Fehler: ${e}`,'error');}
+      hasLine=true;hasPoint=false;hasArea=false;
+      updateActionBar();
+      setStatus(`${q} gefunden — „Panoramen suchen“ drücken.`,'success');
+    }else if(pts.length===1){
+      placeSingleMarker(pts[0]);
+      map.setView(pts[0],17);
+    }
+  }catch(e){
+    dbg(`Geocode Fehler: ${e}`,'err');
+    setStatus(`Fehler: ${e}`,'error');
+  }
 }
 
-/* ── PANORAMA DISCOVERY ── */
 let _svexTileSession=null,_svexTileSessionAt=0;
-
 async function getStreetViewTileSession(key){
- // Map Tiles API Sessions sind kurzlebig. Für Browser-Suche wird eine Session wiederverwendet.
- if(_svexTileSession && (Date.now()-_svexTileSessionAt)<10*60*1000)return _svexTileSession;
- const r=await fetch(`https://tile.googleapis.com/v1/createSession?key=${encodeURIComponent(key)}`,{
- method:'POST',headers:{'Content-Type':'application/json'},
- body:JSON.stringify({mapType:'streetview',language:'de-DE',region:'DE'})
- });
- const d=await r.json().catch(()=>({}));
- if(!r.ok||!d.session){
- throw new Error(`Tile Session HTTP ${r.status}: ${d.error?.message||'keine Session'}`);
- }
- _svexTileSession=d.session;_svexTileSessionAt=Date.now();
- return _svexTileSession;
+  if(_svexTileSession&&(Date.now()-_svexTileSessionAt)<10*60*1000)return _svexTileSession;
+  const r=await fetch(`https://tile.googleapis.com/v1/createSession?key=${encodeURIComponent(key)}`,{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({mapType:'streetview',language:'de-DE',region:'DE'})
+  });
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok||!d.session)throw new Error(`Tile Session HTTP ${r.status}: ${d.error?.message||'keine Session'}`);
+  _svexTileSession=d.session;_svexTileSessionAt=Date.now();
+  return _svexTileSession;
 }
-
-function normalizeTileMetadata(d, fallbackLat, fallbackLng, panoId){
- const id=d.panoId||d.pano_id||panoId;
- if(!id)return null;
- const lat=(typeof d.lat==='number')?d.lat:fallbackLat;
- const lng=(typeof d.lng==='number')?d.lng:fallbackLng;
- return {
- pano_id:id,
- lat,lng,
- date:d.date||'?',
- heading:d.heading,
- imageryType:d.imageryType||'',
- links:d.links||[],
- url:gmapsPanoUrl(lat,lng,id,d.heading||0,0,90)
- };
+function normalizeTileMetadata(d,fallbackLat,fallbackLng,panoId){
+  const id=d.panoId||d.pano_id||panoId;
+  if(!id)return null;
+  const lat=(typeof d.lat==='number')?d.lat:fallbackLat;
+  const lng=(typeof d.lng==='number')?d.lng:fallbackLng;
+  return{
+    pano_id:id,lat,lng,date:d.date||'?',heading:d.heading,imageryType:d.imageryType||'',
+    links:d.links||[],
+    url:gmapsPanoUrl(lat,lng,id,d.heading||0,0,90)
+  };
 }
-
-async function getTilePanoMetadataById(panoId, key, session, fallbackLat, fallbackLng){
- const url=`https://tile.googleapis.com/v1/streetview/metadata?session=${encodeURIComponent(session)}&key=${encodeURIComponent(key)}&panoId=${encodeURIComponent(panoId)}`;
- const r=await fetch(url);
- const d=await r.json().catch(()=>({}));
- if(!r.ok){
- dbg(`Tile-Metadata ${panoId.substring(0,16)} HTTP ${r.status}: ${d.error?.message||''}`,'warn');
- return null;
- }
- return normalizeTileMetadata(d,fallbackLat,fallbackLng,panoId);
+async function getTilePanoMetadataById(panoId,key,session,fallbackLat,fallbackLng){
+  const url=`https://tile.googleapis.com/v1/streetview/metadata?session=${encodeURIComponent(session)}&key=${encodeURIComponent(key)}&panoId=${encodeURIComponent(panoId)}`;
+  const r=await fetch(url);
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok){
+    dbg(`Tile-Metadata ${String(panoId).substring(0,16)} HTTP ${r.status}: ${d.error?.message||''}`,'warn');
+    return null;
+  }
+  return normalizeTileMetadata(d,fallbackLat,fallbackLng,panoId);
 }
-
-async function queryPanoIdsTile(locations, radius, key, session){
- const body={locations:locations.map(p=>({lat:p.lat,lng:p.lng})),radius:Math.max(1,parseInt(radius)||50)};
- const r=await fetch(`https://tile.googleapis.com/v1/streetview/panoIds?session=${encodeURIComponent(session)}&key=${encodeURIComponent(key)}`,{
- method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)
- });
- const d=await r.json().catch(()=>({}));
- if(!r.ok){
- dbg(`Tile-panoIds HTTP ${r.status}: ${d.error?.message||JSON.stringify(d).slice(0,120)}`,'warn');
- return [];
- }
- return d.panoIds||[];
+async function queryPanoIdsTile(locations,radius,key,session){
+  const body={locations:locations.map(p=>({lat:p.lat,lng:p.lng})),radius:Math.max(1,parseInt(radius)||50)};
+  const r=await fetch(`https://tile.googleapis.com/v1/streetview/panoIds?session=${encodeURIComponent(session)}&key=${encodeURIComponent(key)}`,{
+    method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)
+  });
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok){
+    dbg(`Tile-panoIds HTTP ${r.status}: ${d.error?.message||JSON.stringify(d).slice(0,120)}`,'warn');
+    return [];
+  }
+  return d.panoIds||[];
 }
-
-async function queryPanosBrowser(lat, lng, radius, key) {
- // v3.8-kompatibel: nutzt die Map Tiles API statt der alten StreetView-Static-Metadata API.
- return queryPanosBrowserArea(lat,lng,radius,key,1,false);
+function offsetLatLng(lat,lng,northM,eastM){
+  const dLat=northM/111320;
+  const dLng=eastM/(111320*Math.cos(lat*Math.PI/180));
+  return{lat:lat+dLat,lng:lng+dLng};
 }
-
-function offsetLatLng(lat, lng, northM, eastM){
- const dLat=northM/111320;
- const dLng=eastM/(111320*Math.cos(lat*Math.PI/180));
- return {lat:lat+dLat,lng:lng+dLng};
-}
-
 function makeBrowserFallbackPosition(lat,lng){
- const pano_id=`pos_${lat.toFixed(5)}_${lng.toFixed(5)}`.replace(/[.-]/g,'_');
- return {pano_id,lat,lng,date:'?',url:gmapsPanoUrl(lat,lng,'',0,0,90),_fallback:true};
+  const pano_id=`pos_${lat.toFixed(5)}_${lng.toFixed(5)}`.replace(/[.-]/g,'_');
+  return{pano_id,lat,lng,date:'?',url:gmapsPanoUrl(lat,lng,'',0,0,90),_fallback:true};
 }
-
 function buildSearchLocations(lat,lng,searchRadius){
- const locs=[{lat,lng}];
- const rings=[25,50,100,150,200,300,400,500].filter(r=>r<=searchRadius);
- for(const ring of rings){
- const steps=ring>=200?16:8;
- for(let i=0;i<steps;i++){
- const a=2*Math.PI*i/steps;
- locs.push(offsetLatLng(lat,lng,Math.cos(a)*ring,Math.sin(a)*ring));
- }
- }
- return locs.slice(0,100); // Map Tiles panoIds erlaubt max. 100 Locations pro Request
+  const locs=[{lat,lng}];
+  const rings=[25,50,100,150,200,300,400,500].filter(r=>r<=searchRadius);
+  for(const ring of rings){
+    const steps=ring>=200?16:8;
+    for(let i=0;i<steps;i++){
+      const a=2*Math.PI*i/steps;
+      locs.push(offsetLatLng(lat,lng,Math.cos(a)*ring,Math.sin(a)*ring));
+    }
+  }
+  return locs.slice(0,100);
 }
-
 async function queryPanosBrowserArea(lat,lng,radius,key,maxResults=5,withFallback=true){
- radius=Math.max(1,parseInt(radius)||8);
- maxResults=Math.max(1,parseInt(maxResults)||5);
- const session=await getStreetViewTileSession(key);
- const found=[],seen=new Set();
+  radius=Math.max(1,parseInt(radius)||8);
+  maxResults=Math.max(1,parseInt(maxResults)||5);
+  const session=await getStreetViewTileSession(key);
+  const found=[],seen=new Set();
 
- async function addPano(pano){
- if(!pano||!pano.pano_id||seen.has(pano.pano_id))return;
- pano.distance_m=haversine(lat,lng,pano.lat,pano.lng);
- // cfg-outdoor weiterhin respektieren, aber nur wenn explizit "Ja" gesetzt ist.
- if(v('cfg-outdoor')==='true' && pano.imageryType && pano.imageryType!=='outdoor')return;
- seen.add(pano.pano_id);found.push(pano);
- }
+  async function addPano(pano){
+    if(!pano||!pano.pano_id||seen.has(pano.pano_id))return;
+    pano.distance_m=haversine(lat,lng,pano.lat,pano.lng);
+    if(v('cfg-outdoor')==='true'&&pano.imageryType&&pano.imageryType!=='outdoor')return;
+    seen.add(pano.pano_id);found.push(pano);
+  }
 
- // 1) Zuerst echte panoIds über Map Tiles API suchen. Das ist der wichtige Unterschied:
- //    createSession + streetview/panoIds funktioniert mit deinem bereits getesteten Map-Tiles-Key.
- const searchRadius=Math.max(radius,500); // GPS war ±127m; 150m kann immer noch knapp sein.
- const requestRadius=Math.max(50,Math.min(100,searchRadius));
- const locs=buildSearchLocations(lat,lng,searchRadius);
- dbg(`Browser-Umkreissuche: ${locs.length} Tile-panoIds Punkte, requestRadius=${requestRadius}m, searchRadius=${searchRadius}m`,'info');
+  const searchRadius=Math.max(radius,500);
+  const requestRadius=Math.max(50,Math.min(100,searchRadius));
+  const locs=buildSearchLocations(lat,lng,searchRadius);
+  dbg(`Browser-Umkreissuche: ${locs.length} Tile-panoIds Punkte, requestRadius=${requestRadius}m`,'info');
 
- for(let off=0;off<locs.length && found.length<maxResults;off+=100){
- const batch=locs.slice(off,off+100);
- const ids=await queryPanoIdsTile(batch,requestRadius,key,session);
- for(let j=0;j<ids.length && found.length<maxResults;j++){
- const id=ids[j];
- if(!id||seen.has(id))continue;
- const meta=await getTilePanoMetadataById(id,key,session,batch[j]?.lat||lat,batch[j]?.lng||lng);
- await addPano(meta);
- }
- }
+  for(let off=0;off<locs.length&&found.length<maxResults;off+=100){
+    const batch=locs.slice(off,off+100);
+    const ids=await queryPanoIdsTile(batch,requestRadius,key,session);
+    for(let j=0;j<ids.length&&found.length<maxResults;j++){
+      const id=ids[j];
+      if(!id||seen.has(id))continue;
+      const meta=await getTilePanoMetadataById(id,key,session,batch[j]?.lat||lat,batch[j]?.lng||lng);
+      await addPano(meta);
+    }
+  }
 
- // 2) Wenn mindestens ein echtes Panorama gefunden wurde: über Links leicht erweitern.
- //    Das nähert sich streetview-dl depth an, ohne den Browser zu überlasten.
- for(let depth=0;depth<2 && found.length<maxResults;depth++){
- const base=[...found];
- for(const p of base){
- for(const l of (p.links||[])){
- if(found.length>=maxResults)break;
- const id=l.panoId||l.pano_id;
- if(!id||seen.has(id))continue;
- const meta=await getTilePanoMetadataById(id,key,session,p.lat,p.lng);
- if(meta){
- meta.linkHeading=l.heading;
- meta.linkText=l.text||'';
- await addPano(meta);
- }
- }
- if(found.length>=maxResults)break;
- }
- }
+  for(let depth=0;depth<2&&found.length<maxResults;depth++){
+    const base=[...found];
+    for(const p of base){
+      for(const l of(p.links||[])){
+        if(found.length>=maxResults)break;
+        const id=l.panoId||l.pano_id;
+        if(!id||seen.has(id))continue;
+        const meta=await getTilePanoMetadataById(id,key,session,p.lat,p.lng);
+        if(meta){
+          meta.linkHeading=l.heading;
+          meta.linkText=l.text||'';
+          await addPano(meta);
+        }
+      }
+      if(found.length>=maxResults)break;
+    }
+  }
 
- found.sort((a,b)=>(a.distance_m||999999)-(b.distance_m||999999));
- if(found.length>0)return found.slice(0,maxResults);
+  found.sort((a,b)=>(a.distance_m||999999)-(b.distance_m||999999));
+  if(found.length>0)return found.slice(0,maxResults);
 
- // 3) Optionaler Positions-Fallback: weiterhin kein Fake als "echtes" pano_id,
- //    aber nützlich für Cloud-Dispatch per Koordinate, wenn Google im Browser nichts liefert.
- if(withFallback){
- dbg('Keine echten pano_ids gefunden — Positions-Fallback wird markiert.','warn');
- return [makeBrowserFallbackPosition(lat,lng)];
- }
- return [];
-}
-
-async function discoverPanosAlongLine(){
- const key=v('tok-google');
- if(!key){setStatus('API-Key fehlt.','error');return;}
- const sampling=parseInt(v('cfg-sampling'))||10,radius=parseInt(v('cfg-radius'))||8;
- const pts=linePoints.map(p=>({lat:p.lat,lng:p.lng}));
- const samples=pts.length>1?interpolate(pts,sampling):pts;
- dbg(`Suche: ${samples.length} Samples, alle ${sampling}m, Server=${serverOnline}`,'info');
- setStatus(`<span class="spin"></span>Suche ${samples.length} Punkte...`,'running');
- document.getElementById('action-bar').style.display='none';
- foundPanos=[];panoLayer.clearLayers();const seen=new Set();
-
- for(let i=0;i<samples.length;i++){
- const p=samples[i];
- try{
- let panos=[];
- if(serverOnline){
- const res=await fetch(`${LOCAL_API}/api/query`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lat:p.lat,lng:p.lng,radius,api_key:key})});
- const d=await res.json();panos=d.panoramas||[];
- dbg(`P${i}: ${panos.length} Panos vom Server`,'info');
- }else{
- // Browser-Modus: zuerst echte Map-Tiles-panoIds, danach optional Positions-Fallback.
- const maxResults=parseInt(v('cfg-maxresults'))||5;
- panos=await queryPanosBrowserArea(p.lat,p.lng,radius,key,maxResults,true);
- const real=panos.filter(x=>!String(x.pano_id||'').startsWith('pos_')).length;
- if(real>0){
- dbg(`P${i}: ${real} echte Panorama(s) gefunden, nächstes=${Math.round(panos[0].distance_m||0)}m pano_id=${panos[0].pano_id.substring(0,16)}...`,'ok');
- }else{
- dbg(`P${i}: keine echten pano_ids — Fallback-Position gesetzt`,'warn');
- }
- }
- for(const pano of panos){
- if(!seen.has(pano.pano_id)){
- seen.add(pano.pano_id);
- pano._selected=true;
- foundPanos.push(pano);
- const isFake=String(pano.pano_id||'').startsWith('pos_');
- const col=isFake?'#c9813a':(serverOnline?'#68a83f':'#4f9aaa');
- const marker=L.circleMarker([pano.lat||p.lat,pano.lng||p.lng],{radius:isFake?6:7,color:col,fillColor:col,fillOpacity:isFake?.55:.8,weight:2})
- .on('click',()=>togglePanoFromMarker(pano.pano_id))
- .bindPopup(
- `<b style="font-size:.85rem">${escH(pano.pano_id)}</b><br>`+
- `<span style="color:#888;font-size:.75rem">${isFake?'Fallback-Position':'Datum: '+escH(pano.date||'?')}</span><br>`+
- `<span style="font-size:.75rem">${(pano.lat||p.lat).toFixed(5)}, ${(pano.lng||p.lng).toFixed(5)}</span><br>`+
- (pano.distance_m!==undefined&&!isFake?`<span style="font-size:.75rem;color:#888">Distanz: ${Math.round(pano.distance_m)}m</span><br>`:'')+
- (pano.url?`<a href="${escH(pano.url)}" target="_blank" style="font-size:.75rem;color:#4f9aaa">Google Maps &#8599;</a>`:'')
- )
- .addTo(panoLayer);
- pano._marker=marker;
- }
- }
- }catch(e){dbg(`Fehler P${i}: ${e}`,'err');}
- if(i%5===0)updatePanoBar();
- }
-
- updatePanoBar();updateActionBar();
- if(!serverOnline){
- const realCount=foundPanos.filter(p=>!String(p.pano_id||'').startsWith('pos_')).length;
- if(realCount>0){
- setStatus(`${realCount} echte Panoramen gefunden (Browser-Modus). Cloud-Download möglich.`,'success');
- dbg(`Suche fertig: ${realCount} echte pano_ids via Map Tiles API`,'ok');
- }else if(foundPanos.length>0){
- setStatus(`${foundPanos.length} Fallback-Position(en) markiert — keine echten pano_ids gefunden. Cloud-Dispatch per Koordinate möglich.`,'warn');
- dbg('Keine echten pano_ids gefunden; Fallback-Koordinaten können an GitHub Actions gesendet werden.','warn');
- }else{
- setStatus(`Keine Panoramen im erweiterten Umkreis gefunden.`,'warn');
- dbg('Tipp: Suchradius erhöhen, GPS-Punkt korrigieren oder Strassensuche verwenden.','warn');
- }
- }else{
- setStatus(`${foundPanos.length} Panoramen gefunden — Auswählen und „Lokal laden" drücken.`,'success');
- dbg(`Suche fertig: ${foundPanos.length} Panoramen`,'ok');
- }
+  if(withFallback){
+    dbg('Keine echten pano_ids gefunden — Positions-Fallback wird markiert.','warn');
+    return[makeBrowserFallbackPosition(lat,lng)];
+  }
+  return[];
 }
 
 function interpolate(pts,everyM){
   if(pts.length<2)return pts;
-  const out=[pts[0]];let carry=0;
+  const out=[pts[0]];
   for(let i=1;i<pts.length;i++){
     const seg=haversine(pts[i-1].lat,pts[i-1].lng,pts[i].lat,pts[i].lng);
     if(!seg)continue;
-    let d=carry;
-    while(d+everyM<=seg){d+=everyM;const r=d/seg;out.push({lat:pts[i-1].lat+(pts[i].lat-pts[i-1].lat)*r,lng:pts[i-1].lng+(pts[i].lng-pts[i-1].lng)*r});}
-    carry=seg-d;
+    for(let d=everyM;d<seg;d+=everyM){
+      const r=d/seg;
+      out.push({lat:pts[i-1].lat+(pts[i].lat-pts[i-1].lat)*r,lng:pts[i-1].lng+(pts[i].lng-pts[i-1].lng)*r});
+    }
   }
-  if(out[out.length-1]!==pts[pts.length-1])out.push(pts[pts.length-1]);
+  out.push(pts[pts.length-1]);
   return out;
 }
 function haversine(la1,lo1,la2,lo2){
@@ -1220,52 +1132,188 @@ function haversine(la1,lo1,la2,lo2){
   const a=Math.sin((p2-p1)/2)**2+Math.cos(p1)*Math.cos(p2)*Math.sin((lo2-lo1)*Math.PI/360)**2;
   return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
+function pointInPolygon(pt,poly){
+  const x=pt.lng,y=pt.lat;
+  let inside=false;
+  for(let i=0,j=poly.length-1;i<poly.length;j=i++){
+    const xi=poly[i].lng,yi=poly[i].lat;
+    const xj=poly[j].lng,yj=poly[j].lat;
+    const intersect=((yi>y)!==(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi+1e-12)+xi);
+    if(intersect)inside=!inside;
+  }
+  return inside;
+}
+function samplePolygon(poly,everyM){
+  if(!poly||poly.length<3)return[];
+  everyM=Math.max(3,parseInt(everyM)||10);
+  const lats=poly.map(p=>p.lat),lngs=poly.map(p=>p.lng);
+  const minLat=Math.min(...lats),maxLat=Math.max(...lats);
+  const minLng=Math.min(...lngs),maxLng=Math.max(...lngs);
+  const midLat=(minLat+maxLat)/2;
+  const stepLat=everyM/111320;
+  const stepLng=everyM/(111320*Math.cos(midLat*Math.PI/180));
+  const out=[];
+  for(let lat=minLat;lat<=maxLat;lat+=stepLat){
+    for(let lng=minLng;lng<=maxLng;lng+=stepLng){
+      const p={lat,lng};
+      if(pointInPolygon(p,poly))out.push(p);
+      if(out.length>=500){
+        dbg('Flächen-Sampling auf 500 Punkte begrenzt. Sampling-Abstand ggf. erhöhen.','warn');
+        return out;
+      }
+    }
+  }
+  if(!out.length){
+    out.push({
+      lat:poly.reduce((a,p)=>a+p.lat,0)/poly.length,
+      lng:poly.reduce((a,p)=>a+p.lng,0)/poly.length
+    });
+  }
+  return out;
+}
 
-/* ── PANO TABELLE + AUSWAHL ── */
-function updatePanoBar() {
-  const bar = document.getElementById('pano-found-bar');
-  if (!foundPanos.length) { bar.style.display = 'none'; return; }
-  bar.style.display = 'block';
-  const selCount = foundPanos.filter(p => p._selected).length;
-  const fakeCount = foundPanos.filter(p => String(p.pano_id||'').startsWith('pos_')).length;
+async function discoverPanosAlongLine(){
+  const key=v('tok-google');
+  if(!key){setStatus('API-Key fehlt.','error');return;}
 
-  document.getElementById('pano-count-label').textContent =
-    `${foundPanos.length} Panoramen gefunden` +
-    (fakeCount ? ` (${fakeCount} Browser-Fallback)` : '') +
-    (!serverOnline ? ' — Browser-Modus' : '');
+  const sampling=parseInt(v('cfg-sampling'))||10,radius=parseInt(v('cfg-radius'))||8;
+  let samples=[];
 
-  document.getElementById('sel-bar').style.display = 'flex';
-  document.getElementById('sel-count').textContent = selCount;
-  document.getElementById('btn-export-csv').style.display = selCount > 0 ? 'inline-flex' : 'none';
-
-  // Nur die Haupt-Checkbox in der sel-bar syncen (NICHT th-Checkbox separat)
-  const cbAll = document.getElementById('cb-all');
-  if (cbAll) {
-    cbAll.checked = selCount === foundPanos.length && foundPanos.length > 0;
-    cbAll.indeterminate = selCount > 0 && selCount < foundPanos.length;
+  if(hasArea&&areaPoints.length>=3){
+    const poly=areaPoints.map(p=>({lat:p.lat,lng:p.lng}));
+    samples=samplePolygon(poly,sampling);
+    dbg(`Flächensuche: ${areaPoints.length} Eckpunkte, ${samples.length} Samples, alle ca. ${sampling}m, Server=${serverOnline}`,'info');
+  }else{
+    const pts=linePoints.map(p=>({lat:p.lat,lng:p.lng}));
+    samples=pts.length>1?interpolate(pts,sampling):pts;
+    dbg(`Suche: ${samples.length} Samples, alle ${sampling}m, Server=${serverOnline}`,'info');
   }
 
-  // Dispatched-IDs aus localStorage
-  const alreadyDone = JSON.parse(localStorage.getItem('svex_dispatched_panos') || '[]');
+  if(!samples.length){
+    setStatus('Keine Sampling-Punkte erzeugt. Fläche vergrößern oder Sampling-Abstand reduzieren.','warn');
+    return;
+  }
 
-  document.getElementById('pano-tbody').innerHTML = foundPanos.map((p, i) => {
-    const lat = (p.lat || 0).toFixed(5);
-    const lng = (p.lng || 0).toFixed(5);
-    const mapsUrl = gmapsPanoUrl(lat,lng,p.pano_id,p.heading||0,0,90);
-    const isFake = String(p.pano_id||'').startsWith('pos_');
-    const isDone = alreadyDone.includes(p.pano_id);
-    const rowStyle = isFake ? 'color:var(--muted)' : '';
-    const doneTag = isDone
-      ? '<span style="font-size:.65rem;background:#1a3a25;color:#68a83f;border-radius:99px;padding:1px 6px;margin-left:4px">✓ angefragt</span>'
-      : '';
-    const fakeTag = isFake
-      ? '<span style="font-size:.65rem;background:#2a2010;color:#c9813a;border-radius:99px;padding:1px 6px;margin-left:4px">fallback</span>'
-      : '';
+  setStatus(`<span class="spin"></span>Suche ${samples.length} Punkte...`,'running');
+  document.getElementById('action-bar').style.display='none';
+
+  foundPanos=[];
+  panoLayer.clearLayers();
+  const seen=new Set();
+
+  for(let i=0;i<samples.length;i++){
+    const p=samples[i];
+    try{
+      let panos=[];
+      if(serverOnline&&mode==='local'){
+        const res=await fetch(`${LOCAL_API}/api/query`,{
+          method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({lat:p.lat,lng:p.lng,radius,api_key:key})
+        });
+        const d=await res.json();
+        panos=d.panoramas||[];
+        dbg(`P${i}: ${panos.length} Panos vom Server`,'info');
+      }else{
+        const maxResults=parseInt(v('cfg-maxresults'))||5;
+        panos=await queryPanosBrowserArea(p.lat,p.lng,radius,key,maxResults,true);
+        const real=panos.filter(x=>!String(x.pano_id||'').startsWith('pos_')).length;
+        if(real>0)dbg(`P${i}: ${real} echte Panorama(s) gefunden`,'ok');
+        else dbg(`P${i}: keine echten pano_ids — Fallback-Position gesetzt`,'warn');
+      }
+
+      for(const pano of panos){
+        if(!seen.has(pano.pano_id)){
+          seen.add(pano.pano_id);
+          pano._selected=true;
+          foundPanos.push(pano);
+          const isFake=String(pano.pano_id||'').startsWith('pos_');
+          const col=panoMarkerColor(pano,true);
+          const marker=L.circleMarker([pano.lat||p.lat,pano.lng||p.lng],{
+            radius:isFake?6:7,
+            color:col,
+            fillColor:col,
+            fillOpacity:isFake?.55:.8,
+            weight:2,
+            bubblingMouseEvents:false
+          })
+          .bindPopup(
+            `<b style="font-size:.85rem">${escH(pano.pano_id)}</b><br>`+
+            `<span style="color:#888;font-size:.75rem">${isFake?'Fallback-Position':'Datum: '+escH(pano.date||'?')}</span><br>`+
+            `<span style="font-size:.75rem">${(pano.lat||p.lat).toFixed(5)}, ${(pano.lng||p.lng).toFixed(5)}</span><br>`+
+            (pano.distance_m!==undefined&&!isFake?`<span style="font-size:.75rem;color:#888">Distanz: ${Math.round(pano.distance_m)}m</span><br>`:'')+
+            (pano.url?`<a href="${escH(pano.url)}" target="_blank" style="font-size:.75rem;color:#4f9aaa">Google Maps &#8599;</a>`:'')
+          )
+          .on('click',(ev)=>{
+            if(ev.originalEvent)L.DomEvent.stop(ev.originalEvent);
+            togglePanoFromMarker(pano.pano_id);
+          })
+          .addTo(panoLayer);
+          pano._marker=marker;
+        }
+      }
+    }catch(e){
+      dbg(`Fehler P${i}: ${e}`,'err');
+    }
+    if(i%5===0)updatePanoBar();
+  }
+
+  updatePanoBar();
+  updateActionBar();
+
+  if(!serverOnline||mode==='cloud'){
+    const realCount=foundPanos.filter(p=>!String(p.pano_id||'').startsWith('pos_')).length;
+    if(realCount>0){
+      setStatus(`${realCount} echte Panoramen gefunden (Browser-Modus). Cloud-Download möglich.`,'success');
+      dbg(`Suche fertig: ${realCount} echte pano_ids via Map Tiles API`,'ok');
+    }else if(foundPanos.length>0){
+      setStatus(`${foundPanos.length} Fallback-Position(en) markiert — keine echten pano_ids gefunden.`,'warn');
+    }else{
+      setStatus(`Keine Panoramen im erweiterten Umkreis gefunden.`,'warn');
+    }
+  }else{
+    setStatus(`${foundPanos.length} Panoramen gefunden — Auswählen und „Lokal laden“ drücken.`,'success');
+  }
+}
+
+function updatePanoBar(){
+  const bar=document.getElementById('pano-found-bar');
+  if(!foundPanos.length){bar.style.display='none';return;}
+  bar.style.display='block';
+
+  const selCount=foundPanos.filter(p=>p._selected).length;
+  const fakeCount=foundPanos.filter(p=>String(p.pano_id||'').startsWith('pos_')).length;
+
+  document.getElementById('pano-count-label').textContent=
+    `${foundPanos.length} Panoramen gefunden`+
+    (fakeCount?` (${fakeCount} Browser-Fallback)`:'')+
+    ((!serverOnline||mode==='cloud')?' — Browser-Modus':'');
+
+  document.getElementById('sel-bar').style.display='flex';
+  document.getElementById('sel-count').textContent=selCount;
+  document.getElementById('btn-export-csv').style.display=selCount>0?'inline-flex':'none';
+
+  const cbAll=document.getElementById('cb-all');
+  if(cbAll){
+    cbAll.checked=selCount===foundPanos.length&&foundPanos.length>0;
+    cbAll.indeterminate=selCount>0&&selCount<foundPanos.length;
+  }
+
+  const alreadyDone=JSON.parse(localStorage.getItem('svex_dispatched_panos')||'[]');
+
+  document.getElementById('pano-tbody').innerHTML=foundPanos.map((p,i)=>{
+    const lat=(p.lat||0).toFixed(5);
+    const lng=(p.lng||0).toFixed(5);
+    const mapsUrl=gmapsPanoUrl(lat,lng,p.pano_id,p.heading||0,0,90);
+    const isFake=String(p.pano_id||'').startsWith('pos_');
+    const isDone=alreadyDone.includes(p.pano_id);
+    const rowStyle=isFake?'color:var(--muted)':'';
+    const doneTag=isDone?'<span style="font-size:.65rem;background:#1a3a25;color:#68a83f;border-radius:99px;padding:1px 6px;margin-left:4px">✓ angefragt</span>':'';
+    const fakeTag=isFake?'<span style="font-size:.65rem;background:#2a2010;color:#c9813a;border-radius:99px;padding:1px 6px;margin-left:4px">fallback</span>':'';
     return `<tr style="${rowStyle}">
-      <td class="cb-col"><input type="checkbox" ${p._selected ? 'checked' : ''} onchange="togglePano(${i},this.checked)"/></td>
-      <td>${i + 1}</td>
-      <td><code style="font-size:.7rem">${escH(p.pano_id.substring(0, 24))}</code>${doneTag}${fakeTag}</td>
-      <td>${escH(p.date || '?')}</td>
+      <td class="cb-col"><input type="checkbox" ${p._selected?'checked':''} onchange="togglePano(${i},this.checked)"/></td>
+      <td>${i+1}</td>
+      <td><code style="font-size:.7rem">${escH(String(p.pano_id||'').substring(0,24))}</code>${doneTag}${fakeTag}</td>
+      <td>${escH(p.date||'?')}</td>
       <td>${lat}</td>
       <td>${lng}</td>
       <td>
@@ -1275,31 +1323,21 @@ function updatePanoBar() {
     </tr>`;
   }).join('');
 }
-
-function panoMarkerColor(p, checked){
+function panoMarkerColor(p,checked){
   const isFake=String(p.pano_id||'').startsWith('pos_');
-  if(!checked)return '#555350';
-  return isFake?'#c9813a':(serverOnline?'#68a83f':'#4f9aaa');
+  if(!checked)return'#555350';
+  return isFake?'#c9813a':(serverOnline&&mode==='local'?'#68a83f':'#4f9aaa');
 }
-
 function togglePano(idx,checked){
   const p=foundPanos[idx];
   if(!p)return;
-
   p._selected=checked;
-
   if(p._marker){
     const col=panoMarkerColor(p,checked);
-    p._marker.setStyle({
-      color:col,
-      fillColor:col,
-      fillOpacity:checked?.8:.3
-    });
+    p._marker.setStyle({color:col,fillColor:col,fillOpacity:checked?.8:.3});
   }
-
   updatePanoBar();
 }
-
 function togglePanoFromMarker(panoId){
   const idx=foundPanos.findIndex(p=>p.pano_id===panoId);
   if(idx<0)return;
@@ -1309,29 +1347,32 @@ function togglePanoFromMarker(panoId){
 
   if(foundPanos[idx]._marker){
     const col=panoMarkerColor(foundPanos[idx],checked);
-    foundPanos[idx]._marker.setStyle({
-      color:col,
-      fillColor:col,
-      fillOpacity:checked?.8:.3
-    });
-
-    if(checked){
-      foundPanos[idx]._marker.openPopup();
-    }else{
-      foundPanos[idx]._marker.closePopup();
-    }
+    foundPanos[idx]._marker.setStyle({color:col,fillColor:col,fillOpacity:checked?.8:.3});
+    if(checked)foundPanos[idx]._marker.openPopup();
+    else foundPanos[idx]._marker.closePopup();
   }
 
-  dbg(`${checked?'Ausgewählt':'Abgewählt'}: ${panoId.substring(0,16)}...`,'info');
+  dbg(`${checked?'Ausgewählt':'Abgewählt'}: ${String(panoId).substring(0,16)}...`,'info');
   updatePanoBar();
 }
-
 function toggleSelectAll(checked){
-  foundPanos.forEach((p,i)=>{ p._selected=checked; if(p._marker){const col=panoMarkerColor(p,checked);p._marker.setStyle({color:col,fillColor:col,fillOpacity:checked?.8:.3});} });
+  foundPanos.forEach(p=>{
+    p._selected=checked;
+    if(p._marker){
+      const col=panoMarkerColor(p,checked);
+      p._marker.setStyle({color:col,fillColor:col,fillOpacity:checked?.8:.3});
+    }
+  });
   updatePanoBar();
 }
 function invertSelection(){
-  foundPanos.forEach((p,i)=>{ p._selected=!p._selected; if(p._marker){const col=panoMarkerColor(p,p._selected);p._marker.setStyle({color:col,fillColor:col,fillOpacity:p._selected?.8:.3});} });
+  foundPanos.forEach(p=>{
+    p._selected=!p._selected;
+    if(p._marker){
+      const col=panoMarkerColor(p,p._selected);
+      p._marker.setStyle({color:col,fillColor:col,fillOpacity:p._selected?.8:.3});
+    }
+  });
   updatePanoBar();
 }
 function flyToMarker(idx){
@@ -1341,15 +1382,13 @@ function flyToMarker(idx){
   if(p._marker)p._marker.openPopup();
   showTab('tab-map');
 }
-function togglePanoTable() {
-  const w = document.getElementById('pano-table-wrap');
-  const btn = document.getElementById('btn-toggle-table');
-  const visible = w.style.display !== 'none';
-  w.style.display = visible ? 'none' : 'block';
-  btn.textContent = visible ? '📋 Tabelle anzeigen' : '📋 Tabelle ausblenden';
+function togglePanoTable(){
+  const w=document.getElementById('pano-table-wrap');
+  const btn=document.getElementById('btn-toggle-table');
+  const visible=w.style.display!=='none';
+  w.style.display=visible?'none':'block';
+  btn.textContent=visible?'📋 Tabelle anzeigen':'📋 Tabelle ausblenden';
 }
-
-/* ── CSV EXPORT ── */
 function exportSelectedCSV(){
   const sel=foundPanos.filter(p=>p._selected);
   if(!sel.length){setStatus('Keine Panoramen ausgewählt.','warn');return;}
@@ -1369,7 +1408,6 @@ function exportSelectedCSV(){
   setStatus(`CSV mit ${sel.length} Panoramen exportiert.`,'success');
 }
 
-/* ── DOWNLOAD ── */
 async function startDownload(m){
   const sel=foundPanos.filter(p=>p._selected);
   if(!sel.length){setStatus('Keine Panoramen ausgewählt. Bitte Checkboxen setzen.','warn');return;}
@@ -1378,289 +1416,212 @@ async function startDownload(m){
   const qd=quotaData();
   const TILES={low:32,medium:128,high:512};
   const est=sel.length*(TILES[v('cfg-quality')]||128);
-  const stopAt=Math.floor(qd.limit*(qd.stopPct||80)/100);
+  const stopAt=Math.floor((qd.limit||100000)*(qd.stopPct||80)/100);
   if(qd.used+est>stopAt){setStatus(`Quota-Schutz: est. ${est} Tiles überschreiten Limit.`,'warn');return;}
   dbg(`Download: ${sel.length} ausgewählte Panoramen`,'info');
-  if(m==='local')await dlLocal(key,sel);else await dlCloud(key,sel);
+  if(m==='local')await dlLocal(key,sel);
+  else await dlCloud(key,sel);
   qd.used+=est;saveQuotaData(qd);loadQuota();
 }
-
-async function dlLocal(key, sel) {
-  // Street + City aus Suchfeld lesen
-  const streetRaw = v('street-input') || '';
-  const parts = streetRaw.split(',').map(s => s.trim()).filter(Boolean);
-  const street = parts[0] || '';
-  const city   = parts.slice(1).join(', ') || '';
-
-  // Validierung VOR dem Senden
-  const INVALID = ['', 'unbekannt', 'karte', 'map', 'unknown'];
-  if (INVALID.includes(street.toLowerCase())) {
-    setStatus(
-      'Kein Strassenname erkannt. Bitte im Karte-Tab "Suche" nutzen und eine Strasse eingeben (z.B. Berger Strasse, Frankfurt am Main)',
-      'error'
-    );
-    dbg('Download abgebrochen: kein gueltiger Strassenname im Suchfeld.', 'err');
-    dbg('Workflow: Karte-Tab → Strasse suchen → Panoramen suchen → Lokal laden', 'warn');
+async function dlLocal(key,sel){
+  const streetRaw=v('street-input')||'';
+  const parts=streetRaw.split(',').map(s=>s.trim()).filter(Boolean);
+  const street=parts[0]||'';
+  const city=parts.slice(1).join(', ')||'';
+  if(!street||['unbekannt','karte','map','unknown'].includes(street.toLowerCase())){
+    setStatus('Kein Straßenname erkannt. Bitte Suche nutzen oder Cloud mit pano_ids verwenden.','error');
     return;
   }
-
-  const p = {
-    street,
-    city,
-    quality:    v('cfg-quality'),
-    sampling:   v('cfg-sampling'),
-    radius:     v('cfg-radius'),
-    historical: v('cfg-historical'),
-    output:     v('cfg-output'),
-    api_key:    key,
-    pano_ids:   sel.map(p => p.pano_id),
+  const p={
+    street,city,quality:v('cfg-quality'),sampling:v('cfg-sampling'),radius:v('cfg-radius'),
+    historical:v('cfg-historical'),output:v('cfg-output'),api_key:key,
+    pano_ids:sel.filter(p=>!String(p.pano_id||'').startsWith('pos_')).map(p=>p.pano_id)
   };
-
-  dbg(`Download: street="${street}" city="${city}" quality=${p.quality} pano_ids=[${p.pano_ids.length}]`, 'cmd');
-
-  try {
-    const r = await fetch(`${LOCAL_API}/api/start`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify(p),
-    });
-    const d = await r.json();
-    if (!r.ok) { setStatus(`Fehler: ${d.error}`, 'error'); return; }
-    currentJobId = d.job_id;
-    setStatus(`Job gestartet: ${d.job_id}`, 'running');
+  try{
+    const r=await fetch(`${LOCAL_API}/api/start`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});
+    const d=await r.json();
+    if(!r.ok){setStatus(`Fehler: ${d.error}`,'error');return;}
+    currentJobId=d.job_id;
+    setStatus(`Job gestartet: ${d.job_id}`,'running');
     showTab('tab-debug');
     listenSSE(d.job_id);
-  } catch (e) {
-    setStatus(`Fehler: ${e}`, 'error');
-    dbg(`${e}`, 'err');
-  }
+  }catch(e){setStatus(`Fehler: ${e}`,'error');dbg(`${e}`,'err');}
 }
+let _cloudDispatching=false;
+async function dlCloud(key,sel){
+  if(_cloudDispatching){setStatus('Bitte warten, Request läuft...','warn');return;}
+  const pat=v('tok-pat');
+  if(!pat){setStatus('PAT fehlt.','error');showTab('tab-tokens');return;}
 
-let _cloudDispatching = false;
-async function dlCloud(key, sel) {
-  if (_cloudDispatching) { setStatus('Bitte warten, Request läuft...', 'warn'); return; }
+  const owner=v('cfg-owner')||'basecore';
+  const repo=v('cfg-repo')||'streetview-explorer';
+  const wf=v('cfg-workflow')||'download.yml';
+  const br=v('cfg-branch')||'main';
 
-  const pat   = v('tok-pat');
-  if (!pat) { setStatus('PAT fehlt.', 'error'); showTab('tab-tokens'); return; }
+  const streetRaw=v('street-input')||'';
+  const parts=streetRaw.split(',').map(s=>s.trim()).filter(Boolean);
+  const firstIsNumber=parts.length>0&&/^\d+$/.test(parts[0]);
+  const street=firstIsNumber?(parts[1]||parts[0]):(parts[0]||'');
+  const city=firstIsNumber
+    ?parts.slice(2).filter(p=>!/^\d{5}$/.test(p)&&p.length>3).slice(0,2).join(', ')
+    :parts.slice(1).filter(p=>!/^\d{5}$/.test(p)&&p.length>3).slice(0,2).join(', ');
 
-  const owner = v('cfg-owner')    || 'basecore';
-  const repo  = v('cfg-repo')     || 'streetview-explorer';
-  const wf    = v('cfg-workflow') || 'download.yml';
-  const br    = v('cfg-branch')   || 'main';
-
-  const streetRaw     = v('street-input') || '';
-  const parts         = streetRaw.split(',').map(s => s.trim()).filter(Boolean);
-  const firstIsNumber = parts.length > 0 && /^\d+$/.test(parts[0]);
-  const street = firstIsNumber ? (parts[1] || parts[0]) : (parts[0] || '');
-  const city   = firstIsNumber
-    ? parts.slice(2).filter(p => !/^\d{5}$/.test(p) && p.length > 3).slice(0, 2).join(', ')
-    : parts.slice(1).filter(p => !/^\d{5}$/.test(p) && p.length > 3).slice(0, 2).join(', ');
-
-  const realPanos  = sel.filter(p => !String(p.pano_id||'').startsWith('pos_'));
-  const fakePanos  = sel.filter(p =>  String(p.pano_id||'').startsWith('pos_'));
-  const alreadyDone = JSON.parse(localStorage.getItem('svex_dispatched_panos') || '[]');
-  let toDispatch    = realPanos.filter(p => !alreadyDone.includes(p.pano_id));
-  const dupCount    = realPanos.length - toDispatch.length;
-  if (dupCount > 0) {
-    const skip = confirm(`${dupCount} Panoramen wurden bereits angefragt.\nTrotzdem erneut downloaden?`);
-    if (skip) toDispatch = realPanos;
+  const realPanos=sel.filter(p=>!String(p.pano_id||'').startsWith('pos_'));
+  const fakePanos=sel.filter(p=>String(p.pano_id||'').startsWith('pos_'));
+  const alreadyDone=JSON.parse(localStorage.getItem('svex_dispatched_panos')||'[]');
+  let toDispatch=realPanos.filter(p=>!alreadyDone.includes(p.pano_id));
+  const dupCount=realPanos.length-toDispatch.length;
+  if(dupCount>0){
+    if(confirm(`${dupCount} Panoramen wurden bereits angefragt.\nTrotzdem erneut downloaden?`))toDispatch=realPanos;
   }
 
-  let dispatchLat = '', dispatchLng = '';
-  const hasPanoIds = toDispatch.length > 0;
-  if (!hasPanoIds) {
-    if (fakePanos.length > 0) {
-      dispatchLat = fakePanos[0].lat?.toFixed(6) || '';
-      dispatchLng = fakePanos[0].lng?.toFixed(6) || '';
-    } else if (hasPoint && singleMarker) {
-      dispatchLat = singleMarker.getLatLng().lat.toFixed(6);
-      dispatchLng = singleMarker.getLatLng().lng.toFixed(6);
+  let dispatchLat='',dispatchLng='';
+  const hasPanoIds=toDispatch.length>0;
+  if(!hasPanoIds){
+    if(fakePanos.length>0){
+      dispatchLat=fakePanos[0].lat?.toFixed(6)||'';
+      dispatchLng=fakePanos[0].lng?.toFixed(6)||'';
+    }else if(hasPoint&&linePoints.length){
+      dispatchLat=linePoints[0].lat.toFixed(6);
+      dispatchLng=linePoints[0].lng.toFixed(6);
     }
   }
 
-  const hasCoords = !!dispatchLat;
-  const hasStreet = street.length > 2;
-  if (!hasPanoIds && !hasCoords && !hasStreet) {
-    setStatus('Nichts zum Dispatchen: kein Strassenname, keine Koordinaten, keine pano_ids.', 'error');
+  const hasCoords=!!dispatchLat;
+  const hasStreet=street.length>2;
+  if(!hasPanoIds&&!hasCoords&&!hasStreet){
+    setStatus('Nichts zum Dispatchen: kein Strassenname, keine Koordinaten, keine pano_ids.','error');
     return;
   }
 
-  const modeLabel = hasPanoIds
-    ? `${toDispatch.length} pano_ids`
-    : (dispatchLat ? `Koordinaten ${dispatchLat},${dispatchLng}` : `Strasse: ${street}`);
+  const TILES_EST={low:32,medium:128,high:512};
+  const qual=v('cfg-quality')||'medium';
+  const hist=v('cfg-historical')==='true';
+  const dispatchCount=hasPanoIds?toDispatch.length:1;
+  const estTiles=Math.round(dispatchCount*(TILES_EST[qual]||128)*(hist?2.5:1));
+  const estCost=(estTiles/1000*0.007).toFixed(3);
+  dbg(`Cloud Dispatch: ${owner}/${repo} wf=${wf} ${hasPanoIds?toDispatch.length+' pano_ids':'coords/street'}`,'cmd');
+  dbg(`Tile-Schätzung: ~${estTiles.toLocaleString()} Tiles (~$${estCost})`,'info');
 
-  dbg(`Cloud Dispatch: ${owner}/${repo} wf=${wf} Modus=${modeLabel}`, 'cmd');
-  dbg(`street="${street}" city="${city}" lat=${dispatchLat} lng=${dispatchLng}`, 'info');
+  if(estTiles>10000&&!confirm(`⚠ Hoher Tile-Verbrauch!\n\n~${estTiles.toLocaleString()} Tiles (~$${estCost})\nTrotzdem fortfahren?`))return;
 
-  // ── NEU: TILE-SCHÄTZUNG UND WARNUNG ──────────────────────────────
-  const TILES_EST    = { low: 32, medium: 128, high: 512 };
-  const qual         = v('cfg-quality') || 'medium';
-  const hist         = v('cfg-historical') === 'true';
-  const dispatchCount = hasPanoIds ? toDispatch.length : 1;
-  const estTiles     = Math.round(dispatchCount * (TILES_EST[qual] || 128) * (hist ? 2.5 : 1));
-  const estCost      = (estTiles / 1000 * 0.007).toFixed(3);
+  _cloudDispatching=true;
+  const btn=document.getElementById('btn-dl-cloud');
+  if(btn){btn.disabled=true;btn.innerHTML='<span class="spin"></span> Sendet...';}
 
-  dbg(`Tile-Schätzung: ${dispatchCount} Pano(s) × ${TILES_EST[qual]} Tiles${hist ? ' × 2.5 (historisch)' : ''} = ~${estTiles.toLocaleString()} Tiles (~$${estCost})`, 'info');
-
-  if (estTiles > 10000) {
-    const ok = confirm(
-      `⚠ Hoher Tile-Verbrauch!\n\n` +
-      `~${estTiles.toLocaleString()} Tiles (~$${estCost})\n` +
-      `Qualität: ${qual}${hist ? ' + historisch' : ''}\n` +
-      `Panoramen: ${dispatchCount}\n\n` +
-      `Trotzdem fortfahren?`
-    );
-    if (!ok) {
-      dbg('Dispatch abgebrochen wegen hohem Tile-Verbrauch.', 'warn');
-      return;
-    }
-  }
-  // ── ENDE TILE-SCHÄTZUNG ──────────────────────────────────────────
-
-  _cloudDispatching = true;
-  const btn = document.getElementById('btn-dl-cloud');
-  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Sendet...'; }
-
-  try {
-    const inputs = {
-      street:      street || 'unbekannt',
-      city:        city   || '',
-      quality:     qual,
-      sampling:    v('cfg-sampling')    || '10',
-      radius:      v('cfg-radius')      || '8',
-      historical:  v('cfg-historical')  || 'false',
-      heading:     v('cfg-heading')     || '0',
-      pitch:       v('cfg-pitch')       || '0',
-      fov:         v('cfg-fov')         || '90',
-      zoom:        v('cfg-zoom')        || '2',
-      output_format: v('cfg-format')    || 'jpg',
-      jpg_quality: v('cfg-jpg-quality') || '85',
-      date_from:   v('cfg-date-from')   || '',
-      date_to:     v('cfg-date-to')     || '',
-      max_age_months: v('cfg-max-age')  || '',
-      source:      v('cfg-source')      || '',
-      outdoor:     v('cfg-outdoor')     || '',
-      api_key:     key,
+  try{
+    const inputs={
+      street:street||'unbekannt',city:city||'',quality:qual,
+      sampling:v('cfg-sampling')||'10',radius:v('cfg-radius')||'8',
+      historical:v('cfg-historical')||'false',
+      heading:v('cfg-heading')||'0',pitch:v('cfg-pitch')||'0',fov:v('cfg-fov')||'90',
+      zoom:v('cfg-zoom')||'2',output_format:v('cfg-format')||'jpg',
+      jpg_quality:v('cfg-jpg-quality')||'85',
+      date_from:v('cfg-date-from')||'',date_to:v('cfg-date-to')||'',max_age_months:v('cfg-max-age')||'',
+      source:v('cfg-source')||'',outdoor:v('cfg-outdoor')||'',api_key:key
     };
+    if(!hasPanoIds&&dispatchLat){inputs.lat=dispatchLat;inputs.lng=dispatchLng;}
+    if(hasPanoIds)inputs.pano_ids=toDispatch.map(p=>p.pano_id).join(',');
 
-    if (!hasPanoIds && dispatchLat) {
-      inputs.lat = dispatchLat;
-      inputs.lng = dispatchLng;
-    }
-    if (hasPanoIds) {
-      inputs.pano_ids = toDispatch.map(p => p.pano_id).join(',');
-    }
+    const res=await fetch(`https://api.github.com/repos/${owner}/${repo}/actions/workflows/${wf}/dispatches`,{
+      method:'POST',
+      headers:{
+        'Authorization':`Bearer ${pat}`,
+        'Accept':'application/vnd.github+json',
+        'X-GitHub-Api-Version':'2022-11-28',
+        'Content-Type':'application/json'
+      },
+      body:JSON.stringify({ref:br,inputs})
+    });
 
-    const res = await fetch(
-      `https://api.github.com/repos/${owner}/${repo}/actions/workflows/${wf}/dispatches`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization':        `Bearer ${pat}`,
-          'Accept':               'application/vnd.github+json',
-          'X-GitHub-Api-Version': '2022-11-28',
-          'Content-Type':         'application/json',
-        },
-        body: JSON.stringify({ ref: br, inputs }),
+    dbg(`HTTP ${res.status}`,'info');
+
+    if(res.status===204){
+      if(hasPanoIds){
+        const updated=[...new Set([...alreadyDone,...toDispatch.map(p=>p.pano_id)])];
+        localStorage.setItem('svex_dispatched_panos',JSON.stringify(updated));
       }
-    );
-
-    dbg(`HTTP ${res.status}`, 'info');
-
-    if (res.status === 204) {
-      if (hasPanoIds) {
-        const updated = [...new Set([...alreadyDone, ...toDispatch.map(p => p.pano_id)])];
-        localStorage.setItem('svex_dispatched_panos', JSON.stringify(updated));
-      }
-      localStorage.setItem('svex_last_dispatch', JSON.stringify({
-        street, city,
-        mode:      hasPanoIds ? 'pano_ids' : 'coords',
-        pano_ids:  hasPanoIds ? toDispatch.map(p => p.pano_id) : [],
-        lat:       dispatchLat,
-        lng:       dispatchLng,
-        timestamp: new Date().toISOString(),
-        quality:   qual,
-        est_tiles: estTiles,
+      localStorage.setItem('svex_last_dispatch',JSON.stringify({
+        street,city,mode:hasPanoIds?'pano_ids':'coords',
+        pano_ids:hasPanoIds?toDispatch.map(p=>p.pano_id):[],
+        lat:dispatchLat,lng:dispatchLng,timestamp:new Date().toISOString(),
+        quality:qual,est_tiles:estTiles
       }));
-
-      const msg = hasPanoIds
-        ? `✓ ${toDispatch.length} Panoramen angefragt (~${estTiles.toLocaleString()} Tiles)`
-        : dispatchLat
-          ? `✓ Koordinaten (${dispatchLat}, ${dispatchLng}) angefragt`
-          : `✓ Strasse "${street}, ${city}" angefragt`;
-
-      setStatus(msg + ' — GitHub Actions startet.', 'success');
-      dbg(msg, 'ok');
-
-      // ── NEU: SOFORTIGER PLATZHALTER IM JOBS-TAB ──────────────────
+      const msg=hasPanoIds?`✓ ${toDispatch.length} Panoramen angefragt (~${estTiles.toLocaleString()} Tiles)`:
+        dispatchLat?`✓ Koordinaten (${dispatchLat}, ${dispatchLng}) angefragt`:`✓ Strasse "${street}, ${city}" angefragt`;
+      setStatus(msg+' — GitHub Actions startet.','success');
+      dbg(msg,'ok');
       showTab('tab-jobs');
       setJobsMode('cloud');
-      const list = document.getElementById('cloud-jobs-list');
-      if (list) {
-        const placeholder = document.createElement('div');
-        placeholder.className = 'run-entry';
-        placeholder.id = 'run-pending';
-        placeholder.innerHTML = `
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-            <span class="badge b-r"><span class="spin"></span> Startet...</span>
-            <b style="font-size:.85rem">neu</b>
-            <span style="font-size:.75rem;color:var(--muted)">${new Date().toLocaleString('de-DE')}</span>
-          </div>
-          <div style="margin-top:4px;font-size:.73rem;color:var(--muted)">
-            ~${estTiles.toLocaleString()} Tiles · ${qual}${hist ? ' · historisch' : ''}
-            ${estTiles > 10000 ? ' · <span style="color:var(--warn)">⚠ hoher Verbrauch</span>' : ''}
-          </div>`;
-        list.prepend(placeholder);
-      }
-      // ── ENDE PLATZHALTER ─────────────────────────────────────────
-
-      setTimeout(loadCloudJobs, 5000);
-
-    } else {
-      const t = await res.text();
-      setStatus(`HTTP ${res.status}: ${t.slice(0, 120)}`, 'error');
-      dbg(`Dispatch Fehler: ${t.slice(0, 200)}`, 'err');
+      setTimeout(loadCloudJobs,5000);
+      updatePanoBar();
+    }else{
+      const t=await res.text();
+      setStatus(`HTTP ${res.status}: ${t.slice(0,120)}`,'error');
+      dbg(`Dispatch Fehler: ${t.slice(0,200)}`,'err');
     }
-  } catch (e) {
-    setStatus(`Fehler: ${e}`, 'error');
-    dbg(`${e}`, 'err');
-  } finally {
-    _cloudDispatching = false;
-    if (btn) { btn.disabled = false; btn.innerHTML = '&#9654; Request'; }
+  }catch(e){
+    setStatus(`Fehler: ${e}`,'error');
+    dbg(`${e}`,'err');
+  }finally{
+    _cloudDispatching=false;
+    if(btn){btn.disabled=false;btn.innerHTML='&#9654; Request';}
   }
 }
 function listenSSE(jobId){
   if(currentES)currentES.close();
   currentES=new EventSource(`${LOCAL_API}/api/log/${jobId}`);
   currentES.onmessage=e=>{
-    const msg=JSON.parse(e.data);if(msg.type==='ping')return;
+    const msg=JSON.parse(e.data);
+    if(msg.type==='ping')return;
     const cls=msg.type==='cmd'?'cmd':msg.type==='done'?(msg.rc===0?'ok':'err'):msg.type==='error'?'err':'log';
     dbg(msg.data,cls);
-    if(msg.type==='done'){if(msg.rc===0)setStatus('Fertig!','success');else setStatus(`Fehler (exit=${msg.rc})`,'error');currentES.close();loadLocalJobs();}
+    if(msg.type==='done'){
+      if(msg.rc===0)setStatus('Fertig!','success');else setStatus(`Fehler (exit=${msg.rc})`,'error');
+      currentES.close();loadLocalJobs();
+    }
   };
   currentES.onerror=()=>dbg('SSE unterbrochen.','err');
 }
 
-/* ── TOKEN TESTS ── */
 function tokenChanged(t){
-  if(t==='google'){document.getElementById('tok-google-dot').className='tok-dot';document.getElementById('tok-google-label').textContent='Nicht getestet';const rb=document.getElementById('google-result-box');rb.style.display='none';rb.className='api-result-box';}
-  if(t==='pat'){document.getElementById('tok-pat-dot').className='tok-dot';document.getElementById('tok-pat-label').textContent='Nicht getestet';}
+  if(t==='google'){
+    document.getElementById('tok-google-dot').className='tok-dot';
+    document.getElementById('tok-google-label').textContent='Nicht getestet';
+    const rb=document.getElementById('google-result-box');
+    rb.style.display='none';rb.className='api-result-box';
+  }
+  if(t==='pat'){
+    document.getElementById('tok-pat-dot').className='tok-dot';
+    document.getElementById('tok-pat-label').textContent='Nicht getestet';
+  }
 }
 async function testGoogle(){
-  const key=v('tok-google');if(!key){setStatus('API-Key eingeben.','error');return;}
+  const key=v('tok-google');
+  if(!key){setStatus('API-Key eingeben.','error');return;}
   const dot=document.getElementById('tok-google-dot'),lbl=document.getElementById('tok-google-label'),rb=document.getElementById('google-result-box');
   dot.className='tok-dot checking';lbl.textContent='Teste...';rb.style.display='none';
-  dbg(`POST tile.googleapis.com/v1/createSession?key=[KEY]`,'cmd');
+  dbg('POST tile.googleapis.com/v1/createSession?key=[KEY]','cmd');
   try{
-    const r=await fetch(`https://tile.googleapis.com/v1/createSession?key=${key}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mapType:'streetview',language:'en-US',region:'US'})});
+    const r=await fetch(`https://tile.googleapis.com/v1/createSession?key=${encodeURIComponent(key)}`,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({mapType:'streetview',language:'en-US',region:'US'})
+    });
     let data={};try{data=await r.json();}catch{}
-    dbg(`HTTP ${r.status} | session=${data.session||'-'} | error=${data.error?.message||'-'}`,'info');
-    rb.style.display='block';rb.textContent=`HTTP ${r.status}\nsession: ${data.session||'(keiner)'}\nerror: ${data.error?.message||'(kein Fehler)'}`;
-    if(r.status===200&&data.session){dot.className='tok-dot ok';lbl.textContent='Key g\u00fcltig \u2713';rb.className='api-result-box ok';setStatus('Key g\u00fcltig.','success');dbg('Key OK','ok');}
-    else if(r.status===403){const msg=data.error?.message||'';const reason=msg.includes('keyInvalid')?'Key ung\u00fcltig':msg.includes('not enabled')||msg.includes('accessNotConfigured')?'Map Tiles API nicht aktiviert':'Billing fehlt';dot.className='tok-dot err';lbl.textContent=reason;rb.className='api-result-box err';setStatus(reason,'error');}
-    else if(r.status===400){dot.className='tok-dot ok';lbl.textContent='Key akzeptiert \u2713';rb.className='api-result-box ok';setStatus('Key akzeptiert.','success');}
-    else{dot.className='tok-dot err';lbl.textContent=`HTTP ${r.status}`;rb.className='api-result-box err';}
-  }catch(e){dot.className='tok-dot err';lbl.textContent='Netzwerkfehler';rb.style.display='block';rb.className='api-result-box err';rb.textContent=`${e}`;setStatus(`Fehler: ${e}`,'error');}
+    rb.style.display='block';
+    rb.textContent=`HTTP ${r.status}\nsession: ${data.session||'(keiner)'}\nerror: ${data.error?.message||'(kein Fehler)'}`;
+    if(r.status===200&&data.session){
+      dot.className='tok-dot ok';lbl.textContent='Key gültig ✓';rb.className='api-result-box ok';
+      setStatus('Key gültig.','success');dbg('Key OK','ok');
+    }else{
+      dot.className='tok-dot err';lbl.textContent=`HTTP ${r.status}`;rb.className='api-result-box err';
+      setStatus(`Google Key Test HTTP ${r.status}`,'error');
+    }
+  }catch(e){
+    dot.className='tok-dot err';lbl.textContent='Netzwerkfehler';rb.style.display='block';
+    rb.className='api-result-box err';rb.textContent=`${e}`;
+    setStatus(`Fehler: ${e}`,'error');
+  }
 }
 async function testPAT(){
   const pat=v('tok-pat');if(!pat){setStatus('PAT eingeben.','error');return;}
@@ -1668,23 +1629,33 @@ async function testPAT(){
   const dot=document.getElementById('tok-pat-dot'),lbl=document.getElementById('tok-pat-label'),det=document.getElementById('tok-pat-detail');
   dot.className='tok-dot checking';lbl.textContent='Teste...';
   try{
-    const r=await fetch(`https://api.github.com/repos/${owner}/${repo}/actions/workflows`,{headers:{'Authorization':`Bearer ${pat}`,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'}});
+    const r=await fetch(`https://api.github.com/repos/${owner}/${repo}/actions/workflows`,{
+      headers:{'Authorization':`Bearer ${pat}`,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'}
+    });
     dbg(`PAT HTTP ${r.status}`,'info');
-    if(r.ok){const d=await r.json();const wf=(d.workflows||[]);dot.className='tok-dot ok';lbl.textContent=`G\u00fcltig \u2713 (${wf.length} Workflows)`;det.textContent=wf.map(w=>w.name).join(', ');setStatus('PAT g\u00fcltig.','success');}
-    else if(r.status===401){dot.className='tok-dot err';lbl.textContent='Ung\u00fcltig (401)';setStatus('PAT ung\u00fcltig.','error');}
-    else if(r.status===404){dot.className='tok-dot err';lbl.textContent='Repo nicht gefunden';}
-    else{dot.className='tok-dot err';lbl.textContent=`HTTP ${r.status}`;}
-  }catch(e){dot.className='tok-dot err';lbl.textContent=`Fehler: ${e}`;}
+    if(r.ok){
+      const d=await r.json();const wf=d.workflows||[];
+      dot.className='tok-dot ok';lbl.textContent=`Gültig ✓ (${wf.length} Workflows)`;
+      det.textContent=wf.map(w=>w.name).join(', ');
+      setStatus('PAT gültig.','success');
+    }else{
+      dot.className='tok-dot err';lbl.textContent=r.status===401?'Ungültig (401)':`HTTP ${r.status}`;
+      setStatus('PAT Test fehlgeschlagen.','error');
+    }
+  }catch(e){
+    dot.className='tok-dot err';lbl.textContent=`Fehler: ${e}`;
+  }
 }
 
-/* ── QUOTA ── */
 function loadQuota(){
-  const qd=quotaData();const now=new Date(),cm=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const qd=quotaData();
+  const now=new Date(),cm=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   if(qd.month!==cm){qd.month=cm;qd.used=0;saveQuotaData(qd);}
   const limit=parseInt(v('quota-limit'))||qd.limit||100000;
   const pct=Math.min(100,Math.round(qd.used/limit*100));
   const bar=document.getElementById('quota-bar');
-  bar.style.width=`${pct}%`;bar.className='quota-bar'+(pct>=80?' danger':pct>=60?' warn':'');
+  bar.style.width=`${pct}%`;
+  bar.className='quota-bar'+(pct>=80?' danger':pct>=60?' warn':'');
   document.getElementById('quota-used-label').textContent=`${qd.used.toLocaleString()} Tiles`;
   document.getElementById('quota-pct-label').textContent=`${pct}%`;
   document.getElementById('quota-limit-label').textContent=limit.toLocaleString();
@@ -1697,143 +1668,150 @@ function loadQuota(){
   document.getElementById('quota-stop-pct').value=qd.stopPct||80;
   document.getElementById('quota-manual').value=qd.used;
 }
-function saveQuota(){const qd=quotaData();qd.limit=parseInt(v('quota-limit'))||100000;qd.stopPct=parseInt(v('quota-stop-pct'))||80;qd.used=parseInt(v('quota-manual'))||0;saveQuotaData(qd);loadQuota();setStatus('Quota gespeichert.','success');}
-function resetQuota(){const qd=quotaData();qd.used=0;saveQuotaData(qd);loadQuota();setStatus('Zur\u00fcckgesetzt.','success');}
-
-/* ── SERVER CHECK ── */
-async function checkServer(){
-  try{const r=await fetch(`${LOCAL_API}/api/status`,{signal:AbortSignal.timeout(1500)});serverOnline=r.ok;}
-  catch{serverOnline=false;}
-  const d2=document.getElementById('srv-dot2'),l2=document.getElementById('srv-label2');
-  if(d2)d2.className='srv-dot'+(serverOnline?' online':' offline');
-  if(l2)l2.textContent=serverOnline?'Lokaler Server online':'Server offline \u2014 starte streetview_server.py';
-  const ob=document.getElementById('offline-banner');if(ob)ob.style.display=(!serverOnline&&mode==='local')?'block':'none';
+function saveQuota(){
+  const qd=quotaData();
+  qd.limit=parseInt(v('quota-limit'))||100000;
+  qd.stopPct=parseInt(v('quota-stop-pct'))||80;
+  qd.used=parseInt(v('quota-manual'))||0;
+  saveQuotaData(qd);loadQuota();setStatus('Quota gespeichert.','success');
 }
-setInterval(checkServer,5000);
+function resetQuota(){
+  const qd=quotaData();qd.used=0;saveQuotaData(qd);loadQuota();setStatus('Zurückgesetzt.','success');
+}
+async function recalcQuotaFromGitHub(){
+  const pat=v('tok-pat');
+  const owner=v('cfg-owner')||'basecore';
+  const repo=v('cfg-repo')||'streetview-explorer';
+  const wf=v('cfg-workflow')||'download.yml';
+  if(!pat)return;
+  try{
+    const r=await fetch(`https://api.github.com/repos/${owner}/${repo}/actions/workflows/${wf}/runs?per_page=100&status=completed`,{
+      headers:{'Authorization':`Bearer ${pat}`,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'}
+    });
+    if(!r.ok)return;
+    const data=await r.json();
+    const runs=data.workflow_runs||[];
+    const now=new Date(),y=now.getFullYear(),m=now.getMonth();
+    const TILES={low:32,medium:128,high:512};
+    let totalTiles=0;
+    for(const run of runs){
+      const d=new Date(run.created_at);
+      if(d.getFullYear()!==y||d.getMonth()!==m)continue;
+      if(run.conclusion!=='success')continue;
+      const quality=run.inputs?.quality||'medium';
+      let panoCount=1;
+      const match=run.name?run.name.match(/(\d+)\s*pan/i):null;
+      if(match)panoCount=parseInt(match[1]);
+      totalTiles+=panoCount*(TILES[quality]||128);
+    }
+    const qd=quotaData();
+    const currentMonth=`${y}-${String(m+1).padStart(2,'0')}`;
+    if(qd.month===currentMonth&&totalTiles>qd.used){
+      qd.used=totalTiles;saveQuotaData(qd);loadQuota();
+    }
+    dbg(`Quota aus GitHub: ~${totalTiles} Tiles`,'ok');
+  }catch(e){dbg(`Quota-GitHub-Fehler: ${e}`,'warn');}
+}
 
-/* ── JOBS ── */
+async function checkServer(force=false){
+  const d2=document.getElementById('srv-dot2');
+  const l2=document.getElementById('srv-label2');
+  const ob=document.getElementById('offline-banner');
+
+  if(!force&&mode!=='local'&&jobsMode!=='local'){
+    serverOnline=false;
+    if(d2)d2.className='srv-dot offline';
+    if(l2)l2.textContent='Cloud-Modus — lokaler Server nicht benötigt';
+    if(ob)ob.style.display='none';
+    return;
+  }
+
+  try{
+    const r=await fetch(`${LOCAL_API}/api/status`,{signal:AbortSignal.timeout(1500)});
+    serverOnline=r.ok;
+  }catch{
+    serverOnline=false;
+  }
+
+  if(d2)d2.className='srv-dot'+(serverOnline?' online':' offline');
+  if(l2)l2.textContent=serverOnline?'Lokaler Server online':'Server offline — starte streetview_server.py';
+  if(ob)ob.style.display=(!serverOnline&&mode==='local')?'block':'none';
+}
+setInterval(()=>{if(mode==='local'||jobsMode==='local')checkServer(true);},5000);
+
 async function loadLocalJobs(){
   const list=document.getElementById('local-jobs-list');
   if(!serverOnline){list.innerHTML='<p style="color:var(--muted)">Server offline.</p>';return;}
   try{
-    const r=await fetch(`${LOCAL_API}/api/jobs`);const jobs=await r.json();
+    const r=await fetch(`${LOCAL_API}/api/jobs`);
+    const jobs=await r.json();
     if(!jobs.length){list.innerHTML='<p style="color:var(--muted)">Noch keine Jobs.</p>';return;}
     list.innerHTML=jobs.slice().reverse().map(j=>{
-      const b=j.status==='success'?'<span class="badge b-s">Fertig</span>':j.status==='error'?'<span class="badge b-f">Fehler</span>':j.status==='running'?'<span class="badge b-r"><span class="spin"></span>L\u00e4uft</span>':'<span class="badge b-q">'+j.status+'</span>';
+      const b=j.status==='success'?'<span class="badge b-s">Fertig</span>':
+        j.status==='error'?'<span class="badge b-f">Fehler</span>':
+        j.status==='running'?'<span class="badge b-r"><span class="spin"></span>Läuft</span>':
+        '<span class="badge b-q">'+escH(j.status)+'</span>';
       const panoInfo=j.pano_count?` &middot; ${j.pano_count} Panos`:'';
-      return `<div class="run-entry">${b} <b>${escH(j.street)}</b>${j.city?' / '+escH(j.city):''} <span style="font-size:.78rem;color:var(--muted);margin-left:6px">${j.quality}${panoInfo}</span></div>`;
+      return `<div class="run-entry">${b} <b>${escH(j.street||'')}</b>${j.city?' / '+escH(j.city):''} <span style="font-size:.78rem;color:var(--muted);margin-left:6px">${escH(j.quality||'')}${panoInfo}</span></div>`;
     }).join('');
-  }catch(e){list.innerHTML=`<p style="color:var(--error)">${e}</p>`;}
+  }catch(e){list.innerHTML=`<p style="color:var(--error)">${escH(e)}</p>`;}
 }
-let _cloudJobsRefreshTimer = null;
+let _cloudJobsRefreshTimer=null;
+async function loadCloudJobs(){
+  const pat=v('tok-pat');
+  const owner=v('cfg-owner')||'basecore';
+  const repo=v('cfg-repo')||'streetview-explorer';
+  const wf=v('cfg-workflow')||'download.yml';
+  const list=document.getElementById('cloud-jobs-list');
+  if(!pat){list.innerHTML='<p style="color:var(--muted)">PAT eingeben.</p>';return;}
+  if(!list.dataset.loaded)list.innerHTML='<p style="color:var(--muted)"><span class="spin"></span> Lädt...</p>';
 
-async function loadCloudJobs() {
-  const pat   = v('tok-pat');
-  const owner = v('cfg-owner') || 'basecore';
-  const repo  = v('cfg-repo')  || 'streetview-explorer';
-  const wf    = v('cfg-workflow') || 'download.yml';
-  const list  = document.getElementById('cloud-jobs-list');
-  if (!pat) { list.innerHTML = '<p style="color:var(--muted)">PAT eingeben.</p>'; return; }
+  try{
+    const r=await fetch(`https://api.github.com/repos/${owner}/${repo}/actions/workflows/${wf}/runs?per_page=15`,{
+      headers:{'Authorization':`Bearer ${pat}`,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'}
+    });
+    if(!r.ok){list.innerHTML=`<p style="color:var(--error)">Fehler ${r.status}</p>`;return;}
+    const data=await r.json();
+    const runs=data.workflow_runs||[];
+    list.dataset.loaded='1';
+    if(!runs.length){list.innerHTML='<p style="color:var(--muted)">Keine Jobs.</p>';return;}
 
-  // Spinner nur beim ersten Laden zeigen
-  if (!list.dataset.loaded) {
-    list.innerHTML = '<p style="color:var(--muted)"><span class="spin"></span> Lädt...</p>';
-  }
-
-  try {
-    const r = await fetch(
-      `https://api.github.com/repos/${owner}/${repo}/actions/workflows/${wf}/runs?per_page=15`,
-      { headers: { 'Authorization': `Bearer ${pat}`, 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' } }
-    );
-    if (!r.ok) { list.innerHTML = `<p style="color:var(--error)">Fehler ${r.status}</p>`; return; }
-    const data = await r.json();
-    const runs = data.workflow_runs || [];
-    list.dataset.loaded = '1';
-
-    if (!runs.length) { list.innerHTML = '<p style="color:var(--muted)">Keine Jobs.</p>'; return; }
-
-    // Artifacts parallel laden
-    const artifactsByRun = {};
-    await Promise.all(runs.map(async run => {
-      try {
-        const ar = await fetch(
-          `https://api.github.com/repos/${owner}/${repo}/actions/runs/${run.id}/artifacts`,
-          { headers: { 'Authorization': `Bearer ${pat}`, 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' } }
-        );
-        if (ar.ok) { const ad = await ar.json(); artifactsByRun[run.id] = ad.artifacts || []; }
-      } catch {}
+    const artifactsByRun={};
+    await Promise.all(runs.map(async run=>{
+      try{
+        const ar=await fetch(`https://api.github.com/repos/${owner}/${repo}/actions/runs/${run.id}/artifacts`,{
+          headers:{'Authorization':`Bearer ${pat}`,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'}
+        });
+        if(ar.ok){const ad=await ar.json();artifactsByRun[run.id]=ad.artifacts||[];}
+      }catch{}
     }));
 
-    const TILES = { low: 32, medium: 128, high: 512 };
-    const alreadyDone = JSON.parse(localStorage.getItem('svex_dispatched_panos') || '[]');
-    const hasRunning  = runs.some(r => r.status !== 'completed');
+    const hasRunning=runs.some(r=>r.status!=='completed');
+    if(_cloudJobsRefreshTimer)clearTimeout(_cloudJobsRefreshTimer);
+    if(hasRunning)_cloudJobsRefreshTimer=setTimeout(loadCloudJobs,8000);
 
-    // Auto-Refresh wenn laufende Jobs vorhanden
-    if (_cloudJobsRefreshTimer) clearTimeout(_cloudJobsRefreshTimer);
-    if (hasRunning) {
-      _cloudJobsRefreshTimer = setTimeout(loadCloudJobs, 8000);
-    }
+    list.innerHTML=runs.map(run=>{
+      const isRunning=run.status!=='completed';
+      const isSuccess=run.status==='completed'&&run.conclusion==='success';
+      const badge=isRunning?'<span class="badge b-r"><span class="spin"></span> Läuft</span>':
+        isSuccess?'<span class="badge b-s">✓ Fertig</span>':'<span class="badge b-f">✗ Fehler</span>';
+      const dt=new Date(run.created_at).toLocaleString('de-DE');
 
-    list.innerHTML = runs.map(run => {
-      const isRunning   = run.status !== 'completed';
-      const isSuccess   = run.status === 'completed' && run.conclusion === 'success';
-      const isFailed    = run.status === 'completed' && run.conclusion !== 'success';
-      const badge = isRunning
-        ? '<span class="badge b-r"><span class="spin"></span> Läuft</span>'
-        : isSuccess
-          ? '<span class="badge b-s">✓ Fertig</span>'
-          : '<span class="badge b-f">✗ Fehler</span>';
-
-      const dt = new Date(run.created_at).toLocaleString('de-DE');
-
-      // Tile-Schätzung aus Run-Inputs (falls verfügbar)
-      const inputs   = run.inputs || {};
-      const quality  = inputs.quality  || 'medium';
-      const tilesPerPano = TILES[quality] || 128;
-      const historical   = inputs.historical === 'true';
-      // Pano-Anzahl aus letztem Dispatch schätzen
-      const lastDispatch = JSON.parse(localStorage.getItem('svex_last_dispatch') || '{}');
-      const panoCount    = (lastDispatch.pano_ids || []).length || 1;
-      const estTiles     = Math.round(panoCount * tilesPerPano * (historical ? 2.5 : 1));
-      const estCost      = (estTiles / 1000 * 0.007).toFixed(3); // ~$7/1000 Tiles
-
-      const tileWarn = estTiles > 10000
-        ? `<div style="margin-top:6px;padding:6px 10px;background:#2a1a10;border:1px solid var(--warn);border-radius:6px;font-size:.75rem;color:var(--warn)">
-            ⚠ Hoher Verbrauch: ~${estTiles.toLocaleString()} Tiles (~$${estCost})
-           </div>`
-        : `<div style="margin-top:4px;font-size:.73rem;color:var(--muted)">
-            ~${estTiles.toLocaleString()} Tiles · ${quality} · ${historical ? 'historisch' : 'aktuell'}
-           </div>`;
-
-      // Abbruch-Button für laufende Jobs
-      const cancelBtn = isRunning
-        ? `<button onclick="cancelCloudJob(${run.id},'${run.node_id}')" 
-             class="btn btn-danger" style="padding:5px 10px;font-size:.75rem">
-             ✕ Abbrechen
-           </button>`
-        : '';
-
-      // Artifacts
-      const artifacts = artifactsByRun[run.id] || [];
-      const artifactHtml = artifacts.length
-        ? `<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
-            <div style="font-size:.73rem;color:var(--muted);margin-bottom:4px">📦 Artifacts (${artifacts.length})</div>
-            ${artifacts.map(a => {
-              const sizeMb  = (a.size_in_bytes / 1024 / 1024).toFixed(1);
-              const expires = new Date(a.expires_at).toLocaleDateString('de-DE');
-              return `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--border);flex-wrap:wrap">
-                <span style="font-size:.78rem;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escH(a.name)}</span>
-                <span style="font-size:.72rem;color:var(--muted);white-space:nowrap">${sizeMb} MB</span>
-                <span style="font-size:.72rem;color:var(--muted);white-space:nowrap">bis ${expires}</span>
-                <a href="${escH(a.archive_download_url)}"
-                   onclick="downloadArtifact(event,'${a.archive_download_url}','${escH(a.name)}.zip')"
-                   style="font-size:.75rem;color:var(--primary);text-decoration:none;white-space:nowrap;background:var(--surface3);border:1px solid var(--border);border-radius:6px;padding:3px 8px">
-                  ⬇ Download
-                </a>
-              </div>`;
-            }).join('')}
-          </div>`
-        : (isSuccess ? '<div style="font-size:.73rem;color:var(--muted);margin-top:6px">Keine Artifacts (abgelaufen oder nicht erzeugt)</div>' : '');
+      const cancelBtn=isRunning?`<button onclick="cancelCloudJob(${run.id})" class="btn btn-danger" style="padding:5px 10px;font-size:.75rem">✕ Abbrechen</button>`:'';
+      const artifacts=artifactsByRun[run.id]||[];
+      const artifactHtml=artifacts.length?`<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+        <div style="font-size:.73rem;color:var(--muted);margin-bottom:4px">📦 Artifacts (${artifacts.length})</div>
+        ${artifacts.map(a=>{
+          const sizeMb=(a.size_in_bytes/1024/1024).toFixed(1);
+          const expires=new Date(a.expires_at).toLocaleDateString('de-DE');
+          return `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--border);flex-wrap:wrap">
+            <span style="font-size:.78rem;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escH(a.name)}</span>
+            <span style="font-size:.72rem;color:var(--muted);white-space:nowrap">${sizeMb} MB</span>
+            <span style="font-size:.72rem;color:var(--muted);white-space:nowrap">bis ${expires}</span>
+            <a href="${escH(a.archive_download_url)}" onclick="downloadArtifact(event,'${a.archive_download_url}','${escH(a.name)}.zip')" style="font-size:.75rem;color:var(--primary);text-decoration:none;white-space:nowrap;background:var(--surface3);border:1px solid var(--border);border-radius:6px;padding:3px 8px">⬇ Download</a>
+          </div>`;
+        }).join('')}
+      </div>`:(isSuccess?'<div style="font-size:.73rem;color:var(--muted);margin-top:6px">Keine Artifacts</div>':'');
 
       return `<div class="run-entry" id="run-${run.id}">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap">
@@ -1842,100 +1820,64 @@ async function loadCloudJobs() {
           <span style="font-size:.75rem;color:var(--muted)">${dt}</span>
           <div style="margin-left:auto;display:flex;gap:6px;align-items:center">
             ${cancelBtn}
-            <a href="${run.html_url}" target="_blank"
-               style="font-size:.75rem;color:var(--primary);text-decoration:none">GitHub ↗</a>
+            <a href="${run.html_url}" target="_blank" style="font-size:.75rem;color:var(--primary);text-decoration:none">GitHub ↗</a>
           </div>
         </div>
-        ${tileWarn}
         ${artifactHtml}
       </div>`;
     }).join('');
-
-  } catch (e) {
-    list.innerHTML = `<p style="color:var(--error)">${e}</p>`;
-    dbg(`loadCloudJobs Fehler: ${e}`, 'err');
+  }catch(e){
+    list.innerHTML=`<p style="color:var(--error)">${escH(e)}</p>`;
+    dbg(`loadCloudJobs Fehler: ${e}`,'err');
   }
 }
-
-async function cancelCloudJob(runId, nodeId) {
-  const pat   = v('tok-pat');
-  const owner = v('cfg-owner') || 'basecore';
-  const repo  = v('cfg-repo')  || 'streetview-explorer';
-  if (!pat) { setStatus('PAT fehlt.', 'error'); return; }
-  if (!confirm(`Job #${runId} wirklich abbrechen?`)) return;
-
-  try {
-    const r = await fetch(
-      `https://api.github.com/repos/${owner}/${repo}/actions/runs/${runId}/cancel`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization':        `Bearer ${pat}`,
-          'Accept':               'application/vnd.github+json',
-          'X-GitHub-Api-Version': '2022-11-28',
-        },
-      }
-    );
-    if (r.status === 202) {
-      setStatus(`Job #${runId} wird abgebrochen...`, 'warn');
-      dbg(`Job ${runId} Abbruch angefordert`, 'warn');
-      // Run-Eintrag sofort als "abgebrochen" markieren
-      const el = document.getElementById(`run-${runId}`);
-      if (el) {
-        const badge = el.querySelector('.badge');
-        if (badge) { badge.className = 'badge b-f'; badge.textContent = '✕ Abgebrochen'; }
-        const btn = el.querySelector('.btn-danger');
-        if (btn) btn.remove();
-      }
-      setTimeout(loadCloudJobs, 3000);
-    } else {
-      const t = await r.text();
-      setStatus(`Abbruch Fehler ${r.status}: ${t.slice(0,80)}`, 'error');
-    }
-  } catch (e) {
-    setStatus(`Abbruch Fehler: ${e}`, 'error');
-    dbg(`cancelCloudJob Fehler: ${e}`, 'err');
-  }
-}
-
-async function downloadArtifact(evt, url, filename) {
-  evt.preventDefault();
-  const pat = v('tok-pat');
-  if (!pat) { setStatus('PAT fehlt für Download.', 'error'); return; }
-  setStatus('Artifact wird heruntergeladen...', 'running');
-  try {
-    const r = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${pat}`,
-        'Accept': 'application/vnd.github+json',
-        'X-GitHub-Api-Version': '2022-11-28',
-      },
+async function cancelCloudJob(runId){
+  const pat=v('tok-pat');
+  const owner=v('cfg-owner')||'basecore';
+  const repo=v('cfg-repo')||'streetview-explorer';
+  if(!pat){setStatus('PAT fehlt.','error');return;}
+  if(!confirm(`Job #${runId} wirklich abbrechen?`))return;
+  try{
+    const r=await fetch(`https://api.github.com/repos/${owner}/${repo}/actions/runs/${runId}/cancel`,{
+      method:'POST',
+      headers:{'Authorization':`Bearer ${pat}`,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'}
     });
-    if (!r.ok) { setStatus(`Download Fehler ${r.status}`, 'error'); return; }
-    const blob = await r.blob();
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = filename;
-    a.click();
-    setStatus(`✓ ${filename} heruntergeladen (${(blob.size/1024/1024).toFixed(1)} MB)`, 'success');
-    dbg(`Artifact: ${filename} (${(blob.size/1024).toFixed(0)} KB)`, 'ok');
-  } catch (e) {
-    setStatus(`Download Fehler: ${e}`, 'error');
-    dbg(`Artifact Fehler: ${e}`, 'err');
-  }
+    if(r.status===202){
+      setStatus(`Job #${runId} wird abgebrochen...`,'warn');
+      dbg(`Job ${runId} Abbruch angefordert`,'warn');
+      setTimeout(loadCloudJobs,3000);
+    }else{
+      const t=await r.text();
+      setStatus(`Abbruch Fehler ${r.status}: ${t.slice(0,80)}`,'error');
+    }
+  }catch(e){setStatus(`Abbruch Fehler: ${e}`,'error');}
 }
-
+async function downloadArtifact(evt,url,filename){
+  evt.preventDefault();
+  const pat=v('tok-pat');
+  if(!pat){setStatus('PAT fehlt für Download.','error');return;}
+  setStatus('Artifact wird heruntergeladen...','running');
+  try{
+    const r=await fetch(url,{headers:{'Authorization':`Bearer ${pat}`,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'}});
+    if(!r.ok){setStatus(`Download Fehler ${r.status}`,'error');return;}
+    const blob=await r.blob();
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=filename;
+    a.click();
+    setStatus(`✓ ${filename} heruntergeladen (${(blob.size/1024/1024).toFixed(1)} MB)`,'success');
+  }catch(e){setStatus(`Download Fehler: ${e}`,'error');}
+}
 setInterval(()=>{if(jobsMode==='cloud'&&document.getElementById('tab-jobs').classList.contains('active'))loadCloudJobs();},15000);
 setInterval(()=>{if(jobsMode==='local'&&document.getElementById('tab-jobs').classList.contains('active'))loadLocalJobs();},5000);
 
-/* ── INIT ── */
 dbg(`StreetView Explorer ${APP_VERSION} gestartet`,'ok');
-dbg('Browser-Modus aktiv (kein lokaler Server n\u00f6tig f\u00fcr Karte/Suche)','info');
-dbg('F\u00fcr Downloads: python3 streetview_server.py starten','warn');
+dbg('Cloud-Modus ist Default. Lokaler Server wird nur im lokalen Modus geprüft.','info');
 loadQuota();
-checkServer();
+checkServer(false);
 setMode('cloud');
-loadAllKeys();  // gespeicherte Keys automatisch laden
+mapMode('click');
+loadAllKeys();
 </script>
 </body>
 </html>
