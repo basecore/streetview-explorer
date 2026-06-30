@@ -1701,33 +1701,15 @@ function saveQuota(){const qd=quotaData();qd.limit=parseInt(v('quota-limit'))||1
 function resetQuota(){const qd=quotaData();qd.used=0;saveQuotaData(qd);loadQuota();setStatus('Zur\u00fcckgesetzt.','success');}
 
 /* ── SERVER CHECK ── */
-async function checkServer(force=false){
-  const d2=document.getElementById('srv-dot2');
-  const l2=document.getElementById('srv-label2');
-  const ob=document.getElementById('offline-banner');
-
-  // Im Cloud-Modus nicht dauernd localhost pollen;
-  // sonst erzeugt der Browser ERR_CONNECTION_REFUSED in der Konsole.
-  if(!force && mode!=='local' && jobsMode!=='local'){
-    serverOnline=false;
-    if(d2)d2.className='srv-dot offline';
-    if(l2)l2.textContent='Cloud-Modus — lokaler Server nicht benötigt';
-    if(ob)ob.style.display='none';
-    return;
-  }
-
-  try{
-    const r=await fetch(`${LOCAL_API}/api/status`,{signal:AbortSignal.timeout(1500)});
-    serverOnline=r.ok;
-  }catch{
-    serverOnline=false;
-  }
-
+async function checkServer(){
+  try{const r=await fetch(`${LOCAL_API}/api/status`,{signal:AbortSignal.timeout(1500)});serverOnline=r.ok;}
+  catch{serverOnline=false;}
+  const d2=document.getElementById('srv-dot2'),l2=document.getElementById('srv-label2');
   if(d2)d2.className='srv-dot'+(serverOnline?' online':' offline');
-  if(l2)l2.textContent=serverOnline?'Lokaler Server online':'Server offline — starte streetview_server.py';
-  if(ob)ob.style.display=(!serverOnline&&mode==='local')?'block':'none';
+  if(l2)l2.textContent=serverOnline?'Lokaler Server online':'Server offline \u2014 starte streetview_server.py';
+  const ob=document.getElementById('offline-banner');if(ob)ob.style.display=(!serverOnline&&mode==='local')?'block':'none';
 }
-setInterval(()=>{if(mode==='local'||jobsMode==='local')checkServer(true);},5000);
+setInterval(checkServer,5000);
 
 /* ── JOBS ── */
 async function loadLocalJobs(){
