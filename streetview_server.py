@@ -291,6 +291,6 @@ def api_jobs():
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
     port = int(os.environ.get("SVEX_PORT", 5000))
-    log.info("StreetView Explorer Server v2.1 auf http://localhost:%d", port)
+    log.info("StreetView Explorer Server v3.5 auf http://localhost:%d", port)
     log.info("Stoppen mit Ctrl+C")
     app.run(host="127.0.0.1", port=port, debug=False, threaded=True)
