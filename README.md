@@ -198,9 +198,13 @@ python3 streetview_server.py
 # Im Terminal wo der Server laeuft:
 Ctrl + C
 
-# Falls im Hintergrund gestartet — per Prozess-Name:
-pkill -f streetview_server.py
+# Falls im Hintergrund — Windows:
+taskkill /F /IM python.exe /FI "WINDOWTITLE eq streetview_server*"
+# Oder per Port (Windows):
+for /f "tokens=5" %a in ('netstat -aon ^| findstr :5000') do taskkill /F /PID %a
 
+# Falls im Hintergrund — Linux/macOS:
+pkill -f streetview_server.py
 # Oder per Port:
 lsof -ti:5000 | xargs kill -9
 ```
@@ -208,6 +212,10 @@ lsof -ti:5000 | xargs kill -9
 ### Port aendern
 
 ```bash
+# Windows:
+set SVEX_PORT=8080 && python streetview_server.py
+
+# Linux/macOS:
 SVEX_PORT=8080 python3 streetview_server.py
 ```
 
