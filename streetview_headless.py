@@ -8,6 +8,20 @@ Usage:
     --street "Berger Strasse" --city "Frankfurt am Main" \
     --quality medium --sampling 10 --radius 8 \
     --output ./panoramas
+
+Direkte pano_id-Downloads:
+  python streetview_headless.py \
+    --street "pano_request" --city "" \
+    --quality medium --sampling 10 --radius 8 \
+    --output ./panoramas \
+    --pano-ids-file /tmp/pano_ids.json
+
+Direkte pano_id-Downloads mit Browser-Metadaten:
+  python streetview_headless.py \
+    --street "pano_request" --city "" \
+    --quality medium --sampling 10 --radius 8 \
+    --output ./panoramas \
+    --pano-metadata-file /tmp/pano_metadata.json
 """
 
 import argparse
@@ -15,6 +29,7 @@ import json
 import logging
 import math
 import os
+import re
 import subprocess
 import sys
 import time
@@ -40,21 +55,28 @@ def haversine(la1, lo1, la2, lo2):
 def interpolate(coords, every_m):
     if len(coords) < 2:
         return coords
+
     out, carry = [coords[0]], 0.0
+
     for i in range(1, len(coords)):
         la1, lo1 = coords[i - 1]
         la2, lo2 = coords[i]
         seg = haversine(la1, lo1, la2, lo2)
+
         if seg == 0:
             continue
+
         d = carry
         while d + every_m <= seg:
             d += every_m
             r = d / seg
             out.append((la1 + (la2 - la1) * r, lo1 + (lo2 - lo1) * r))
+
         carry = seg - d
+
     if out[-1] != coords[-1]:
         out.append(coords[-1])
+
     log.debug("Interpolate: %d Punkte / %.0f m", len(out), every_m)
     return out
 
@@ -64,6 +86,7 @@ def geocode_street(street, city):
 
     q = f"{street}, {city}"
     log.info("Geocode Versuch 1: %s", q)
+
     r = requests.get(
         "https://nominatim.openstreetmap.org/search",
         params={"q": q, "format": "json", "polygon_geojson": 1, "limit": 1},
@@ -108,18 +131,23 @@ def geocode_street(street, city):
 
     geo = data[0].get("geojson", {})
     t, c = geo.get("type"), geo.get("coordinates", [])
+
     log.info("Geometrie: %s  Punkte: %d", t, len(c))
+
     if t == "LineString":
         return [(la, lo) for lo, la in c]
+
     if t == "MultiLineString":
         pts = []
         for ln in c:
             pts += [(la, lo) for lo, la in ln]
         return pts
+
     bb = data[0].get("boundingbox")
     if bb:
         return [((float(bb[0]) + float(bb[1])) / 2,
                  (float(bb[2]) + float(bb[3])) / 2)]
+
     raise RuntimeError("Keine Geometrie verfuegbar.")
 
 
@@ -131,11 +159,15 @@ def query_point(lat, lng, radius, max_results):
         "--max-results", str(max_results),
         "--json",
     ]
+
     log.debug("CMD: %s", " ".join(cmd))
+
     r = subprocess.run(cmd, capture_output=True, text=True)
+
     if r.returncode != 0:
         log.warning("query RC=%d  stderr=%s", r.returncode, r.stderr.strip()[:200])
         return []
+
     try:
         data = json.loads(r.stdout)
         return data.get("panoramas", [])
@@ -152,6 +184,7 @@ def build_download_cmd(url_file, outdir, quality, historical, args=None):
         "--quality",    quality,
         "--verbose",
     ]
+
     if historical:
         cmd.append("--historical-download")
 
@@ -181,49 +214,248 @@ def build_download_cmd(url_file, outdir, quality, historical, args=None):
     return cmd
 
 
+def as_float(value, default=0.0):
+    try:
+        if value is None or value == "":
+            return default
+        return float(value)
+    except Exception:
+        return default
+
+
+def gmaps_pano_url(lat, lng, pano_id, heading=0, pitch=0, fov=90):
+    return (
+        "https://www.google.com/maps/@?api=1&map_action=pano"
+        f"&viewpoint={lat},{lng}"
+        f"&heading={heading or 0}"
+        f"&pitch={pitch or 0}"
+        f"&fov={fov or 90}"
+        f"&pano={pano_id}"
+    )
+
+
+def batch_url_for_pano(pano, default_heading=0):
+    """
+    URL fuer streetview-dl --batch.
+
+    Wichtig:
+    - Die pano_id wird explizit in die URL eingebettet.
+    - lat/lng werden aus pano_metadata uebernommen, wenn vorhanden.
+    - heading wird aus pano_metadata uebernommen, sonst aus CLI/default.
+    """
+    lat = as_float(pano.get("lat"), 0.0)
+    lng = as_float(pano.get("lng"), 0.0)
+    heading = as_float(pano.get("heading"), default_heading)
+    pano_id = str(pano.get("pano_id", "")).strip()
+
+    return (
+        f"https://www.google.com/maps/@{lat},{lng},"
+        f"3a,75y,{heading}h,90t/data=!3m7!1e1!3m5!1s{pano_id}!"
+    )
+
+
+def normalize_pano_metadata_item(item):
+    """
+    Normalisiert einen Eintrag aus pano_metadata auf das interne panos-Format.
+
+    Erwartete Felder:
+      - pano_id
+      - lat
+      - lng
+      - date
+      - heading
+      - maps_url
+    """
+    if not isinstance(item, dict):
+        return None
+
+    pano_id = str(item.get("pano_id", "")).strip()
+    if not pano_id:
+        return None
+
+    lat = as_float(item.get("lat"), 0.0)
+    lng = as_float(item.get("lng"), 0.0)
+    heading = as_float(item.get("heading"), 0.0)
+    date = item.get("date") or "?"
+    maps_url = item.get("maps_url") or gmaps_pano_url(lat, lng, pano_id, heading, 0, 90)
+
+    return {
+        "pano_id": pano_id,
+        "lat": lat,
+        "lng": lng,
+        "date": date,
+        "heading": heading,
+        "maps_url": maps_url,
+    }
+
+
+def load_pano_metadata_file(path):
+    """
+    Laedt Browser-Metadaten aus JSON.
+
+    Akzeptierte Formate:
+      1. Liste von Objekten:
+         [
+           {
+             "pano_id": "...",
+             "lat": 49.0,
+             "lng": 12.0,
+             "date": "2024-05",
+             "heading": 0,
+             "maps_url": "..."
+           }
+         ]
+
+      2. Objekt mit panoramas-Liste:
+         {
+           "panoramas": [...]
+         }
+    """
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+
+    if isinstance(data, dict) and "panoramas" in data:
+        data = data["panoramas"]
+
+    if not isinstance(data, list):
+        raise RuntimeError("pano_metadata muss eine JSON-Liste oder ein Objekt mit panoramas-Liste sein.")
+
+    panos = []
+    seen = set()
+
+    for item in data:
+        pano = normalize_pano_metadata_item(item)
+        if not pano:
+            continue
+
+        if pano["pano_id"] in seen:
+            continue
+
+        seen.add(pano["pano_id"])
+        panos.append(pano)
+
+    return panos
+
+
+def load_pano_ids_file(path):
+    """
+    Laedt reine pano_ids aus JSON.
+
+    Akzeptierte Formate:
+      1. ["pano1", "pano2"]
+      2. [{"pano_id": "pano1"}, {"pano_id": "pano2"}]
+      3. {"panoramas": [...]}
+
+    Hinweis:
+    Bei diesem Modus sind keine Browser-Metadaten vorhanden.
+    Deshalb bleiben lat/lng/date auf 0.0/0.0/"?".
+    """
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+
+    if isinstance(data, dict) and "panoramas" in data:
+        data = data["panoramas"]
+
+    if not isinstance(data, list):
+        raise RuntimeError("pano_ids_file muss eine JSON-Liste oder ein Objekt mit panoramas-Liste sein.")
+
+    panos = []
+    seen = set()
+
+    for item in data:
+        if isinstance(item, dict):
+            pid = str(item.get("pano_id", "")).strip()
+        else:
+            pid = str(item).strip()
+
+        if not pid or pid in seen:
+            continue
+
+        seen.add(pid)
+
+        panos.append({
+            "pano_id": pid,
+            "lat": 0.0,
+            "lng": 0.0,
+            "date": "?",
+        })
+
+    return panos
+
+
+def safe_name(street, city):
+    raw = f"{street}_{city}".strip("_")
+    safe = re.sub(r"[^\w]", "_", raw).lower()
+    safe = re.sub(r"_+", "_", safe).strip("_")
+    return safe or "pano_request"
+
+
 def main():
     parser = argparse.ArgumentParser(description="StreetView Explorer Headless")
+
     parser.add_argument("--street",         required=True, help="Strassenname")
     parser.add_argument("--city",           required=True, help="Stadt")
-    parser.add_argument("--quality",        default="medium", choices=["low","medium","high"])
+    parser.add_argument("--quality",        default="medium", choices=["low", "medium", "high"])
     parser.add_argument("--sampling",       type=int,   default=10)
     parser.add_argument("--radius",         type=int,   default=8)
     parser.add_argument("--max-results",    type=int,   default=5)
     parser.add_argument("--pause",          type=float, default=0.3)
     parser.add_argument("--historical",     default="false")
     parser.add_argument("--output",         default="./panoramas")
-    parser.add_argument("--pano-ids-file",    default=None,  help="JSON-Datei mit pano_ids (ueberspringt Geocoding)")
+
+    parser.add_argument(
+        "--pano-ids-file",
+        default=None,
+        help="JSON-Datei mit pano_ids (ueberspringt Geocoding)"
+    )
+
+    parser.add_argument(
+        "--pano-metadata-file",
+        default=None,
+        help="JSON-Datei mit pano_id-Metadaten aus Browser Discovery"
+    )
+
     # FOV & Framing
     parser.add_argument("--heading",          type=float, default=0,    help="Blickrichtung 0-360 Grad")
     parser.add_argument("--pitch",            type=float, default=0,    help="Neigung -90 bis 90 Grad")
     parser.add_argument("--fov",              type=float, default=90,   help="Field of View 10-120 Grad")
     parser.add_argument("--zoom",             type=int,   default=2,    help="Zoom-Level 0-5")
+
     # Output
-    parser.add_argument("--output-format",    default="jpg", choices=["jpg","png","webp"], help="Ausgabeformat")
+    parser.add_argument("--output-format",    default="jpg", choices=["jpg", "png", "webp"], help="Ausgabeformat")
     parser.add_argument("--jpg-quality",      type=int,   default=85,   help="JPEG-Qualitaet 10-100")
+
     # Historisch / Datum
     parser.add_argument("--date-from",        default="",   help="Datum von YYYY-MM")
     parser.add_argument("--date-to",          default="",   help="Datum bis YYYY-MM")
-    parser.add_argument("--max-age-months",   type=int,   default=0,    help="Max. Alter in Monaten (0=kein Filter)")
+    parser.add_argument("--max-age-months",   type=int,    default=0,   help="Max. Alter in Monaten (0=kein Filter)")
+
     # Filter
-    parser.add_argument("--source",           default="",   help="Quelle: google, user oder leer=alle")
-    parser.add_argument("--outdoor",          default="",   help="Nur Outdoor: true, false oder leer=alle")
-    parser.add_argument("--min-quality-score",type=float, default=0.0,  help="Min. Qualitaetswert 0.0-1.0")
-    parser.add_argument("--max-dist",         type=int,   default=0,    help="Max. Distanz vom Punkt in Metern (0=kein Filter)")
+    parser.add_argument("--source",            default="",   help="Quelle: google, user oder leer=alle")
+    parser.add_argument("--outdoor",           default="",   help="Nur Outdoor: true, false oder leer=alle")
+    parser.add_argument("--min-quality-score", type=float, default=0.0, help="Min. Qualitaetswert 0.0-1.0")
+    parser.add_argument("--max-dist",          type=int,   default=0,   help="Max. Distanz vom Punkt in Metern (0=kein Filter)")
+
     args = parser.parse_args()
+
     # Neue Parameter loggen
     log.info("  Heading: %.0f°  Pitch: %.0f°  FOV: %.0f°  Zoom: %d", args.heading, args.pitch, args.fov, args.zoom)
     log.info("  Format: %s  JPG-Q: %d%%", args.output_format, args.jpg_quality)
+
     if args.date_from or args.date_to:
         log.info("  Datum: %s bis %s", args.date_from or "*", args.date_to or "*")
+
     if args.max_age_months:
         log.info("  Max. Alter: %d Monate", args.max_age_months)
+
     if args.source:
         log.info("  Quelle-Filter: %s", args.source)
+
     if args.outdoor:
         log.info("  Outdoor-Filter: %s", args.outdoor)
-    historical = args.historical.lower() == "true"
-  
+
+    historical = str(args.historical).lower() == "true"
+
     outdir = Path(args.output)
     outdir.mkdir(parents=True, exist_ok=True)
 
@@ -231,6 +463,7 @@ def main():
     if not api_key:
         log.error("GOOGLE_MAPS_API_KEY ist nicht gesetzt!")
         sys.exit(1)
+
     log.info("API Key: gesetzt (len=%d)", len(api_key))
 
     log.info("=" * 60)
@@ -244,20 +477,43 @@ def main():
 
     panos = []
 
-    # ── MODUS A: pano_ids direkt uebergeben → kein Geocoding noetig ──
-    if args.pano_ids_file:
-        log.info("pano-ids-file gesetzt: %s  -> Geocoding wird uebersprungen", args.pano_ids_file)
+    # ── MODUS A1: pano_metadata direkt uebergeben → kein Geocoding noetig ──
+    if args.pano_metadata_file:
+        log.info("pano-metadata-file gesetzt: %s  -> Geocoding wird uebersprungen", args.pano_metadata_file)
+
         try:
-            with open(args.pano_ids_file) as f:
-                pano_ids_list = json.load(f)
-            log.info("Geladene pano_ids: %d", len(pano_ids_list))
-            for pid in pano_ids_list:
-                panos.append({
-                    "pano_id": pid,
-                    "lat": 0.0,
-                    "lng": 0.0,
-                    "date": "?",
-                })
+            panos = load_pano_metadata_file(args.pano_metadata_file)
+            log.info("Geladene pano_metadata Eintraege: %d", len(panos))
+
+            for p in panos[:10]:
+                log.info(
+                    "  [META] pano_id=%s lat=%.6f lng=%.6f date=%s heading=%.1f",
+                    p.get("pano_id"),
+                    as_float(p.get("lat"), 0.0),
+                    as_float(p.get("lng"), 0.0),
+                    p.get("date", "?"),
+                    as_float(p.get("heading"), 0.0),
+                )
+
+            if len(panos) > 10:
+                log.info("  ... %d weitere Eintraege", len(panos) - 10)
+
+        except Exception as e:
+            log.error("Fehler beim Lesen von pano-metadata-file: %s", e)
+            sys.exit(1)
+
+    # ── MODUS A2: pano_ids direkt uebergeben → kein Geocoding noetig ──
+    elif args.pano_ids_file:
+        log.info("pano-ids-file gesetzt: %s  -> Geocoding wird uebersprungen", args.pano_ids_file)
+
+        try:
+            panos = load_pano_ids_file(args.pano_ids_file)
+            log.info("Geladene pano_ids: %d", len(panos))
+            log.warning(
+                "Nur pano_ids ohne Metadaten erhalten: lat/lng bleiben 0.0 und date='?'. "
+                "Besser --pano-metadata-file verwenden."
+            )
+
         except Exception as e:
             log.error("Fehler beim Lesen von pano-ids-file: %s", e)
             sys.exit(1)
@@ -265,13 +521,15 @@ def main():
     # ── MODUS B: Geocoding + Discovery ──
     else:
         street = args.street.strip()
-        city   = args.city.strip()
+        city = args.city.strip()
+
         INVALID = {"unbekannt", "karte", "map", "unknown", ""}
         if street.lower() in INVALID:
             log.error(
                 "Ungültiger Strassenname: \"%s\"\n"
                 "  Bitte im Karte-Tab eine Strasse suchen (z.B. 'Berger Strasse, Frankfurt am Main')\n"
-                "  und dann 'Panoramen suchen' + 'Lokal laden' drücken.",
+                "  und dann 'Panoramen suchen' + 'Request' oder 'Lokal laden' drücken.\n"
+                "  Bei direktem pano_id-Download bitte --pano-metadata-file oder --pano-ids-file verwenden.",
                 street
             )
             sys.exit(1)
@@ -283,7 +541,7 @@ def main():
             sys.exit(1)
 
         points = interpolate(coords, args.sampling)
-        total  = len(points)
+        total = len(points)
         log.info("Sample-Punkte: %d", total)
 
         pano_ids = set()
@@ -292,23 +550,45 @@ def main():
         for idx, (lat, lng) in enumerate(points, 1):
             log.info("[%d/%d] Query lat=%.6f lng=%.6f", idx, total, lat, lng)
             results = query_point(lat, lng, args.radius, args.max_results)
+
             new = 0
+
             for p in results:
                 pid = p.get("pano_id")
+
                 if pid and pid not in pano_ids:
                     pano_ids.add(pid)
-                    panos.append({
+
+                    heading = as_float(p.get("heading"), 0.0)
+
+                    pano = {
                         "pano_id": pid,
-                        "lat": p.get("lat", lat),
-                        "lng": p.get("lng", lng),
+                        "lat": as_float(p.get("lat"), lat),
+                        "lng": as_float(p.get("lng"), lng),
                         "date": p.get("date", "?"),
-                    })
+                        "heading": heading,
+                    }
+
+                    pano["maps_url"] = gmaps_pano_url(
+                        pano["lat"],
+                        pano["lng"],
+                        pano["pano_id"],
+                        heading,
+                        0,
+                        90,
+                    )
+
+                    panos.append(pano)
                     new += 1
+
                     log.info("  [NEU] pano_id=%s  date=%s", pid, p.get("date", "?"))
+
             dup_streak = (dup_streak + 1) if new == 0 else 0
+
             if dup_streak >= 8:
                 log.info("  8x keine neuen pano_ids - Abschnitt vollstaendig.")
                 dup_streak = 0
+
             time.sleep(args.pause)
 
         log.info("=" * 60)
@@ -318,15 +598,13 @@ def main():
         log.warning("Keine Panoramen gefunden.")
         sys.exit(0)
 
-    import re
-    safe = re.sub(r"[^\w]", "_", f"{args.street}_{args.city}").lower()
+    safe = safe_name(args.street, args.city)
+
     url_file = outdir / f"streetview_urls_{safe}.txt"
-    with url_file.open("w") as fh:
+    with url_file.open("w", encoding="utf-8") as fh:
         for p in panos:
-            fh.write(
-                f"https://www.google.com/maps/@{p['lat']},{p['lng']},"
-                f"3a,75y,0h,90t/data=!3m7!1e1!3m5!1s{p['pano_id']}!\n"
-            )
+            fh.write(batch_url_for_pano(p, args.heading) + "\n")
+
     log.info("URL-Datei: %s (%d Eintraege)", url_file, len(panos))
 
     meta_file = outdir / f"metadata_{safe}.json"
@@ -340,31 +618,45 @@ def main():
         "panoramas_found":  len(panos),
         "timestamp":        datetime.now().isoformat(timespec="seconds"),
         "panoramas":        panos,
-    }, indent=2, ensure_ascii=False))
+    }, indent=2, ensure_ascii=False), encoding="utf-8")
+
     log.info("Metadaten: %s", meta_file)
 
     TILES = {"low": 32, "medium": 128, "high": 512}
     est_tiles = len(panos) * TILES.get(args.quality, 128)
+
     if historical:
         est_tiles = int(est_tiles * 2.5)
+
     log.info("Starte Download: ~%d Tiles geschaetzt", est_tiles)
 
     cmd = build_download_cmd(url_file, outdir, args.quality, historical, args)
     log.info("CMD: %s", " ".join(cmd))
 
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                            stderr=subprocess.STDOUT, text=True)
+    proc = subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+
     for line in proc.stdout:
         line = line.rstrip()
         if line:
             log.info("sv-dl: %s", line)
+
     proc.wait()
 
     if proc.returncode != 0:
         log.error("streetview-dl exit code %d", proc.returncode)
         sys.exit(proc.returncode)
 
-    downloaded = list(outdir.glob("**/*.jpg")) + list(outdir.glob("**/*.png"))
+    downloaded = (
+        list(outdir.glob("**/*.jpg"))
+        + list(outdir.glob("**/*.png"))
+        + list(outdir.glob("**/*.webp"))
+    )
+
     log.info("=" * 60)
     log.info("FERTIG: %d Bilder -> %s", len(downloaded), outdir)
     log.info("=" * 60)
