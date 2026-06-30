@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>StreetView Explorer</title>
+<title>StreetView Explorer v3.6</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -17,23 +17,11 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 h1{font-size:1.85rem;font-weight:700;margin-bottom:4px}
 .sub{color:var(--muted);font-size:.93rem;margin-bottom:24px}
 
-/* MODE TOGGLE */
-.mode-toggle{
-  display:flex;gap:0;border-radius:10px;overflow:hidden;
-  border:1px solid var(--border);margin-bottom:24px;
-  width:fit-content;
-}
-.mode-btn{
-  padding:12px 28px;font-size:.95rem;font-weight:600;
-  cursor:pointer;border:none;transition:background .2s,color .2s;
-  background:var(--surface2);color:var(--muted);
-}
+.mode-toggle{display:flex;gap:0;border-radius:10px;overflow:hidden;border:1px solid var(--border);margin-bottom:24px;width:fit-content}
+.mode-btn{padding:12px 28px;font-size:.95rem;font-weight:600;cursor:pointer;border:none;transition:background .2s,color .2s;background:var(--surface2);color:var(--muted)}
 .mode-btn.active-local{background:var(--local);color:#fff}
 .mode-btn.active-cloud{background:var(--cloud);color:#fff}
-.mode-badge{
-  display:inline-block;padding:2px 10px;border-radius:99px;
-  font-size:.72rem;font-weight:700;margin-left:8px;vertical-align:middle;
-}
+.mode-badge{display:inline-block;padding:2px 10px;border-radius:99px;font-size:.72rem;font-weight:700;margin-left:8px;vertical-align:middle}
 .badge-local{background:#1a3a25;color:var(--local)}
 .badge-cloud{background:#1a2f3a;color:var(--cloud)}
 
@@ -43,30 +31,18 @@ h1{font-size:1.85rem;font-weight:700;margin-bottom:4px}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}
 .full{grid-template-columns:1fr!important}
 label{display:block;font-size:.83rem;color:var(--muted);margin-bottom:5px;font-weight:500}
-input,select{
-  width:100%;padding:9px 13px;background:#1e1d1b;
-  border:1px solid var(--border);border-radius:7px;
-  color:var(--text);font-size:.93rem;outline:none;transition:border-color .2s;
-}
+input,select{width:100%;padding:9px 13px;background:#1e1d1b;border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:.93rem;outline:none;transition:border-color .2s}
 input:focus,select:focus{border-color:var(--primary)}
 .show-wrap{position:relative}
 .show-wrap input{padding-right:72px}
-.show-wrap .show-btn{
-  position:absolute;right:9px;top:50%;transform:translateY(-50%);
-  background:none;border:none;color:var(--muted);cursor:pointer;
-  font-size:.78rem;padding:3px 7px;border-radius:4px;
-}
+.show-wrap .show-btn{position:absolute;right:9px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:.78rem;padding:3px 7px;border-radius:4px}
 .show-wrap .show-btn:hover{color:var(--text)}
 .hint{font-size:.79rem;color:var(--muted);margin-top:4px}
 .hint a{color:var(--primary);text-decoration:none}
 .hint a:hover{text-decoration:underline}
 .sep{height:1px;background:var(--border);margin:18px 0}
 
-button.btn{
-  padding:10px 22px;border:none;border-radius:8px;
-  font-size:.93rem;font-weight:600;cursor:pointer;
-  transition:opacity .15s,transform .1s;
-}
+button.btn{padding:10px 22px;border:none;border-radius:8px;font-size:.93rem;font-weight:600;cursor:pointer;transition:opacity .15s,transform .1s}
 button.btn:active{transform:scale(.97)}
 button.btn:disabled{opacity:.4;cursor:not-allowed}
 .btn-primary{background:var(--primary);color:#fff}
@@ -76,57 +52,48 @@ button.btn:disabled{opacity:.4;cursor:not-allowed}
 .btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
 .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}
 
-#status-bar{
-  padding:13px 18px;border-radius:var(--radius);margin-bottom:18px;
-  font-weight:600;font-size:.93rem;display:none;
-  border-left:4px solid var(--primary);background:var(--surface);
-}
+#status-bar{padding:13px 18px;border-radius:var(--radius);margin-bottom:18px;font-weight:600;font-size:.93rem;display:none;border-left:4px solid var(--primary);background:var(--surface)}
 #status-bar.running{border-color:var(--primary);color:var(--primary)}
 #status-bar.success{border-color:var(--success);color:var(--success)}
 #status-bar.error{border-color:var(--error);color:var(--error)}
 #status-bar.warn{border-color:var(--warn);color:var(--warn)}
 
-#log{
-  background:#0f0e0d;border:1px solid var(--border);border-radius:var(--radius);
-  padding:14px 16px;font-family:'Cascadia Code','Fira Mono',monospace;font-size:.8rem;
-  max-height:380px;overflow-y:auto;color:#a8a69f;
-  white-space:pre-wrap;display:none;line-height:1.55;
-}
-.log-cmd{color:#c97b36}
-.log-err{color:#d15a5a}
-.log-ok {color:#6daa45}
-.log-info{color:#a8a69f}
+#log{background:#0f0e0d;border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;font-family:'Cascadia Code','Fira Mono',monospace;font-size:.8rem;max-height:320px;overflow-y:auto;color:#a8a69f;white-space:pre-wrap;display:none;line-height:1.55}
+.log-cmd{color:#c97b36}.log-err{color:#d15a5a}.log-ok{color:#6daa45}.log-info{color:#a8a69f}
 
-.run-entry{
-  background:var(--surface2);border:1px solid var(--border);
-  border-radius:var(--radius);padding:14px;margin-bottom:10px;
-}
-.badge{
-  display:inline-block;padding:2px 10px;border-radius:99px;
-  font-size:.75rem;font-weight:700;margin-right:6px;
-}
+.run-entry{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:10px}
+.badge{display:inline-block;padding:2px 10px;border-radius:99px;font-size:.75rem;font-weight:700;margin-right:6px}
 .badge-queued{background:#3a3835;color:var(--muted)}
 .badge-running{background:#1a3a5c;color:#60a5fa}
 .badge-success{background:#1a3a25;color:var(--success)}
 .badge-failure,.badge-error{background:#3a1a1a;color:var(--error)}
 
-.server-status{
-  display:inline-flex;align-items:center;gap:6px;
-  font-size:.82rem;padding:5px 12px;border-radius:99px;
-  background:var(--surface2);border:1px solid var(--border);
-  margin-bottom:16px;
-}
+.server-status{display:inline-flex;align-items:center;gap:6px;font-size:.82rem;padding:5px 12px;border-radius:99px;background:var(--surface2);border:1px solid var(--border);margin-bottom:16px}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
 .dot.online{background:var(--success)}
 .dot.offline{background:var(--error)}
 
 @keyframes spin{to{transform:rotate(360deg)}}
-.spinner{
-  display:inline-block;width:12px;height:12px;
-  border:2px solid currentColor;border-top-color:transparent;
-  border-radius:50%;animation:spin .7s linear infinite;
-  vertical-align:middle;margin-right:5px;
-}
+.spinner{display:inline-block;width:12px;height:12px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:5px}
+
+/* ── Panorama-Tabelle ──────────────────────────────────────── */
+#pano-section{display:none;margin-bottom:18px}
+#pano-section h2{font-size:1.05rem;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.pano-table{width:100%;border-collapse:collapse;font-size:.82rem}
+.pano-table th{background:var(--surface2);color:var(--muted);font-weight:600;padding:7px 10px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}
+.pano-table td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:middle;color:var(--text)}
+.pano-table tr:hover td{background:var(--surface2)}
+.pano-table td.pano-id{font-family:monospace;font-size:.75rem;color:var(--primary);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pano-table td.pano-date{font-weight:600;color:var(--success)}
+.pano-table td.pano-date.fallback{color:var(--muted);font-weight:400}
+.pano-table td.pano-source .tag{display:inline-block;padding:1px 7px;border-radius:99px;font-size:.7rem;font-weight:700}
+.tag-real{background:#1a3a25;color:var(--success)}
+.tag-fallback{background:#3a3835;color:var(--muted)}
+.tag-loading{background:#1a2f3a;color:#60a5fa}
+.pano-table a{color:var(--primary);text-decoration:none}
+.pano-table a:hover{text-decoration:underline}
+#pano-lookup-info{font-size:.78rem;color:var(--muted);margin-top:8px}
+
 #cloud-section{display:none}
 #local-section{display:none}
 #runs-section{display:none}
@@ -135,7 +102,7 @@ button.btn:disabled{opacity:.4;cursor:not-allowed}
 </head>
 <body>
 
-<h1>&#127757; StreetView Explorer</h1>
+<h1>&#127757; StreetView Explorer <span style="font-size:.8rem;font-weight:400;color:var(--muted)">v3.6</span></h1>
 <p class="sub">Panoramas entdecken und herunterladen &mdash; lokal oder per GitHub Actions</p>
 
 <!-- MODE TOGGLE -->
@@ -149,6 +116,74 @@ button.btn:disabled{opacity:.4;cursor:not-allowed}
 </div>
 
 <div id="status-bar"></div>
+
+<!-- ═══════════════ PANORAMA LOOKUP (beide Modi) ═══════════════ -->
+<div id="pano-section" class="card">
+  <h2><span class="icon">&#128247;</span> Street View Panorama-Suche <span style="font-size:.72rem;font-weight:400;color:var(--muted);margin-left:6px">via Street View Metadata API</span></h2>
+
+  <div class="grid" style="margin-bottom:14px">
+    <div>
+      <label>Google Maps API-Key</label>
+      <div class="show-wrap">
+        <input type="password" id="sv-apikey" placeholder="AIza..."/>
+        <button class="show-btn" onclick="toggle('sv-apikey')">Anzeigen</button>
+      </div>
+      <p class="hint">Wird nur lokal im Browser verwendet &mdash; nie gespeichert.</p>
+    </div>
+    <div>
+      <label>Koordinaten <span style="font-weight:400;color:var(--muted)">(lat, lng)</span></label>
+      <input type="text" id="sv-coords" placeholder="49.036897, 12.127383"/>
+      <p class="hint">Oder Adresse/Strassenname eingeben &darr;</p>
+    </div>
+    <div>
+      <label>Strasse</label>
+      <input type="text" id="sv-street" placeholder="Plesser Stra&szlig;e"/>
+    </div>
+    <div>
+      <label>Stadt</label>
+      <input type="text" id="sv-city" placeholder="Regensburg"/>
+    </div>
+    <div>
+      <label>Suchradius (m)</label>
+      <input type="number" id="sv-radius" value="50" min="1" max="500"/>
+    </div>
+    <div>
+      <label>Sampling-Punkte entlang Strasse</label>
+      <input type="number" id="sv-samples" value="5" min="1" max="50"/>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="btn btn-primary" onclick="svLookup()">&#128269; Panoramas suchen &amp; Metadaten laden</button>
+    <button class="btn btn-secondary" onclick="svGps()">&#128205; GPS-Position verwenden</button>
+    <button class="btn btn-secondary" onclick="svClear()">&#10006; Leeren</button>
+  </div>
+
+  <div id="pano-table-wrap" style="margin-top:16px;overflow-x:auto;display:none">
+    <table class="pano-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>pano_id</th>
+          <th>Datum</th>
+          <th>Lat</th>
+          <th>Lng</th>
+          <th>Quelle</th>
+          <th>Karte</th>
+        </tr>
+      </thead>
+      <tbody id="pano-tbody"></tbody>
+    </table>
+    <div id="pano-lookup-info"></div>
+  </div>
+
+  <div id="pano-select-actions" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+    <span style="font-size:.82rem;color:var(--muted);margin-right:10px" id="pano-sel-count"></span>
+    <button class="btn btn-secondary" style="padding:6px 14px;font-size:.82rem" onclick="panoSelectAll(true)">&#10003; Alle</button>
+    <button class="btn btn-secondary" style="padding:6px 14px;font-size:.82rem;margin-left:6px" onclick="panoSelectAll(false)">&#10007; Keine</button>
+    <button class="btn btn-primary" style="padding:7px 18px;font-size:.85rem;margin-left:10px" onclick="panoDownloadSelected()">&#8659; Ausgewaehlte herunterladen</button>
+  </div>
+</div>
 
 <!-- ═══════════════ LOKAL ═══════════════ -->
 <div id="local-section">
@@ -181,7 +216,7 @@ python3 streetview_server.py</pre>
           <input type="password" id="local-apikey" placeholder="AIza..."/>
           <button class="show-btn" onclick="toggle('local-apikey')">Anzeigen</button>
         </div>
-        <p class="hint">Wird nur lokal an Python weitergegeben &mdash; nie ans Internet gesendet. <a href="#google-guide">Wie bekomme ich einen Key? &darr;</a></p>
+        <p class="hint">Wird nur lokal an Python weitergegeben. <a href="#google-guide">Wie bekomme ich einen Key? &darr;</a></p>
       </div>
     </div>
   </div>
@@ -189,14 +224,8 @@ python3 streetview_server.py</pre>
   <div class="card">
     <h2><span class="icon">&#9881;</span> Konfiguration</h2>
     <div class="grid">
-      <div>
-        <label>Strassenname</label>
-        <input type="text" id="local-street" value="Berger Strasse"/>
-      </div>
-      <div>
-        <label>Stadt</label>
-        <input type="text" id="local-city" value="Frankfurt am Main"/>
-      </div>
+      <div><label>Strassenname</label><input type="text" id="local-street" value="Berger Strasse"/></div>
+      <div><label>Stadt</label><input type="text" id="local-city" value="Frankfurt am Main"/></div>
       <div>
         <label>Bildqualitaet</label>
         <select id="local-quality">
@@ -205,14 +234,8 @@ python3 streetview_server.py</pre>
           <option value="high">high &mdash; 512 Tiles/Pano</option>
         </select>
       </div>
-      <div>
-        <label>Sampling-Abstand (m)</label>
-        <input type="number" id="local-sampling" value="10" min="1" max="200"/>
-      </div>
-      <div>
-        <label>Suchradius (m)</label>
-        <input type="number" id="local-radius" value="8" min="1" max="100"/>
-      </div>
+      <div><label>Sampling-Abstand (m)</label><input type="number" id="local-sampling" value="10" min="1" max="200"/></div>
+      <div><label>Suchradius (m)</label><input type="number" id="local-radius" value="8" min="1" max="100"/></div>
       <div>
         <label>Historische Aufnahmen</label>
         <select id="local-historical">
@@ -220,10 +243,7 @@ python3 streetview_server.py</pre>
           <option value="true">Ja (alle Epochen)</option>
         </select>
       </div>
-      <div>
-        <label>Ausgabeordner (absoluter Pfad)</label>
-        <input type="text" id="local-output" value="./downloads" placeholder="/home/user/panoramas"/>
-      </div>
+      <div><label>Ausgabeordner</label><input type="text" id="local-output" value="./downloads" placeholder="/home/user/panoramas"/></div>
     </div>
     <div class="sep"></div>
     <div class="actions">
@@ -233,22 +253,16 @@ python3 streetview_server.py</pre>
     </div>
   </div>
 
-  <!-- Google Guide -->
   <div class="card" id="google-guide">
     <h2><span class="icon">&#128270;</span> Google Maps API-Key erstellen</h2>
     <div style="font-size:.86rem;color:var(--muted);line-height:1.75">
       <ol style="margin-left:18px">
         <li>Oeffne <a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a></li>
         <li>Neues Projekt erstellen (oder bestehendes auswaehlen)</li>
-        <li><strong style="color:var(--text)">APIs &amp; Dienste &rarr; Bibliothek &rarr; &bdquo;Map Tiles API&ldquo;</strong> &rarr; Aktivieren</li>
-        <li><strong style="color:var(--text)">APIs &amp; Dienste &rarr; Anmeldedaten &rarr; + Anmeldedaten erstellen &rarr; API-Schluessel</strong></li>
-        <li>Abrechnung aktivieren (Pflicht; kostenlos bis 100.000 Tiles/Monat)</li>
-        <li>Key kopieren &rarr; hier einfuegen</li>
+        <li><strong style="color:var(--text)">APIs &amp; Dienste &rarr; Bibliothek &rarr; &bdquo;Street View Static API&ldquo; + &bdquo;Map Tiles API&ldquo;</strong> &rarr; Aktivieren</li>
+        <li><strong style="color:var(--text)">APIs &amp; Dienste &rarr; Anmeldedaten &rarr; + API-Schluessel</strong></li>
+        <li>Abrechnung aktivieren</li>
       </ol>
-      <p style="margin-top:10px">
-        <strong style="color:var(--text)">Kosten:</strong>
-        low ~3.125 &middot; medium ~781 &middot; high ~195 Panoramen/Monat im Freikontigent.
-      </p>
     </div>
   </div>
 
@@ -277,7 +291,7 @@ python3 streetview_server.py</pre>
         <li>Name: <code style="color:var(--primary)">streetview-explorer</code></li>
         <li>Expiration: <code style="color:var(--primary)">30 days</code></li>
         <li>Repository access: <strong style="color:var(--text)">Only: streetview-explorer</strong></li>
-        <li>Permissions: <strong style="color:var(--text)">Actions &rarr; Read and write</strong> (nur das!)</li>
+        <li>Permissions: <strong style="color:var(--text)">Actions &rarr; Read and write</strong></li>
         <li>Generate &rarr; kopieren &rarr; hier einfuegen</li>
       </ol>
     </div>
@@ -289,7 +303,7 @@ python3 streetview_server.py</pre>
       <input type="password" id="cloud-apikey" placeholder="AIza..."/>
       <button class="show-btn" onclick="toggle('cloud-apikey')">Anzeigen</button>
     </div>
-    <p class="hint">Wird als Workflow-Input uebertragen. <a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a></p>
+    <p class="hint">Wird als Workflow-Input uebertragen.</p>
   </div>
 
   <div class="card">
@@ -322,58 +336,49 @@ python3 streetview_server.py</pre>
     </div>
   </div>
 
-  <!-- ═══ HISTORICAL DISCOVERY PANEL ══════════════════════════════════════ -->
+  <!-- HISTORICAL DISCOVERY PANEL -->
   <div id="hist-panel" style="display:none;margin-bottom:18px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px">
     <h2 style="font-size:1.05rem;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px">
       <span>&#128336;</span> Historische Aufnahmen entdecken
     </h2>
     <p style="font-size:.82rem;color:var(--muted);line-height:1.6;margin-bottom:14px">
-      Entdeckt verfuegbare historische Zeitraeume fuer den angegebenen Standort via lokalem Server.
-      Typisch: 3&ndash;6 Zeitraeume &middot; Tiefe 10 findet mehr, braucht aber laenger und mehr API-Calls.
+      Entdeckt verfuegbare historische Zeitraeume via lokalem Server.
     </p>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px">
       <div>
         <label>Suchtiefe</label>
         <select id="hist-depth" style="width:auto;padding:8px 12px">
-          <option value="5">5 &mdash; Schnell (~15 API-Calls)</option>
-          <option value="7" selected>7 &mdash; Standard (~30 API-Calls)</option>
-          <option value="10">10 &mdash; Gruendlich (~60 API-Calls)</option>
+          <option value="5">5 &mdash; Schnell</option>
+          <option value="7" selected>7 &mdash; Standard</option>
+          <option value="10">10 &mdash; Gruendlich</option>
         </select>
       </div>
       <div>
-        <label>Max. Panoramen pruefen</label>
+        <label>Max. Panoramen</label>
         <select id="hist-maxpano" style="width:auto;padding:8px 12px">
-          <option value="100">100 &mdash; Schnell</option>
-          <option value="200" selected>200 &mdash; Standard</option>
-          <option value="500">500 &mdash; Langsam</option>
+          <option value="100">100</option>
+          <option value="200" selected>200</option>
+          <option value="500">500</option>
         </select>
       </div>
       <button id="hist-discover-btn" class="btn btn-secondary" onclick="discoverHistorical()" style="margin-bottom:0">
         &#128269; Zeitraeume entdecken
       </button>
     </div>
-
-    <!-- Ergebnis -->
     <div id="hist-results" style="display:none">
-      <div style="font-size:.82rem;font-weight:600;color:var(--text);margin-bottom:8px">
-        Gefundene Zeitraeume &mdash; auswaehlen welche heruntergeladen werden sollen:
-      </div>
+      <div style="font-size:.82rem;font-weight:600;color:var(--text);margin-bottom:8px">Gefundene Zeitraeume:</div>
       <div id="hist-date-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;min-height:36px"></div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding-top:12px;border-top:1px solid var(--border)">
-        <button onclick="histSelectAll(true)"  class="btn btn-secondary" style="padding:6px 14px;font-size:.82rem">&#10003; Alle</button>
+        <button onclick="histSelectAll(true)" class="btn btn-secondary" style="padding:6px 14px;font-size:.82rem">&#10003; Alle</button>
         <button onclick="histSelectAll(false)" class="btn btn-secondary" style="padding:6px 14px;font-size:.82rem">&#10007; Keine</button>
         <span id="hist-sel-count" style="font-size:.8rem;color:var(--muted)"></span>
         <div style="margin-left:auto">
-          <button onclick="dlHistSelected()" class="btn btn-primary" style="padding:8px 20px;font-size:.88rem">
-            &#8659; Ausgewaehlte herunterladen
-          </button>
+          <button onclick="dlHistSelected()" class="btn btn-primary" style="padding:8px 20px;font-size:.88rem">&#8659; Ausgewaehlte herunterladen</button>
         </div>
       </div>
     </div>
-
     <div id="hist-status" style="font-size:.82rem;color:var(--muted);margin-top:10px;min-height:20px"></div>
   </div>
-  <!-- ═══ ENDE HISTORICAL DISCOVERY PANEL ═════════════════════════════════ -->
 
   <div id="runs-section" class="card">
     <h2>&#128203; GitHub Actions Jobs</h2>
@@ -382,7 +387,6 @@ python3 streetview_server.py</pre>
 
 </div>
 
-<!-- LOG -->
 <div id="log"></div>
 
 <script>
@@ -391,29 +395,36 @@ const REPO     = 'streetview-explorer';
 const WORKFLOW = 'download.yml';
 const LOCAL    = 'http://localhost:5000';
 
-let currentMode   = 'local';
-let currentJobId  = null;
-let currentEventSource = null;
-let serverOnline  = false;
+// Street View Metadata API endpoint (kein CORS-Problem, da GET mit key)
+const SV_META  = 'https://maps.googleapis.com/maps/api/streetview/metadata';
+// Geocoding API
+const GEOCODE  = 'https://maps.googleapis.com/maps/api/geocode/json';
 
-// ── MODE ────────────────────────────────────────────────────────────────────
+let currentMode        = 'local';
+let currentJobId       = null;
+let currentEventSource = null;
+let serverOnline       = false;
+
+// Panorama state
+let _svPanoramas  = [];   // [{pano_id, date, lat, lng, source, status}]
+let _svSelected   = new Set();
+
+// ── MODE ──────────────────────────────────────────────────────────────────
 function setMode(m) {
   currentMode = m;
   document.getElementById('local-section').style.display = m==='local'  ? 'block' : 'none';
   document.getElementById('cloud-section').style.display = m==='cloud' ? 'block' : 'none';
   document.getElementById('btn-mode-local').className = 'mode-btn' + (m==='local'  ? ' active-local' : '');
   document.getElementById('btn-mode-cloud').className = 'mode-btn' + (m==='cloud' ? ' active-cloud' : '');
+  document.getElementById('pano-section').style.display = 'block';
   clearLog();
   if (m==='local') checkServer();
   onHistoricalChange();
 }
 
-// ── HELPERS ─────────────────────────────────────────────────────────────────
-function v(id){ return document.getElementById(id).value.trim(); }
-function toggle(id){
-  const el=document.getElementById(id);
-  el.type = el.type==='password'?'text':'password';
-}
+// ── HELPERS ───────────────────────────────────────────────────────────────
+function v(id){ const el=document.getElementById(id); return el ? el.value.trim() : ''; }
+function toggle(id){ const el=document.getElementById(id); el.type = el.type==='password'?'text':'password'; }
 function setStatus(msg, type='running'){
   const b=document.getElementById('status-bar');
   b.style.display='block'; b.className=type;
@@ -430,11 +441,13 @@ function appendLog(msg, cls='log-info'){
   e.appendChild(line);
   e.scrollTop=e.scrollHeight;
 }
-function escHtml(s){
-  return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function escHtml(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function apiKey() {
+  return v('sv-apikey') || v('local-apikey') || v('cloud-apikey');
 }
 
-// ── SERVER CHECK ─────────────────────────────────────────────────────────────
+// ── SERVER CHECK ──────────────────────────────────────────────────────────
 async function checkServer(){
   const dot   = document.getElementById('server-dot');
   const label = document.getElementById('server-label');
@@ -447,45 +460,309 @@ async function checkServer(){
   } catch(_){
     serverOnline = false;
     dot.className   = 'dot offline';
-    label.textContent = 'Lokaler Server offline — starte streetview_server.py';
+    label.textContent = 'Lokaler Server offline \u2014 starte streetview_server.py';
   }
 }
 setInterval(()=>{ if(currentMode==='local') checkServer(); }, 5000);
 
-// ── LOCAL ────────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════
+// STREET VIEW METADATA LOOKUP
+// ══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Fragt die Street View Static Metadata API an:
+ *   GET https://maps.googleapis.com/maps/api/streetview/metadata
+ *     ?location=lat,lng  (oder ?pano=pano_id)
+ *     &radius=50
+ *     &key=API_KEY
+ *
+ * Liefert: { status, pano_id, date, location:{lat,lng}, copyright, ... }
+ * status=OK  → echtes Panorama gefunden
+ * status=ZERO_RESULTS → kein Panorama in diesem Radius
+ */
+async function svMetadata(lat, lng, radius, key) {
+  const url = `${SV_META}?location=${lat},${lng}&radius=${radius}&source=outdoor&key=${key}`;
+  try {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return await r.json();
+  } catch(e) {
+    return { status: 'ERROR', error: e.message };
+  }
+}
+
+async function svMetadataByPanoId(panoId, key) {
+  const url = `${SV_META}?pano=${encodeURIComponent(panoId)}&key=${key}`;
+  try {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return await r.json();
+  } catch(e) {
+    return { status: 'ERROR', error: e.message };
+  }
+}
+
+/** Geocodiert Strasse+Stadt → {lat, lng} */
+async function geocode(street, city, key) {
+  const addr = encodeURIComponent(`${street}, ${city}`);
+  const url  = `${GEOCODE}?address=${addr}&key=${key}`;
+  try {
+    const r = await fetch(url);
+    const d = await r.json();
+    if (d.status === 'OK' && d.results.length) {
+      const loc = d.results[0].geometry.location;
+      return { lat: loc.lat, lng: loc.lng, formatted: d.results[0].formatted_address };
+    }
+    return null;
+  } catch(e) {
+    return null;
+  }
+}
+
+/** Berechnet N Punkte entlang einer Strasse (einfaches lineares Sampling) */
+function samplePoints(centerLat, centerLng, samples, spacingM) {
+  const pts = [];
+  const dLat = (spacingM / 111320);
+  const dLng = (spacingM / (111320 * Math.cos(centerLat * Math.PI / 180)));
+  const half = Math.floor(samples / 2);
+  for (let i = -half; i <= half; i++) {
+    pts.push({ lat: centerLat + i * dLat, lng: centerLng + i * dLng });
+  }
+  return pts;
+}
+
+async function svGps() {
+  if (!navigator.geolocation) { setStatus('Geolocation nicht verfuegbar.', 'error'); return; }
+  setStatus('GPS-Position wird abgefragt...', 'running');
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const { latitude: lat, longitude: lng } = pos.coords;
+      document.getElementById('sv-coords').value = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+      appendLog(`GPS: ${lat.toFixed(6)}, ${lng.toFixed(6)} \u00b1${pos.coords.accuracy.toFixed(0)}m`);
+      setStatus('GPS gelesen. Jetzt \u201ePanoramas suchen\u201c klicken.', 'success');
+    },
+    err => setStatus(`GPS-Fehler: ${err.message}`, 'error'),
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+}
+
+async function svLookup() {
+  const key     = apiKey();
+  const radius  = parseInt(v('sv-radius'))  || 50;
+  const samples = parseInt(v('sv-samples')) || 5;
+  const spacing = Math.max(radius, 10);
+
+  if (!key) { setStatus('Bitte API-Key eingeben (Feld oben).', 'error'); return; }
+
+  setStatus('Suche Panoramas...', 'running');
+  svClear();
+
+  let centerLat, centerLng;
+
+  // Koordinaten direkt eingegeben?
+  const coordsRaw = v('sv-coords');
+  if (coordsRaw) {
+    const m = coordsRaw.match(/(-?\d+\.?\d*)[,\s]+(-?\d+\.?\d*)/);
+    if (!m) { setStatus('Koordinaten-Format ungueltig (erwartet: lat, lng)', 'error'); return; }
+    centerLat = parseFloat(m[1]);
+    centerLng = parseFloat(m[2]);
+    appendLog(`Koordinaten: ${centerLat}, ${centerLng}`, 'log-cmd');
+  } else {
+    const street = v('sv-street');
+    const city   = v('sv-city');
+    if (!street || !city) { setStatus('Bitte Koordinaten oder Strasse+Stadt eingeben.', 'error'); return; }
+    appendLog(`Geocodiere: ${street}, ${city}...`, 'log-info');
+    const geo = await geocode(street, city, key);
+    if (!geo) { setStatus('Geocoding fehlgeschlagen \u2014 Adresse nicht gefunden.', 'error'); return; }
+    centerLat = geo.lat;
+    centerLng = geo.lng;
+    appendLog(`Adresse: ${geo.formatted}`, 'log-ok');
+    appendLog(`Koordinaten: ${centerLat.toFixed(6)}, ${centerLng.toFixed(6)}`, 'log-info');
+  }
+
+  const points = samplePoints(centerLat, centerLng, samples, spacing);
+  appendLog(`Suche ${points.length} Punkte mit Radius ${radius}m...`, 'log-info');
+
+  // Metadata fuer alle Punkte parallel anfragen
+  const results = await Promise.all(
+    points.map(p => svMetadata(p.lat, p.lng, radius, key))
+  );
+
+  // Deduplizieren nach pano_id
+  const seen   = new Set();
+  const panos  = [];
+  let okCount  = 0;
+  let fallCount= 0;
+
+  results.forEach((meta, i) => {
+    const pt = points[i];
+    if (meta.status === 'OK' && meta.pano_id) {
+      if (!seen.has(meta.pano_id)) {
+        seen.add(meta.pano_id);
+        panos.push({
+          pano_id: meta.pano_id,
+          date:    meta.date || '',
+          lat:     meta.location ? meta.location.lat : pt.lat,
+          lng:     meta.location ? meta.location.lng : pt.lng,
+          source:  'real',
+          status:  'ok',
+        });
+        okCount++;
+      }
+    } else if (meta.status === 'ZERO_RESULTS') {
+      // Kein Panorama — trotzdem als Fallback eintragen (ohne pano_id)
+      panos.push({
+        pano_id: '',
+        date:    '',
+        lat:     pt.lat,
+        lng:     pt.lng,
+        source:  'zero',
+        status:  'zero',
+      });
+      fallCount++;
+    } else {
+      appendLog(`Punkt ${i+1}: ${meta.status} ${meta.error||''}`, 'log-err');
+    }
+  });
+
+  appendLog(`Ergebnis: ${okCount} echte Panoramen, ${fallCount} ohne Treffer`, okCount > 0 ? 'log-ok' : 'log-info');
+
+  _svPanoramas = panos.filter(p => p.source !== 'zero' || panos.length < 3);
+  _svSelected  = new Set(_svPanoramas.map((_, i) => i));
+
+  renderPanoTable();
+
+  if (okCount > 0) {
+    setStatus(`\u2713 ${okCount} Panorama${okCount>1?'s':''} gefunden mit echtem Datum und pano_id.`, 'success');
+  } else {
+    setStatus('Keine Street View Panoramen in diesem Bereich gefunden.', 'warn');
+  }
+}
+
+function renderPanoTable() {
+  const wrap = document.getElementById('pano-table-wrap');
+  const tbody= document.getElementById('pano-tbody');
+  const info = document.getElementById('pano-lookup-info');
+  const acts = document.getElementById('pano-select-actions');
+
+  if (!_svPanoramas.length) { wrap.style.display='none'; acts.style.display='none'; return; }
+
+  wrap.style.display = 'block';
+  tbody.innerHTML = _svPanoramas.map((p, i) => {
+    const checked = _svSelected.has(i);
+    const dateEl  = p.date
+      ? `<span style="color:var(--success);font-weight:600">${escHtml(p.date)}</span>`
+      : (p.source==='zero'
+          ? `<span style="color:var(--muted);font-size:.75rem">kein Panorama</span>`
+          : `<span style="color:var(--warn);font-size:.75rem"><span class="spinner"></span>laden...</span>`);
+    const srcTag = p.source==='real'
+      ? `<span class="tag tag-real">&#10003; real</span>`
+      : p.source==='zero'
+      ? `<span class="tag tag-fallback">kein Treffer</span>`
+      : `<span class="tag tag-fallback">fallback</span>`;
+    const mapsUrl = `https://www.google.com/maps/@${p.lat.toFixed(5)},${p.lng.toFixed(5)},3a,75y,0h,90t/`;
+    const svUrl   = p.pano_id ? `https://www.google.com/maps/@?api=1&map_action=pano&pano=${p.pano_id}` : mapsUrl;
+
+    return `<tr>
+      <td><input type="checkbox" ${checked?'checked':''} onchange="panoToggle(${i},this.checked)" style="accent-color:var(--primary)"> ${i+1}</td>
+      <td class="pano-id" title="${escHtml(p.pano_id)}">${p.pano_id ? escHtml(p.pano_id) : '<span style="color:var(--muted)">—</span>'}</td>
+      <td class="pano-date ${p.source!=='real'?'fallback':''}">${dateEl}</td>
+      <td>${p.lat.toFixed(5)}</td>
+      <td>${p.lng.toFixed(5)}</td>
+      <td class="pano-source">${srcTag}</td>
+      <td><a href="${escHtml(svUrl)}" target="_blank">&#128249;</a> <a href="${escHtml(mapsUrl)}" target="_blank" style="margin-left:4px">&#8599;</a></td>
+    </tr>`;
+  }).join('');
+
+  const realCount = _svPanoramas.filter(p=>p.source==='real').length;
+  info.innerHTML  = `<span style="color:var(--success)">${realCount} echte pano_ids</span> &middot; Quelle: Street View Metadata API (kein Server noetig)`;
+
+  acts.style.display = realCount > 0 ? 'flex' : 'none';
+  updatePanoSelCount();
+}
+
+function panoToggle(i, checked) {
+  if (checked) _svSelected.add(i); else _svSelected.delete(i);
+  updatePanoSelCount();
+}
+function panoSelectAll(val) {
+  _svPanoramas.forEach((_, i) => {
+    const cb = document.querySelector(`#pano-tbody tr:nth-child(${i+1}) input[type=checkbox]`);
+    if (cb) { cb.checked = val; panoToggle(i, val); }
+  });
+}
+function updatePanoSelCount() {
+  const el = document.getElementById('pano-sel-count');
+  if (el) el.textContent = `${_svSelected.size} von ${_svPanoramas.length} ausgewaehlt`;
+}
+function svClear() {
+  _svPanoramas = []; _svSelected.clear();
+  document.getElementById('pano-table-wrap').style.display   = 'none';
+  document.getElementById('pano-select-actions').style.display = 'none';
+  document.getElementById('pano-tbody').innerHTML = '';
+  document.getElementById('pano-lookup-info').innerHTML = '';
+}
+
+async function panoDownloadSelected() {
+  const selected = [..._svSelected].map(i => _svPanoramas[i]).filter(p => p && p.pano_id);
+  if (!selected.length) { setStatus('Keine echten Panoramen ausgewaehlt.', 'warn'); return; }
+  const panoIds = selected.map(p => p.pano_id);
+  appendLog(`Download: ${panoIds.length} pano_ids ausgewaehlt`, 'log-cmd');
+
+  if (currentMode === 'local' && serverOnline) {
+    // Lokaler Server
+    const key = apiKey();
+    const r = await fetch(`${LOCAL}/api/start`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ pano_ids: panoIds, api_key: key, street:'map', city:'', quality: v('local-quality')||'medium', output: v('local-output')||'./downloads' })
+    });
+    const d = await r.json();
+    if (r.ok) {
+      currentJobId = d.job_id;
+      setStatus(`Lokaler Job gestartet: ${panoIds.length} Panoramen`, 'running');
+      listenLocal(d.job_id);
+    } else {
+      setStatus(`Fehler: ${d.error}`, 'error');
+    }
+  } else {
+    // GitHub Actions
+    const pat = v('pat'); const key = v('cloud-apikey') || apiKey();
+    if (!pat || !key) { setStatus('PAT + API-Key erforderlich fuer Cloud-Download.', 'error'); return; }
+    const street = v('sv-street') || v('cloud-street') || 'map';
+    const city   = v('sv-city')   || v('cloud-city')   || '';
+    const res = await fetch(
+      `https://api.github.com/repos/${OWNER}/${REPO}/actions/workflows/${WORKFLOW}/dispatches`,
+      { method:'POST', headers:{'Authorization':`Bearer ${pat}`,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','Content-Type':'application/json'},
+        body: JSON.stringify({ ref:'main', inputs:{ street, city, quality: v('cloud-quality')||'medium', sampling:'10', radius:'8', historical:'false', pano_ids: panoIds.join(','), api_key: key } }) }
+    );
+    if (res.status === 204) {
+      setStatus(`\u2713 ${panoIds.length} Panoramen an GitHub Actions geschickt.`, 'success');
+      appendLog(`HTTP 204 \u2014 ${panoIds.length} pano_ids dispatched`, 'log-ok');
+      setTimeout(loadCloudRuns, 3000);
+    } else {
+      setStatus(`HTTP ${res.status}`, 'error');
+    }
+  }
+}
+
+// ── LOCAL ─────────────────────────────────────────────────────────────────
 async function localStart(){
-  const apiKey = v('local-apikey');
+  const apiKeyVal = v('local-apikey');
   const street = v('local-street');
   const city   = v('local-city');
-  if (!apiKey){ setStatus('Bitte Google API-Key eingeben.','error'); return; }
+  if (!apiKeyVal){ setStatus('Bitte Google API-Key eingeben.','error'); return; }
   if (!street){ setStatus('Bitte Strassenname eingeben.','error'); return; }
   if (!city)  { setStatus('Bitte Stadt eingeben.','error'); return; }
-  if (!serverOnline){
-    setStatus('Lokaler Server nicht erreichbar. Starte zuerst streetview_server.py','error');
-    return;
-  }
+  if (!serverOnline){ setStatus('Lokaler Server nicht erreichbar.','error'); return; }
 
   document.getElementById('btn-local-start').disabled = true;
   document.getElementById('btn-local-stop').style.display = 'inline-block';
   clearLog();
   setStatus('Starte lokalen Job...','running');
 
-  const params = {
-    street, city,
-    quality:    v('local-quality'),
-    sampling:   v('local-sampling'),
-    radius:     v('local-radius'),
-    historical: v('local-historical'),
-    output:     v('local-output'),
-    api_key:    apiKey,
-  };
-
+  const params = { street, city, quality: v('local-quality'), sampling: v('local-sampling'), radius: v('local-radius'), historical: v('local-historical'), output: v('local-output'), api_key: apiKeyVal };
   try {
-    const r = await fetch(`${LOCAL}/api/start`, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(params),
-    });
+    const r = await fetch(`${LOCAL}/api/start`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(params) });
     const d = await r.json();
     if (!r.ok){ setStatus(`Fehler: ${d.error}`,'error'); return; }
     currentJobId = d.job_id;
@@ -507,13 +784,8 @@ function listenLocal(jobId){
     if (msg.type === 'ping') return;
     if (msg.type === 'cmd')  { appendLog(msg.data,'log-cmd'); return; }
     if (msg.type === 'done') {
-      if (msg.rc === 0) {
-        setStatus('Fertig! Panoramas heruntergeladen.','success');
-        appendLog(msg.data,'log-ok');
-      } else {
-        setStatus(`Fehler (exit=${msg.rc})`,'error');
-        appendLog(msg.data,'log-err');
-      }
+      if (msg.rc === 0) { setStatus('Fertig! Panoramas heruntergeladen.','success'); appendLog(msg.data,'log-ok'); }
+      else              { setStatus(`Fehler (exit=${msg.rc})`,'error'); appendLog(msg.data,'log-err'); }
       currentEventSource.close();
       document.getElementById('btn-local-start').disabled = false;
       document.getElementById('btn-local-stop').style.display = 'none';
@@ -522,14 +794,10 @@ function listenLocal(jobId){
     }
     if (msg.type === 'error'){ appendLog(msg.data,'log-err'); return; }
     const lower = msg.data.toLowerCase();
-    const cls   = lower.includes('error')||lower.includes('fehler') ? 'log-err'
-                : lower.includes('[ok]')||lower.includes('fertig')  ? 'log-ok'
-                : 'log-info';
+    const cls   = lower.includes('error')||lower.includes('fehler') ? 'log-err' : lower.includes('[ok]')||lower.includes('fertig') ? 'log-ok' : 'log-info';
     appendLog(msg.data, cls);
   };
-  currentEventSource.onerror = () => {
-    appendLog('SSE-Verbindung unterbrochen.','log-err');
-  };
+  currentEventSource.onerror = () => appendLog('SSE-Verbindung unterbrochen.','log-err');
 }
 
 async function localStop(){
@@ -552,28 +820,20 @@ async function loadLocalJobs(){
     const jobs = await r.json();
     if (!jobs.length){ list.innerHTML='<p style="color:var(--muted)">Noch keine Jobs.</p>'; return; }
     list.innerHTML = jobs.slice().reverse().map(j => {
-      const badge = j.status==='success' ? '<span class="badge badge-success">Fertig</span>'
-                  : j.status==='error'   ? '<span class="badge badge-error">Fehler</span>'
-                  : j.status==='running' ? '<span class="badge badge-running"><span class="spinner"></span>Laeuft</span>'
-                  : j.status==='stopped' ? '<span class="badge badge-queued">Gestoppt</span>'
-                  : '<span class="badge badge-queued">'+j.status+'</span>';
-      return `<div class="run-entry">${badge} <strong>${escHtml(j.street)}, ${escHtml(j.city)}</strong>
-        <span style="font-size:.8rem;color:var(--muted);margin-left:8px">${j.quality}</span>
-        <div style="font-size:.78rem;color:var(--muted);margin-top:3px">${j.job_id}</div></div>`;
+      const badge = j.status==='success' ? '<span class="badge badge-success">Fertig</span>' : j.status==='error' ? '<span class="badge badge-error">Fehler</span>' : j.status==='running' ? '<span class="badge badge-running"><span class="spinner"></span>Laeuft</span>' : '<span class="badge badge-queued">'+j.status+'</span>';
+      return `<div class="run-entry">${badge} <strong>${escHtml(j.street)}, ${escHtml(j.city)}</strong><span style="font-size:.8rem;color:var(--muted);margin-left:8px">${j.quality}</span><div style="font-size:.78rem;color:var(--muted);margin-top:3px">${j.job_id}</div></div>`;
     }).join('');
-  } catch(e){
-    list.innerHTML = `<p style="color:var(--error)">Fehler: ${e}</p>`;
-  }
+  } catch(e){ list.innerHTML = `<p style="color:var(--error)">Fehler: ${e}</p>`; }
 }
 
-// ── CLOUD ────────────────────────────────────────────────────────────────────
+// ── CLOUD ─────────────────────────────────────────────────────────────────
 async function cloudStart(){
   const pat    = v('pat');
-  const apiKey = v('cloud-apikey');
+  const apiKeyVal = v('cloud-apikey');
   const street = v('cloud-street');
   const city   = v('cloud-city');
   if (!pat)   { setStatus('Bitte PAT-Token eingeben.','error'); return; }
-  if (!apiKey){ setStatus('Bitte Google API-Key eingeben.','error'); return; }
+  if (!apiKeyVal){ setStatus('Bitte Google API-Key eingeben.','error'); return; }
   if (!street){ setStatus('Bitte Strassenname eingeben.','error'); return; }
   if (!city)  { setStatus('Bitte Stadt eingeben.','error'); return; }
 
@@ -582,52 +842,23 @@ async function cloudStart(){
   btn.disabled = true;
   clearLog();
   setStatus('Sende Workflow-Dispatch...','running');
-  appendLog(`Trigger: ${street}, ${city}`);
 
   try {
     const res = await fetch(
       `https://api.github.com/repos/${OWNER}/${REPO}/actions/workflows/${WORKFLOW}/dispatches`,
-      {
-        method:'POST',
-        headers:{
-          'Authorization':`Bearer ${pat}`,
-          'Accept':'application/vnd.github+json',
-          'X-GitHub-Api-Version':'2022-11-28',
-          'Content-Type':'application/json',
-        },
-        body: JSON.stringify({
-          ref:'main',
-          inputs:{
-            street, city,
-            quality:    v('cloud-quality'),
-            sampling:   v('cloud-sampling'),
-            radius:     v('cloud-radius'),
-            historical: v('cloud-historical'),
-            api_key:    apiKey,
-          }
-        })
-      }
+      { method:'POST', headers:{'Authorization':`Bearer ${pat}`,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','Content-Type':'application/json'},
+        body: JSON.stringify({ ref:'main', inputs:{ street, city, quality: v('cloud-quality'), sampling: v('cloud-sampling'), radius: v('cloud-radius'), historical: v('cloud-historical'), api_key: apiKeyVal } }) }
     );
-    appendLog(`HTTP ${res.status}`);
     if (res.status===204){
-      setStatus('GitHub Actions Job gestartet! Klicke "Letzte Jobs".','success');
-      appendLog('HTTP 204 — Workflow erfolgreich getriggert.','log-ok');
+      setStatus('GitHub Actions Job gestartet!','success');
       setTimeout(loadCloudRuns, 3000);
     } else {
       const txt = await res.text();
-      appendLog(txt,'log-err');
-      const msgs = {
-        401:'HTTP 401: PAT ungueltig oder abgelaufen.',
-        404:'HTTP 404: Workflow nicht gefunden oder Token-Scope fehlt (Actions R&W).',
-        422:'HTTP 422: Inputs ungueltig. Branch main vorhanden?',
-      };
+      const msgs = {401:'HTTP 401: PAT ungueltig.',404:'HTTP 404: Workflow nicht gefunden.',422:'HTTP 422: Inputs ungueltig.'};
       setStatus(msgs[res.status]||`HTTP ${res.status}: ${txt.slice(0,120)}`,'error');
     }
-  } catch(e){
-    setStatus(`Netzwerkfehler: ${e}`,'error');
-  } finally {
-    btn.disabled = false;
-  }
+  } catch(e){ setStatus(`Netzwerkfehler: ${e}`,'error'); }
+  finally { btn.disabled = false; }
 }
 
 async function loadCloudRuns(){
@@ -638,42 +869,25 @@ async function loadCloudRuns(){
   sec.style.display='block';
   list.innerHTML='<p style="color:var(--muted)"><span class="spinner"></span>Laedt...</p>';
   try {
-    const r = await fetch(
-      `https://api.github.com/repos/${OWNER}/${REPO}/actions/workflows/${WORKFLOW}/runs?per_page=8`,
-      { headers:{'Authorization':`Bearer ${pat}`,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'} }
-    );
+    const r = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/actions/workflows/${WORKFLOW}/runs?per_page=8`,
+      { headers:{'Authorization':`Bearer ${pat}`,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'} });
     if (!r.ok){ list.innerHTML=`<p style="color:var(--error)">Fehler ${r.status}</p>`; return; }
     const data = await r.json();
     const runs = data.workflow_runs||[];
     if (!runs.length){ list.innerHTML='<p style="color:var(--muted)">Noch keine Jobs.</p>'; return; }
     list.innerHTML = runs.map(run => {
-      const badge = run.status==='completed'
-        ? (run.conclusion==='success' ? '<span class="badge badge-success">Fertig</span>' : '<span class="badge badge-failure">Fehler</span>')
-        : '<span class="badge badge-running"><span class="spinner"></span>Laeuft</span>';
+      const badge   = run.status==='completed' ? (run.conclusion==='success' ? '<span class="badge badge-success">Fertig</span>' : '<span class="badge badge-failure">Fehler</span>') : '<span class="badge badge-running"><span class="spinner"></span>Laeuft</span>';
       const started = new Date(run.created_at).toLocaleString('de-DE');
-      const inputs  = run.inputs ? Object.entries(run.inputs).filter(([k])=>k!=='api_key')
-        .map(([k,v_])=>`<span style="margin-right:8px"><b>${k}:</b> ${escHtml(v_)}</span>`).join('') : '';
-      return `<div class="run-entry">
-        <div style="font-weight:600;margin-bottom:4px">${badge} #${run.run_number} &mdash; ${escHtml(run.display_title||run.name)}</div>
-        <div style="font-size:.8rem;color:var(--muted);margin-bottom:8px">${started} &middot; ${inputs}</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <a href="${run.html_url}" target="_blank" class="btn btn-secondary" style="padding:5px 13px;font-size:.8rem;text-decoration:none;border-radius:6px">Job ansehen &rarr;</a>
-          ${run.status==='completed'&&run.conclusion==='success'
-            ? `<button class="btn btn-success" style="padding:5px 13px;font-size:.8rem" onclick="dlArtifact('${run.id}')">&#8659; Artifacts</button>` : ''}
-        </div>
-      </div>`;
+      const inputs  = run.inputs ? Object.entries(run.inputs).filter(([k])=>k!=='api_key').map(([k,v_])=>`<span style="margin-right:8px"><b>${k}:</b> ${escHtml(v_)}</span>`).join('') : '';
+      return `<div class="run-entry"><div style="font-weight:600;margin-bottom:4px">${badge} #${run.run_number} &mdash; ${escHtml(run.display_title||run.name)}</div><div style="font-size:.8rem;color:var(--muted);margin-bottom:8px">${started} &middot; ${inputs}</div><div style="display:flex;gap:8px;flex-wrap:wrap"><a href="${run.html_url}" target="_blank" class="btn btn-secondary" style="padding:5px 13px;font-size:.8rem;text-decoration:none;border-radius:6px">Job ansehen &rarr;</a>${run.status==='completed'&&run.conclusion==='success'?`<button class="btn btn-success" style="padding:5px 13px;font-size:.8rem" onclick="dlArtifact('${run.id}')">&#8659; Artifacts</button>`:''}</div></div>`;
     }).join('');
-  } catch(e){
-    list.innerHTML=`<p style="color:var(--error)">Fehler: ${e}</p>`;
-  }
+  } catch(e){ list.innerHTML=`<p style="color:var(--error)">Fehler: ${e}</p>`; }
 }
 
 async function dlArtifact(runId){
   const pat = v('pat');
-  const r   = await fetch(
-    `https://api.github.com/repos/${OWNER}/${REPO}/actions/runs/${runId}/artifacts`,
-    { headers:{'Authorization':`Bearer ${pat}`,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'} }
-  );
+  const r   = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/actions/runs/${runId}/artifacts`,
+    { headers:{'Authorization':`Bearer ${pat}`,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'} });
   const data = await r.json();
   for (const a of (data.artifacts||[])) {
     appendLog(`Artifact: ${a.name} (${(a.size_in_bytes/1024).toFixed(0)} KB)`,'log-ok');
@@ -681,23 +895,16 @@ async function dlArtifact(runId){
   }
 }
 
-// Auto-refresh Cloud Jobs alle 15s
-setInterval(()=>{
-  if (currentMode==='cloud' && v('pat') &&
-      document.getElementById('runs-section').style.display!=='none') loadCloudRuns();
-}, 15000);
+setInterval(()=>{ if(currentMode==='cloud'&&v('pat')&&document.getElementById('runs-section').style.display!=='none') loadCloudRuns(); }, 15000);
 
-// ═══════════════════════════════════════════════════════════════════════════
-// HISTORICAL DISCOVERY
-// ═══════════════════════════════════════════════════════════════════════════
-
+// ── HISTORICAL DISCOVERY ──────────────────────────────────────────────────
 let _histPanoramas = [];
 let _histSelected  = new Set();
 
 function onHistoricalChange() {
-  const isHist = (document.getElementById('cloud-historical')?.value || 'false') === 'true';
+  const isHist = (document.getElementById('cloud-historical')?.value||'false')==='true';
   const panel  = document.getElementById('hist-panel');
-  if (panel) panel.style.display = (currentMode === 'cloud' && isHist) ? 'block' : 'none';
+  if (panel) panel.style.display = (currentMode==='cloud'&&isHist) ? 'block' : 'none';
   if (!isHist) {
     document.getElementById('hist-results').style.display = 'none';
     document.getElementById('hist-status').textContent    = '';
@@ -709,178 +916,78 @@ async function discoverHistorical() {
   const statusEl = document.getElementById('hist-status');
   const resultsEl= document.getElementById('hist-results');
   const listEl   = document.getElementById('hist-date-list');
-
-  const apiKey = v('cloud-apikey');
-  const street = v('cloud-street');
-  const city   = v('cloud-city');
-
-  if (!apiKey) { statusEl.textContent = '\u26a0 Google API-Key eingeben (Feld oben).'; return; }
-  if (!street) { statusEl.textContent = '\u26a0 Strassenname eingeben.'; return; }
-  if (!serverOnline) {
-    statusEl.innerHTML = '\u26a0 Lokaler Server nicht erreichbar &mdash; <code>python streetview_server.py</code> starten.';
-    return;
-  }
+  const apiKeyVal= v('cloud-apikey') || apiKey();
+  const street   = v('cloud-street');
+  const city     = v('cloud-city');
+  if (!apiKeyVal){ statusEl.textContent='\u26a0 API-Key eingeben.'; return; }
+  if (!street)   { statusEl.textContent='\u26a0 Strassenname eingeben.'; return; }
+  if (!serverOnline){ statusEl.innerHTML='\u26a0 Lokaler Server nicht erreichbar.'; return; }
 
   const depth   = document.getElementById('hist-depth').value;
   const maxPano = document.getElementById('hist-maxpano').value;
 
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span> Entdecke...';
-  statusEl.textContent = `Suche historische Aufnahmen fuer "${street}, ${city}" \u2026`;
-  resultsEl.style.display = 'none';
-  listEl.innerHTML = '';
-  _histPanoramas = [];
-  _histSelected.clear();
-
-  appendLog(`Historical Discovery: "${street}, ${city}" depth=${depth} maxPanos=${maxPano}`, 'log-cmd');
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Entdecke...';
+  statusEl.textContent=`Suche historische Aufnahmen fuer "${street}, ${city}" \u2026`;
+  resultsEl.style.display='none'; listEl.innerHTML='';
+  _histPanoramas=[]; _histSelected.clear();
 
   try {
-    const res = await fetch(`${LOCAL}/api/discover`, {
-      method:  'POST',
-      headers: {'Content-Type': 'application/json'},
-      body:    JSON.stringify({
-        street, city,
-        lat: null, lng: null,
-        api_key:                  apiKey,
-        historical_max_depth:     parseInt(depth),
-        historical_max_panoramas: parseInt(maxPano),
-      })
-    });
-
+    const res = await fetch(`${LOCAL}/api/discover`, { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ street, city, lat:null, lng:null, api_key: apiKeyVal, historical_max_depth: parseInt(depth), historical_max_panoramas: parseInt(maxPano) }) });
     if (!res.ok) throw new Error(`Server HTTP ${res.status}`);
     const data = await res.json();
-    appendLog(`Discovery: ok=${data.ok} Zeitraeume=${data.panoramas?.length || 0}`, 'log-info');
-
     if (data.ok && data.panoramas?.length) {
       _histPanoramas = data.panoramas;
-      _histPanoramas.forEach((_, i) => _histSelected.add(i));
-
-      listEl.innerHTML = _histPanoramas.map((p, i) => {
-        const date   = p.date || p.capture_date || '?';
-        const panoId = p.pano_id || '';
-        const isFirst= i === 0;
-        return `<label id="hist-chip-${i}" style="display:inline-flex;align-items:center;gap:6px;
-            padding:6px 13px;background:var(--surface2);cursor:pointer;user-select:none;
-            border:2px solid ${isFirst ? 'var(--primary)' : 'var(--border)'};
-            border-radius:99px;font-size:.82rem;transition:border-color .15s">
-          <input type="checkbox" checked data-idx="${i}" onchange="histToggle(${i},this.checked)"
-                 style="accent-color:var(--primary);cursor:pointer">
-          <span style="font-weight:${isFirst?'700':'400'};color:${isFirst?'var(--primary)':'var(--text)'}">
-            &#128197; ${escHtml(date)}
-          </span>
-          ${panoId ? `<span style="font-size:.7rem;color:var(--muted)" title="${escHtml(panoId)}">${escHtml(panoId.slice(0,12))}\u2026</span>` : ''}
-          ${isFirst ? '<span style="font-size:.67rem;background:var(--primary);color:#fff;border-radius:4px;padding:1px 6px">aktuell</span>' : ''}
+      _histPanoramas.forEach((_,i) => _histSelected.add(i));
+      listEl.innerHTML = _histPanoramas.map((p,i) => {
+        const date=p.date||p.capture_date||'?';
+        const panoId=p.pano_id||'';
+        const isFirst=i===0;
+        return `<label id="hist-chip-${i}" style="display:inline-flex;align-items:center;gap:6px;padding:6px 13px;background:var(--surface2);cursor:pointer;user-select:none;border:2px solid ${isFirst?'var(--primary)':'var(--border)'};border-radius:99px;font-size:.82rem">
+          <input type="checkbox" checked data-idx="${i}" onchange="histToggle(${i},this.checked)" style="accent-color:var(--primary)">
+          <span style="font-weight:${isFirst?'700':'400'};color:${isFirst?'var(--primary)':'var(--text)'}">&#128197; ${escHtml(date)}</span>
+          ${panoId?`<span style="font-size:.7rem;color:var(--muted)" title="${escHtml(panoId)}">${escHtml(panoId.slice(0,12))}\u2026</span>`:''}
+          ${isFirst?'<span style="font-size:.67rem;background:var(--primary);color:#fff;border-radius:4px;padding:1px 6px">aktuell</span>':''}
         </label>`;
       }).join('');
-
-      if (data.note) {
-        listEl.innerHTML += `<div style="width:100%;font-size:.75rem;color:var(--warn);margin-top:6px">&#9432; ${escHtml(data.note)}</div>`;
-      }
-
-      resultsEl.style.display = 'block';
+      resultsEl.style.display='block';
       updateHistCount();
-      statusEl.textContent = `\u2713 ${_histPanoramas.length} Zeitraeume gefunden.`;
-      appendLog(`${_histPanoramas.length} historische Zeitraeume entdeckt`, 'log-ok');
-
+      statusEl.textContent=`\u2713 ${_histPanoramas.length} Zeitraeume gefunden.`;
     } else {
-      statusEl.textContent = `\u2139 ${data.error || 'Keine historischen Aufnahmen an diesem Standort gefunden.'}`;
-      appendLog(`Discovery: keine Ergebnisse \u2014 ${data.error || ''}`, 'log-info');
+      statusEl.textContent=`\u2139 ${data.error||'Keine historischen Aufnahmen gefunden.'}`;
     }
-
   } catch(e) {
-    statusEl.innerHTML = e.message.includes('fetch') || e.message.includes('Failed')
-      ? '\u26a0 Server nicht erreichbar &mdash; <code>python streetview_server.py</code> starten und warten bis gruener Punkt erscheint.'
-      : `Fehler: ${escHtml(e.message)}`;
-    appendLog(`discoverHistorical Fehler: ${e}`, 'log-err');
+    statusEl.textContent=`Fehler: ${e.message}`;
   } finally {
-    btn.disabled = false;
-    btn.innerHTML = '&#128269; Zeitraeume entdecken';
+    btn.disabled=false; btn.innerHTML='&#128269; Zeitraeume entdecken';
   }
 }
 
-function histToggle(i, checked) {
-  if (checked) _histSelected.add(i); else _histSelected.delete(i);
-  const chip = document.getElementById(`hist-chip-${i}`);
-  if (chip) chip.style.borderColor = checked ? 'var(--primary)' : 'var(--border)';
-  updateHistCount();
-}
+function histToggle(i,checked){ if(checked)_histSelected.add(i);else _histSelected.delete(i); const c=document.getElementById(`hist-chip-${i}`); if(c)c.style.borderColor=checked?'var(--primary)':'var(--border)'; updateHistCount(); }
+function histSelectAll(val){ document.querySelectorAll('#hist-date-list input[type=checkbox]').forEach((cb,i)=>{cb.checked=val;histToggle(i,val);}); }
+function updateHistCount(){ const el=document.getElementById('hist-sel-count'); if(el)el.textContent=`${_histSelected.size} von ${_histPanoramas.length} ausgewaehlt`; }
 
-function histSelectAll(val) {
-  document.querySelectorAll('#hist-date-list input[type=checkbox]').forEach((cb, i) => {
-    cb.checked = val;
-    histToggle(i, val);
-  });
-}
-
-function updateHistCount() {
-  const el = document.getElementById('hist-sel-count');
-  if (el) el.textContent = `${_histSelected.size} von ${_histPanoramas.length} ausgewaehlt`;
-}
-
-async function dlHistSelected() {
-  const selected = [..._histSelected].map(i => _histPanoramas[i]).filter(Boolean);
-  if (!selected.length) { setStatus('Keine Zeitraeume ausgewaehlt.', 'warn'); return; }
-
-  const panoIds = selected.map(p => p.pano_id).filter(p => p && !p.startsWith('pos_'));
-  const dates   = selected.map(p => p.date || p.capture_date).filter(Boolean).sort();
-
-  appendLog(`Historischer Download: ${selected.length} Zeitraeume, ${panoIds.length} pano_ids`, 'log-cmd');
-
-  if (panoIds.length) {
-    const pat    = v('pat');
-    const apiKey = v('cloud-apikey');
-    const street = v('cloud-street');
-    const city   = v('cloud-city');
-    if (!pat || !apiKey) { setStatus('PAT und API-Key erforderlich.', 'error'); return; }
-
-    const btn = document.getElementById('btn-cloud-start');
-    btn.disabled = true;
-    setStatus(`Starte historischen Download: ${panoIds.length} Panoramen...`, 'running');
-
-    try {
-      const res = await fetch(
-        `https://api.github.com/repos/${OWNER}/${REPO}/actions/workflows/${WORKFLOW}/dispatches`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${pat}`,
-            'Accept': 'application/vnd.github+json',
-            'X-GitHub-Api-Version': '2022-11-28',
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            ref: 'main',
-            inputs: {
-              street, city,
-              quality:    v('cloud-quality'),
-              sampling:   v('cloud-sampling'),
-              radius:     v('cloud-radius'),
-              historical: 'true',
-              pano_ids:   panoIds.join(','),
-              api_key:    apiKey,
-            }
-          })
-        }
-      );
-      if (res.status === 204) {
-        setStatus(`\u2713 ${panoIds.length} historische Panoramen angefragt \u2014 GitHub Actions startet.`, 'success');
-        appendLog(`HTTP 204 \u2014 ${panoIds.length} historische pano_ids dispatched`, 'log-ok');
-        setTimeout(loadCloudRuns, 3000);
-      } else {
-        const txt = await res.text();
-        setStatus(`HTTP ${res.status}: ${txt.slice(0,100)}`, 'error');
-      }
-    } catch(e) {
-      setStatus(`Fehler: ${e}`, 'error');
-    } finally {
-      btn.disabled = false;
-    }
-
-  } else if (dates.length >= 1) {
-    setStatus(`Kein direkter pano_id-Download moeglich \u2014 Datumsbereich: ${dates[0].slice(0,7)} bis ${dates[dates.length-1].slice(0,7)}`, 'warn');
-    appendLog(`Fallback: Datumsbereich ${dates[0]} \u2013 ${dates[dates.length-1]}`, 'log-info');
+async function dlHistSelected(){
+  const selected=[..._histSelected].map(i=>_histPanoramas[i]).filter(Boolean);
+  if(!selected.length){setStatus('Keine Zeitraeume ausgewaehlt.','warn');return;}
+  const panoIds=selected.map(p=>p.pano_id).filter(p=>p&&!p.startsWith('pos_'));
+  const dates=selected.map(p=>p.date||p.capture_date).filter(Boolean).sort();
+  if(panoIds.length){
+    const pat=v('pat');const apiKeyVal=v('cloud-apikey')||apiKey();const street=v('cloud-street');const city=v('cloud-city');
+    if(!pat||!apiKeyVal){setStatus('PAT und API-Key erforderlich.','error');return;}
+    const btn=document.getElementById('btn-cloud-start'); btn.disabled=true;
+    setStatus(`Starte historischen Download: ${panoIds.length} Panoramen...`,'running');
+    try{
+      const res=await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/actions/workflows/${WORKFLOW}/dispatches`,
+        {method:'POST',headers:{'Authorization':`Bearer ${pat}`,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','Content-Type':'application/json'},
+         body:JSON.stringify({ref:'main',inputs:{street,city,quality:v('cloud-quality'),sampling:v('cloud-sampling'),radius:v('cloud-radius'),historical:'true',pano_ids:panoIds.join(','),api_key:apiKeyVal}})});
+      if(res.status===204){setStatus(`\u2713 ${panoIds.length} historische Panoramen angefragt.`,'success');setTimeout(loadCloudRuns,3000);}
+      else{const txt=await res.text();setStatus(`HTTP ${res.status}: ${txt.slice(0,100)}`,'error');}
+    }catch(e){setStatus(`Fehler: ${e}`,'error');}finally{btn.disabled=false;}
+  } else if(dates.length>=1){
+    setStatus(`Kein direkter pano_id-Download \u2014 Datumsbereich: ${dates[0].slice(0,7)} bis ${dates[dates.length-1].slice(0,7)}`,'warn');
   } else {
-    setStatus('Keine pano_ids verfuegbar \u2014 Discovery lieferte nur Datumsmuster ohne IDs.', 'error');
+    setStatus('Keine pano_ids verfuegbar.','error');
   }
 }
 
