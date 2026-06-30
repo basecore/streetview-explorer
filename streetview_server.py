@@ -54,10 +54,16 @@ def _run_job(job_id: str, params: dict):
     q = _jobs[job_id]["queue"]
 
     street = params.get("street", "").strip()
-    city   = params.get("city", "").strip()
+    city   = params.get("city",   "").strip()
+    pano_ids = params.get("pano_ids", [])
 
-    # Sicherheitspruefung: kein Download ohne gueltigen Strassennamen
-    if not street or street.lower() in ("karte", "map", "unknown", ""):
+    # Koordinaten-Modus: street kann "lat,lng" sein
+    import re
+    coord_mode = bool(re.match(r'^-?\d+\.?\d*,\s*-?\d+\.?\d*$', street))
+
+    # Sicherheitspruefung nur wenn kein Koordinaten-Modus und keine pano_ids
+    INVALID = {"", "karte", "map", "unknown", "unbekannt"}
+    if not pano_ids and not coord_mode and street.lower() in INVALID:
         q.put({"type": "error", "data": (
             f"Ungültiger Strassenname: \"{street}\"\n"
             f"Bitte im Suchfeld einen echten Strassennamen eingeben\n"
@@ -70,21 +76,43 @@ def _run_job(job_id: str, params: dict):
 
     cmd = [
         sys.executable, str(HEADLESS),
-        "--street",   street,
-        "--city",     city,
-        "--quality",  params.get("quality", "medium"),
-        "--sampling", str(params.get("sampling", 10)),
-        "--radius",   str(params.get("radius", 8)),
-        "--historical", str(params.get("historical", "false")),
-        "--output",   params.get("output", str(BASE / "downloads")),
+        "--street",     street,
+        "--city",       city,
+        "--quality",    params.get("quality",    "medium"),
+        "--sampling",   str(params.get("sampling",  10)),
+        "--radius",     str(params.get("radius",    8)),
+        "--historical", str(params.get("historical","false")),
+        "--output",     params.get("output", str(BASE / "downloads")),
+        # FOV & Framing
+        "--heading",    str(params.get("heading",   0)),
+        "--pitch",      str(params.get("pitch",     0)),
+        "--fov",        str(params.get("fov",       90)),
+        "--zoom",       str(params.get("zoom",      2)),
+        # Output
+        "--output-format", params.get("output_format", "jpg"),
+        "--jpg-quality",   str(params.get("jpg_quality", 85)),
     ]
 
-    # Optionale pano_ids: als JSON-Datei uebergeben damit kein erneutes Geocoding noetig
-    pano_ids = params.get("pano_ids", [])
+    # Optionale Parameter nur hinzufuegen wenn nicht leer
+    for flag, key in [
+        ("--date-from",       "date_from"),
+        ("--date-to",         "date_to"),
+        ("--source",          "source"),
+        ("--outdoor",         "outdoor"),
+    ]:
+        val = str(params.get(key, "")).strip()
+        if val:
+            cmd += [flag, val]
+
+    max_age = params.get("max_age_months", "")
+    if max_age and str(max_age).strip():
+        cmd += ["--max-age-months", str(max_age)]
+
+    # pano_ids als JSON-Datei uebergeben (kein erneutes Geocoding noetig)
     if pano_ids:
-        import tempfile, json as _json
+        import tempfile
         tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False)
-        _json.dump(pano_ids, tmp)
+        json.dump(pano_ids, tmp)
         tmp.close()
         cmd += ["--pano-ids-file", tmp.name]
 
@@ -93,7 +121,6 @@ def _run_job(job_id: str, params: dict):
 
     q.put({"type": "cmd", "data": " ".join(cmd)})
     log.info("Job %s start: %s", job_id, " ".join(cmd))
-
     _jobs[job_id]["status"] = "running"
 
     try:
@@ -129,7 +156,7 @@ def _run_job(job_id: str, params: dict):
 
 @app.route("/api/status")
 def api_status():
-    return jsonify({"status": "ok", "version": "2.1"})
+    return jsonify({"status": "ok", "version": "3.5"})
 
 
 @app.route("/api/query", methods=["POST"])
