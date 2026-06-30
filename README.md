@@ -2,32 +2,36 @@
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://python.org)
-[![Platform](https://img.shields.io/badge/platform-Linux-orange.svg)]()
 [![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-CI%2FCD-2088FF?logo=github-actions&logoColor=white)](.github/workflows/download.yml)
 [![GitHub Pages](https://img.shields.io/badge/Web_App-GitHub_Pages-222?logo=github&logoColor=white)](https://basecore.github.io/streetview-explorer/)
-[![Requires](https://img.shields.io/badge/requires-streetview--dl-teal.svg)](https://github.com/stiles/streetview-dl)
 [![streetview-dl](https://img.shields.io/badge/powered_by-streetview--dl-007acc)](https://github.com/stiles/streetview-dl)
 
-**Eine moderne Linux-Desktop-GUI und Web-App fuer [streetview-dl](https://github.com/stiles/streetview-dl)** —
-Panoramen entdecken, erkunden und batch-downloaden mit interaktiver OpenStreetMap-Karte,
-Strassen-Crawling, Einzelpunkt-Download, pano_id-Deduplizierung und eingebautem Quota-Schutz.
+**Eine moderne Web-App zum Entdecken und Batch-Downloaden von Google Street View Panoramen** —
+powered by [streetview-dl](https://github.com/stiles/streetview-dl), interaktiver OpenStreetMap-Karte,
+GPS-Ortung, Strassen-Crawling, GitHub Actions Cloud-Modus und eingebautem Quota-Schutz.
 
-> **v2.0** — Zwei Nutzungsmodi: **Desktop-GUI** (Linux, selbst-installierend) und **Web-App** (GitHub Pages + GitHub Actions, kein lokales Python noetig).
+> **v3.5** — Zwei Nutzungsmodi: **Cloud-Modus** (GitHub Pages + GitHub Actions, kein lokales Python noetig)
+> und **Local-Modus** (lokaler Python-Server fuer echte pano_id-Discovery direkt ueber die Google API).
 
 ---
 
-## 🌐 Web-App (kein Python noetig)
+## 🌐 Web-App starten
 
 **[➜ Web-App oeffnen](https://basecore.github.io/streetview-explorer/)**
 
-Die HTML5-App laeuft direkt im Browser und startet einen **GitHub Actions Job** — ohne lokale Installation:
+Die HTML5-App laeuft direkt im Browser — keine Installation, kein Python lokal noetig.
+
+### Schnellstart (Cloud-Modus)
 
 1. Web-App oeffnen
-2. PAT-Token + Google API-Key eingeben
-3. Strasse, Stadt, Qualitaet waehlen
-4. **„Panoramas herunterladen"** klicken
-5. Job laeuft auf GitHub Actions (~5–30 Min)
-6. Fertige Panoramas als **ZIP-Artifact** herunterladen
+2. Im **Keys-Tab**: Google API-Key + GitHub PAT eingeben → **„Keys speichern"** (AES-256-GCM verschluesselt)
+3. Im **Karten-Tab**: Modus auf **„Cloud"** stellen
+4. Standort per GPS ermitteln, Punkt per Klick setzen oder Strasse im Suchfeld eingeben
+5. **„Panoramen suchen"** druecken → gefundene Panoramen erscheinen in der Tabelle
+6. Gewuenschte Panoramen auswaehlen → **„▶ Request"**
+7. Im **Jobs-Tab** den Fortschritt live verfolgen
+8. Fertige Panoramas als **ZIP-Artifact herunterladen**
+
 
 ```
 Browser (Web-App)
@@ -39,185 +43,225 @@ Browser (Web-App)
 
 ---
 
-## 🔑 PAT-Token erstellen (GitHub Personal Access Token)
-
-Der PAT-Token wird benoetigt, damit die Web-App den GitHub Actions Workflow starten kann.
-Er wird **nur im RAM des Browsers** gehalten — nie gespeichert, nie weitergegeben.
-
-### Schritt-fuer-Schritt
-
-1. **[github.com/settings/tokens?type=beta](https://github.com/settings/tokens?type=beta)** oeffnen
-   *(eingeloggt als `basecore` oder dein eigener Account)*
-
-2. Klicke **„Generate new token" → „Fine-grained token"**
-
-3. Felder ausfullen:
-
-   | Feld | Wert |
-   |---|---|
-   | Token name | `streetview-explorer` |
-   | Expiration | `30 days` (oder laenger) |
-   | Repository access | **Only select repositories** → `streetview-explorer` auswaehlen |
-
-4. Unter **Permissions** nur eine Berechtigung setzen:
-
-   | Permission | Level |
-   |---|---|
-   | **Actions** | **Read and write** |
-
-   > Alle anderen Permissions bleiben auf `No access`. Der Token kann damit
-   > ausschliesslich Actions in diesem einen Repo starten — kein Code-Zugriff,
-   > keine Secrets, keine anderen Repos.
-
-5. Klicke **„Generate token"** → Token erscheint einmalig → **kopieren**
-
-6. Token in die Web-App einfuegen → fertig.
-
-### Token verloren oder abgelaufen?
-
-Einfach einen neuen erstellen (Schritt 1–5 wiederholen). Alte Tokens koennen unter
-[github.com/settings/tokens](https://github.com/settings/tokens) widerrufen werden.
-
----
-
-## 🔑 Google Maps API-Key erstellen
-
-Der Google Maps API-Key wird benoetigt, damit `streetview-dl` die Panorama-Tiles
-von Googles Map Tiles API laden kann. **Kostenlos bis 100.000 Tiles/Monat.**
-
-### Schritt-fuer-Schritt
-
-1. **[console.cloud.google.com](https://console.cloud.google.com)** oeffnen
-   (Google-Account benoetigt)
-
-2. **Neues Projekt erstellen** (oder bestehendes auswaehlen):
-   - Oben links: Projekt-Dropdown → **„Neues Projekt"**
-   - Name z.B. `streetview-explorer` → **Erstellen**
-
-3. **Map Tiles API aktivieren:**
-   - Linkes Menue → **„APIs & Dienste"** → **„Bibliothek"**
-   - Suche nach `Map Tiles API`
-   - Klicke auf **„Map Tiles API"** → **„Aktivieren"**
-
-4. **API-Schluessel erstellen:**
-   - Linkes Menue → **„APIs & Dienste"** → **„Anmeldedaten"**
-   - Klicke **„+ Anmeldedaten erstellen"** → **„API-Schluessel"**
-   - Schluessel wird angezeigt → **kopieren**
-
-5. **Abrechnung aktivieren** *(Pflicht, auch fuer kostenlosen Tier):*
-   - Linkes Menue → **„Abrechnung"**
-   - Rechnungskonto erstellen oder verknuepfen (Kreditkarte)
-   - **Keine Kosten bis 100.000 Tiles/Monat** (Stand 2024)
-
-6. **Optional: Key einschraenken** (empfohlen):
-   - Anmeldedaten → Key anklicken → **„API-Einschraenkungen"**
-   - Waehle **„Map Tiles API"** → Speichern
-
-7. Key in die Desktop-GUI (API-Key Tab) oder Web-App eingeben → **„Key testen"**
-
-### Kosten & Limits
-
-| Qualitaet | Tiles / Panorama | Kostenloses Monatslimit |
-|---|---|---|
-| low | 32 | ~3.125 Panoramen/Monat |
-| medium | 128 | ~781 Panoramen/Monat |
-| high | 512 | ~195 Panoramen/Monat |
-
-> Der eingebaute **Quota-Schutz** stoppt automatisch bei 80 % des Limits.
-
----
-
-## 🖥 Desktop-GUI (Linux)
-
-### Schnellstart
+### Schnellstart (Local-Modus)
 
 ```bash
-# 1. Einmalig: python3-tk sicherstellen
-sudo apt install python3 python3-pip python3-tk   # Ubuntu/Debian
-# sudo dnf install python3 python3-tkinter         # Fedora
-# sudo pacman -S python tk                         # Arch
+# Python-Server starten (einmalig)
+python3 streetview_server.py
 
-# 2. Repo klonen
-git clone https://github.com/basecore/streetview-explorer.git
-cd streetview-explorer
-
-# 3. Starten – alle Python-Pakete werden automatisch installiert
-python3 streetview_explorer.py
+# Web-App oeffnen → Modus "Local" → echte pano_ids per Google API abfragen
 ```
-
-Beim ersten Start prueft das Skript alle Abhaengigkeiten und installiert
-`requests`, `Pillow` und `streetview-dl` automatisch per `pip`.
-
-### Optional: Karte direkt in der App
-
-```bash
-pip install tkinterweb
-```
-
-Ohne tkinterweb: Koordinaten manuell eingeben, Karte im Browser oeffnen.
 
 ---
 
 ## ✨ Features
 
-| Feature | Desktop-GUI | Web-App |
-|---|---|---|
-| Strasse per Name (Nominatim + Sampling) | ✓ | ✓ |
-| Interaktive OpenStreetMap-Karte | ✓ (tkinterweb) | — |
-| Route / Polyline zeichnen | ✓ (tkinterweb) | — |
-| Einzelpunkt per Koordinate | ✓ | — |
-| pano_id-Deduplizierung | ✓ | ✓ |
-| Quota-Schutz (lokaler Zaehler) | ✓ | ✓ |
-| Historische Aufnahmen | ✓ | ✓ |
-| Alle streetview-dl Bildoptionen | ✓ | — |
-| API-Key Test (Live) | ✓ | — |
-| Debug-Log Tab + Log-Datei | ✓ | GitHub Actions Log |
-| Auto-Install aller Abhaengigkeiten | ✓ | ✓ (Actions) |
-| Kein lokales Python noetig | — | ✓ |
-| Artifact-Download (ZIP) | — | ✓ |
-
----
-
-## 🗂 Tabs (Desktop-GUI)
-
-| Tab | Zweck |
+### Karte & Navigation
+| Feature | Beschreibung |
 |---|---|
-| **Karte** | OpenStreetMap — Punkt klicken oder Route zeichnen |
-| **Strasse** | Strassenname + Stadt → vollstaendige Abdeckung |
-| **Optionen** | Alle streetview-dl Bildoptionen (Qualitaet, FOV, Filter, Crop …) |
-| **Quota** | Monatlicher Tile-Zaehler, Stopp-Schwelle, manueller Override |
-| **API-Key** | Key eingeben, anzeigen/verstecken, testen, Schritt-fuer-Schritt |
-| **Log** | Echtzeit-Ausgabe aller Schritte inkl. CMD-Strings und Fehler |
+| Interaktive OpenStreetMap-Karte | Leaflet, OSM-Tiles, Live-Koordinaten-Anzeige |
+| GPS-Ortung | Standort per Browser-Geolocation, Adresse per Nominatim Reverse-Geocode |
+| Punkt-Modus | Einzelnen Punkt per Klick auf Karte setzen |
+| Linien-Modus | Polyline zeichnen (Doppeltippen zum Abschliessen) |
+| Strassen-Suche | Strassenname + Stadt → Geometrie von OpenStreetMap via Nominatim |
+| Sampling | Punkte entlang der Linie alle N Meter (einstellbar, Standard 10 m) |
+| Karte leeren | Alle Marker, Linien und Panoramen auf einmal zuruecksetzen |
+
+### Panorama-Discovery
+| Feature | Beschreibung |
+|---|---|
+| Echte pano_ids | Mit lokalem Python-Server: tatsaechliche Google StreetView pano_ids |
+| Browser-Fallback | Ohne Server: Koordinaten-basierte Positionen (pos_...) |
+| Deduplizierung | Jede pano_id erscheint nur einmal, egal wie viele Sample-Punkte sie treffen |
+| Ergebnis-Tabelle | Alle Panoramen mit pano_id, Datum, Lat/Lng, Maps-Link und Karte-Pin-Button |
+| Status-Badges | `✓ angefragt` (bereits dispatched) und `fallback` (Browser-Fallback) |
+| CSV-Export | Alle ausgewaehlten Panoramen als CSV-Datei exportieren |
+| Auswahl-Steuerung | Alle auswaehlen, keine auswaehlen, invertieren, Einzel-Toggle |
+
+### Download-Modi
+| Feature | Beschreibung |
+|---|---|
+| **Local-Modus** | `streetview_headless.py` lokal ausfuehren, direkt auf eigene Festplatte |
+| **Cloud-Modus** | GitHub Actions Job dispatchen, Panoramas als ZIP-Artifact herunterladen |
+| Dispatch-Modi | pano_ids direkt · Koordinaten (lat/lng) · Strassenname/Stadt |
+| Duplikat-Schutz | Bereits angefragte pano_ids werden erkannt, Benutzer wird vor erneutem Dispatch gefragt |
+| Tile-Warnung | Automatische Warnung + Bestaetigung bei geschaetztem Verbrauch > 10.000 Tiles |
+| Tile-Schaetzung | Vor jedem Dispatch: Anzahl Tiles + geschaetzte Kosten werden im Debug-Log angezeigt |
+
+### Jobs & Artifacts
+| Feature | Beschreibung |
+|---|---|
+| Auto-Refresh | Jobs-Tab aktualisiert sich automatisch alle 8 Sekunden solange Jobs laufen |
+| Sofort-Platzhalter | Neuer Job erscheint unmittelbar nach Dispatch ohne auf Refresh warten zu muessen |
+| Job abbrechen | Laufende GitHub Actions Jobs direkt aus der App heraus abbrechen |
+| Artifact-Links | Name, Groesse (MB) und Ablaufdatum pro Artifact |
+| Artifact-Download | Direkter ZIP-Download per PAT-Token ohne Browser-Umweg |
+| GitHub Actions Summary | Jeder Run erzeugt eine Parametertabelle direkt in der GitHub Actions UI |
+| Modus-Sync | Karten-Tab Cloud/Local schaltet Jobs-Tab automatisch mit um |
+
+### Einstellungen (vollstaendige streetview-dl Parameter)
+| Kategorie | Parameter |
+|---|---|
+| **Basis** | Qualitaet (low/medium/high), Sampling-Abstand (m), Suchradius (m), Max. Ergebnisse pro Punkt, Ausgabeordner, Pause zwischen Anfragen (s) |
+| **Historisch** | Historische Suche an/aus, Datum von (YYYY-MM), Datum bis (YYYY-MM), Max. Alter in Monaten |
+| **Field of View** | Heading 0–360°, Pitch −90–90°, FOV 10–120°, Zoom-Level 0–5 |
+| **Bildgroesse** | Breite (px), Hoehe (px) |
+| **Filter** | Nur Outdoor, Quelle (Google/User/alle), Min. Qualitaetswert (0–1), Max. Distanz vom Punkt (m) |
+| **Cropping** | Crop links/rechts/oben/unten (px) |
+| **Output** | Format (JPG/PNG/WebP), JPEG-Qualitaet (%) |
+| **GitHub Actions** | Owner, Repository, Branch, Workflow-Datei |
+
+### Quota-Tracking
+| Feature | Beschreibung |
+|---|---|
+| Lokaler Zaehler | Tile-Verbrauch wird pro Monat im Browser-localStorage getrackt |
+| GitHub-Sync | Quota aus abgeschlossenen GitHub Actions Runs des aktuellen Monats neu berechnen |
+| Stopp-Schwelle | Konfigurierbarer Stopp-Prozentsatz (Standard 80 %) |
+| Tile-Referenz | low = 32 · medium = 128 · high = 512 Tiles pro Panorama |
+| Historisch-Faktor | Historische Aufnahmen verbrauchen ca. 2,5× mehr Tiles |
+
+### API-Keys & Sicherheit
+| Feature | Beschreibung |
+|---|---|
+| AES-256-GCM Verschluesselung | Keys werden geraetegebunden verschluesselt im localStorage gespeichert |
+| Geraete-Fingerprint | PBKDF2 (100.000 Iterationen) + UserAgent + Sprache als Schluessel — kein Server noetig |
+| Auto-Laden | Gespeicherte Keys werden beim App-Start automatisch entschluesselt geladen |
+| Key-Test | Google API-Key und GitHub PAT live testen mit Statusanzeige |
+| Anzeigen/Verstecken | Passwort-Toggle fuer beide Keys |
 
 ---
 
-## 📋 Workflow (Desktop-GUI)
+## 📊 Tile-Verbrauch & Kosten
 
-### Einzelner Panorama-Punkt
-1. **Karte**-Tab → Koordinaten eingeben (oder tkinterweb: Karte klicken)
-2. **Einzelpunkt herunterladen** druecken
-3. Naechstes Panorama wird gefunden → direkt downloaden
+| Qualitaet | Tiles/Panorama | Kostenloses Limit/Monat | Panoramen im Freikontigent |
+|---|---|---|---|
+| low | 32 | 100.000 | ~3.125 |
+| medium | 128 | 100.000 | ~781 |
+| high | 512 | 100.000 | ~195 |
 
-### Route / Polyline
-1. **Karte**-Tab → Route zeichnen → **Route fertig**
-2. **Route-Panoramen entdecken** druecken
-3. Alle eindeutigen pano_ids erscheinen in der Tabelle
-4. **Alle gefundenen herunterladen**
-
-### Ganze Strasse per Name
-1. **Strasse**-Tab → Strassenname + Stadt eingeben
-2. Sampling-Abstand waehlen (5 m = vollstaendig, 15 m = schneller)
-3. **Strasse analysieren** → Geometrie von OSM, Panoramen entdecken
-4. **Download starten**
+> Historische Aufnahmen (`historical: true`) erhoehen den Verbrauch um Faktor ~2,5.
+> Die App warnt automatisch und fragt nach Bestaetigung wenn ein Request voraussichtlich > 10.000 Tiles verbraucht.
 
 ---
 
-## ⚙ Alle streetview-dl Optionen in der GUI
+## 🔑 Google Maps API-Key erstellen
 
-`--quality` · `--fov` · `--clip` · `--filter` · `--brightness` · `--contrast` ·
-`--saturation` · `--crop-bottom` · `--no-crop` · `--format` · `--jpeg-quality` ·
-`--max-width` · `--metadata` · `--metadata-only` · `--historical-download` ·
-`--no-xmp` · `--concurrency` · `--timeout` · `--retries` · `--verbose`
+1. **[console.cloud.google.com](https://console.cloud.google.com)** oeffnen (Google-Account benoetigt)
+2. Neues Projekt erstellen (z.B. `streetview-explorer`)
+3. **APIs & Dienste → Bibliothek → Map Tiles API → Aktivieren**
+4. **APIs & Dienste → Anmeldedaten → + API-Schluessel erstellen** → kopieren
+5. **Abrechnung aktivieren** (Pflicht, auch fuer kostenlosen Tier — Kreditkarte erforderlich)
+6. Optional empfohlen: Key auf `Map Tiles API` einschraenken
+7. Key in Web-App → Keys-Tab eingeben → **„Keys speichern"**
+
+---
+
+## 🔑 GitHub PAT erstellen (fuer Cloud-Modus)
+
+1. **[github.com/settings/tokens?type=beta](https://github.com/settings/tokens?type=beta)** oeffnen
+2. **„Generate new token" → „Fine-grained token"**
+3. Repository-Zugriff: nur `streetview-explorer` auswaehlen
+4. Permissions: ausschliesslich **Actions → Read and write** setzen
+5. Token generieren → kopieren → in Web-App → Keys-Tab eingeben → **„Keys speichern"**
+
+> Alle anderen Permissions bleiben auf `No access`. Der Token kann damit ausschliesslich
+> Actions in diesem einen Repo starten — kein Code-Zugriff, keine Secrets, keine anderen Repos.
+
+### Token verloren oder abgelaufen?
+
+Neuen Token erstellen (Schritte 1–5 wiederholen). Alte Tokens unter
+[github.com/settings/tokens](https://github.com/settings/tokens) widerrufen.
+
+---
+
+## 🐍 Local-Modus: Python-Server
+
+Der lokale Server laeuft auf `http://localhost:5000` und ermoeglichst echte pano_id-Discovery
+direkt ueber die Google Street View API — ohne GitHub Actions, direkt auf die eigene Festplatte.
+
+### Installation & Start
+
+```bash
+# Einmalig: Abhaengigkeiten installieren
+pip install flask flask-cors requests streetview-dl
+
+# Server starten
+python3 streetview_server.py
+```
+
+> `flask` und `flask-cors` werden beim ersten Start automatisch per pip installiert falls sie fehlen.
+
+### Stoppen
+
+```bash
+# Im Terminal wo der Server laeuft:
+Ctrl + C
+
+# Falls im Hintergrund gestartet — per Prozess-Name:
+pkill -f streetview_server.py
+
+# Oder per Port:
+lsof -ti:5000 | xargs kill -9
+```
+
+### Port aendern
+
+```bash
+SVEX_PORT=8080 python3 streetview_server.py
+```
+
+### Deinstallieren
+
+```bash
+# Nur Python-Pakete entfernen:
+pip uninstall flask flask-cors -y
+
+# Repo komplett loeschen:
+rm -rf streetview-explorer/
+```
+
+> Der Server bindet **ausschliesslich auf `127.0.0.1`** (localhost) — er ist nicht aus dem
+> Netzwerk erreichbar. Kein Daemon, kein Autostart, kein Systemdienst.
+
+### API-Endpunkte
+
+| Endpunkt | Methode | Beschreibung |
+|---|---|---|
+| `/api/status` | GET | Serverversion und Health-Check |
+| `/api/query` | POST | Einzelpunkt-Abfrage: lat/lng → pano_ids |
+| `/api/start` | POST | Download-Job starten → job_id |
+| `/api/log/<job_id>` | GET | SSE-Stream: Live-Log des Jobs im Browser |
+| `/api/stop/<job_id>` | POST | Laufenden Job abbrechen |
+| `/api/jobs` | GET | Alle Jobs der aktuellen Session auflisten |
+
+---
+
+## ⚙️ GitHub Actions Workflow-Inputs
+
+Alle Parameter sind direkt aus der Web-App (Einstellungen-Tab) steuerbar:
+
+| Input | Beschreibung | Standard |
+|---|---|---|
+| `street` | Strassenname ODER `lat,lng` Koordinaten | — |
+| `city` | Stadt (leer lassen bei Koordinaten-Modus) | — |
+| `lat` / `lng` | Direkte Koordinaten als Alternative zu street/city | — |
+| `pano_ids` | Kommagetrennte pano_ids (ueberspringt Discovery komplett) | — |
+| `quality` | low / medium / high | medium |
+| `sampling` | Sampling-Abstand in Metern | 10 |
+| `radius` | Suchradius pro Punkt in Metern | 8 |
+| `historical` | Historische Aufnahmen an/aus | false |
+| `date_from` | Historisch: Datum von (YYYY-MM) | — |
+| `date_to` | Historisch: Datum bis (YYYY-MM) | — |
+| `max_age_months` | Max. Alter der Aufnahmen in Monaten | — |
+| `heading` | Blickrichtung 0–360° | 0 |
+| `pitch` | Neigung −90–90° | 0 |
+| `fov` | Field of View 10–120° | 90 |
+| `zoom` | Zoom-Level 0–5 | 2 |
+| `source` | Quelle filtern: google / user / leer = alle | — |
+| `outdoor` | Nur Outdoor: true / false / leer = alle | — |
+| `output_format` | Ausgabeformat: jpg / png / webp | jpg |
+| `jpg_quality` | JPEG-Qualitaet 10–100 % | 85 |
+| `api_key` | Google Maps API Key (wird nicht gespeichert) | — |
 
 ---
 
@@ -246,28 +290,32 @@ streetview-explorer/
 
 | Problem | Loesung |
 |---|---|
-| `ModuleNotFoundError: tkinter` | `sudo apt install python3-tk` |
-| `streetview-dl: command not found` | Skript neu starten (installiert automatisch) |
-| `keyInvalid` beim API-Test | Key pruefen, Map Tiles API aktivieren |
-| `accessNotConfigured` | Billing in Google Cloud aktivieren |
-| Karte nicht sichtbar | `pip install tkinterweb` oder Koordinaten manuell eingeben |
-| Quota-Stopp zu frueh | Im Quota-Tab: Stop-% erhoehen oder echten Stand eintragen |
-| Web-App HTTP 401 | PAT-Token ungueltig oder abgelaufen → neuen erstellen |
-| Web-App HTTP 404 | Workflow-Datei fehlt oder falscher Token-Scope (Actions: R&W benoetigt) |
-| Web-App HTTP 422 | Branch `main` existiert nicht oder Inputs ungueltig |
-| Actions Job schlaegt fehl | Actions-Log ansehen → Link in Web-App unter „Letzte Jobs" |
-
----
-
-## 📄 Lizenz
-
-MIT — siehe [LICENSE](LICENSE).
+| `keyInvalid` beim API-Test | Key pruefen, Map Tiles API in Google Cloud aktivieren |
+| `accessNotConfigured` | Billing in Google Cloud aktivieren (Kreditkarte) |
+| Web-App HTTP 401 | PAT ungueltig oder abgelaufen → neuen erstellen |
+| Web-App HTTP 404 | Workflow-Datei fehlt oder falscher Token-Scope (Actions R+W benoetigt) |
+| Web-App HTTP 422 | Unbekannte Workflow-Inputs → `download.yml` auf aktuelle Version aktualisieren |
+| Nur `pos_...` pano_ids | `streetview_server.py` lokal starten fuer echte pano_id-Discovery |
+| `street="unbekannt"` | Im Karten-Tab erst Strasse suchen oder GPS nutzen, dann Request starten |
+| Artifact fehlt nach Erfolg | API-Key pruefen, pano_id manuell in Google Maps validieren |
+| Keys nach Reload weg | Im Keys-Tab: **„Keys speichern"** druecken (werden AES-256-GCM verschluesselt) |
+| Quota-Wert ungenau | Im Quota-Tab: **„☁ GitHub sync"** druecken fuer Berechnung aus echten Job-Daten |
+| Doppelter Dispatch | App erkennt bereits angefragte pano_ids automatisch und fragt vor erneutem Request |
+| Server nicht erreichbar | `python3 streetview_server.py` starten, Port 5000 pruefen (`lsof -i:5000`) |
+| Server laesst sich nicht stoppen | `pkill -f streetview_server.py` oder `lsof -ti:5000 \| xargs kill -9` |
 
 ---
 
 ## 🔗 Verwandte Projekte
 
 - [stiles/streetview-dl](https://github.com/stiles/streetview-dl) — der zugrundeliegende Downloader
-- [OpenStreetMap / Nominatim](https://nominatim.org) — Geocoding
-- [Leaflet](https://leafletjs.com) — interaktive Karte
+- [OpenStreetMap / Nominatim](https://nominatim.org) — Geocoding & Reverse-Geocoding
+- [Leaflet](https://leafletjs.com) — interaktive Karte in der Web-App
+- [GitHub Actions](https://docs.github.com/en/actions) — Cloud-Runner fuer den Download
+
+---
+
+## 📄 Lizenz
+
+MIT — siehe [LICENSE](LICENSE).
 - [tkinterweb](https://github.com/Andereoo/TkinterWeb) — Webkit in Tkinter
