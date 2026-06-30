@@ -309,9 +309,9 @@ python3 streetview_server.py</pre>
       <div><label>Radius (m)</label><input type="number" id="cloud-radius" value="8" min="1" max="100"/></div>
       <div>
         <label>Historisch</label>
-        <select id="cloud-historical">
+        <select id="cloud-historical" onchange="onHistoricalChange()">
           <option value="false" selected>Nein</option>
-          <option value="true">Ja</option>
+          <option value="true">Ja &mdash; Discovery Panel einblenden</option>
         </select>
       </div>
     </div>
@@ -321,6 +321,59 @@ python3 streetview_server.py</pre>
       <button class="btn btn-secondary" onclick="loadCloudRuns()">&#8635; Letzte Jobs</button>
     </div>
   </div>
+
+  <!-- ═══ HISTORICAL DISCOVERY PANEL ══════════════════════════════════════ -->
+  <div id="hist-panel" style="display:none;margin-bottom:18px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px">
+    <h2 style="font-size:1.05rem;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px">
+      <span>&#128336;</span> Historische Aufnahmen entdecken
+    </h2>
+    <p style="font-size:.82rem;color:var(--muted);line-height:1.6;margin-bottom:14px">
+      Entdeckt verfuegbare historische Zeitraeume fuer den angegebenen Standort via lokalem Server.
+      Typisch: 3&ndash;6 Zeitraeume &middot; Tiefe 10 findet mehr, braucht aber laenger und mehr API-Calls.
+    </p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px">
+      <div>
+        <label>Suchtiefe</label>
+        <select id="hist-depth" style="width:auto;padding:8px 12px">
+          <option value="5">5 &mdash; Schnell (~15 API-Calls)</option>
+          <option value="7" selected>7 &mdash; Standard (~30 API-Calls)</option>
+          <option value="10">10 &mdash; Gruendlich (~60 API-Calls)</option>
+        </select>
+      </div>
+      <div>
+        <label>Max. Panoramen pruefen</label>
+        <select id="hist-maxpano" style="width:auto;padding:8px 12px">
+          <option value="100">100 &mdash; Schnell</option>
+          <option value="200" selected>200 &mdash; Standard</option>
+          <option value="500">500 &mdash; Langsam</option>
+        </select>
+      </div>
+      <button id="hist-discover-btn" class="btn btn-secondary" onclick="discoverHistorical()" style="margin-bottom:0">
+        &#128269; Zeitraeume entdecken
+      </button>
+    </div>
+
+    <!-- Ergebnis -->
+    <div id="hist-results" style="display:none">
+      <div style="font-size:.82rem;font-weight:600;color:var(--text);margin-bottom:8px">
+        Gefundene Zeitraeume &mdash; auswaehlen welche heruntergeladen werden sollen:
+      </div>
+      <div id="hist-date-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;min-height:36px"></div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding-top:12px;border-top:1px solid var(--border)">
+        <button onclick="histSelectAll(true)"  class="btn btn-secondary" style="padding:6px 14px;font-size:.82rem">&#10003; Alle</button>
+        <button onclick="histSelectAll(false)" class="btn btn-secondary" style="padding:6px 14px;font-size:.82rem">&#10007; Keine</button>
+        <span id="hist-sel-count" style="font-size:.8rem;color:var(--muted)"></span>
+        <div style="margin-left:auto">
+          <button onclick="dlHistSelected()" class="btn btn-primary" style="padding:8px 20px;font-size:.88rem">
+            &#8659; Ausgewaehlte herunterladen
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="hist-status" style="font-size:.82rem;color:var(--muted);margin-top:10px;min-height:20px"></div>
+  </div>
+  <!-- ═══ ENDE HISTORICAL DISCOVERY PANEL ═════════════════════════════════ -->
 
   <div id="runs-section" class="card">
     <h2>&#128203; GitHub Actions Jobs</h2>
@@ -352,6 +405,7 @@ function setMode(m) {
   document.getElementById('btn-mode-cloud').className = 'mode-btn' + (m==='cloud' ? ' active-cloud' : '');
   clearLog();
   if (m==='local') checkServer();
+  onHistoricalChange();
 }
 
 // ── HELPERS ─────────────────────────────────────────────────────────────────
@@ -523,6 +577,7 @@ async function cloudStart(){
   if (!street){ setStatus('Bitte Strassenname eingeben.','error'); return; }
   if (!city)  { setStatus('Bitte Stadt eingeben.','error'); return; }
 
+  onHistoricalChange();
   const btn = document.getElementById('btn-cloud-start');
   btn.disabled = true;
   clearLog();
@@ -631,6 +686,203 @@ setInterval(()=>{
   if (currentMode==='cloud' && v('pat') &&
       document.getElementById('runs-section').style.display!=='none') loadCloudRuns();
 }, 15000);
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HISTORICAL DISCOVERY
+// ═══════════════════════════════════════════════════════════════════════════
+
+let _histPanoramas = [];
+let _histSelected  = new Set();
+
+function onHistoricalChange() {
+  const isHist = (document.getElementById('cloud-historical')?.value || 'false') === 'true';
+  const panel  = document.getElementById('hist-panel');
+  if (panel) panel.style.display = (currentMode === 'cloud' && isHist) ? 'block' : 'none';
+  if (!isHist) {
+    document.getElementById('hist-results').style.display = 'none';
+    document.getElementById('hist-status').textContent    = '';
+  }
+}
+
+async function discoverHistorical() {
+  const btn      = document.getElementById('hist-discover-btn');
+  const statusEl = document.getElementById('hist-status');
+  const resultsEl= document.getElementById('hist-results');
+  const listEl   = document.getElementById('hist-date-list');
+
+  const apiKey = v('cloud-apikey');
+  const street = v('cloud-street');
+  const city   = v('cloud-city');
+
+  if (!apiKey) { statusEl.textContent = '\u26a0 Google API-Key eingeben (Feld oben).'; return; }
+  if (!street) { statusEl.textContent = '\u26a0 Strassenname eingeben.'; return; }
+  if (!serverOnline) {
+    statusEl.innerHTML = '\u26a0 Lokaler Server nicht erreichbar &mdash; <code>python streetview_server.py</code> starten.';
+    return;
+  }
+
+  const depth   = document.getElementById('hist-depth').value;
+  const maxPano = document.getElementById('hist-maxpano').value;
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Entdecke...';
+  statusEl.textContent = `Suche historische Aufnahmen fuer "${street}, ${city}" \u2026`;
+  resultsEl.style.display = 'none';
+  listEl.innerHTML = '';
+  _histPanoramas = [];
+  _histSelected.clear();
+
+  appendLog(`Historical Discovery: "${street}, ${city}" depth=${depth} maxPanos=${maxPano}`, 'log-cmd');
+
+  try {
+    const res = await fetch(`${LOCAL}/api/discover`, {
+      method:  'POST',
+      headers: {'Content-Type': 'application/json'},
+      body:    JSON.stringify({
+        street, city,
+        lat: null, lng: null,
+        api_key:                  apiKey,
+        historical_max_depth:     parseInt(depth),
+        historical_max_panoramas: parseInt(maxPano),
+      })
+    });
+
+    if (!res.ok) throw new Error(`Server HTTP ${res.status}`);
+    const data = await res.json();
+    appendLog(`Discovery: ok=${data.ok} Zeitraeume=${data.panoramas?.length || 0}`, 'log-info');
+
+    if (data.ok && data.panoramas?.length) {
+      _histPanoramas = data.panoramas;
+      _histPanoramas.forEach((_, i) => _histSelected.add(i));
+
+      listEl.innerHTML = _histPanoramas.map((p, i) => {
+        const date   = p.date || p.capture_date || '?';
+        const panoId = p.pano_id || '';
+        const isFirst= i === 0;
+        return `<label id="hist-chip-${i}" style="display:inline-flex;align-items:center;gap:6px;
+            padding:6px 13px;background:var(--surface2);cursor:pointer;user-select:none;
+            border:2px solid ${isFirst ? 'var(--primary)' : 'var(--border)'};
+            border-radius:99px;font-size:.82rem;transition:border-color .15s">
+          <input type="checkbox" checked data-idx="${i}" onchange="histToggle(${i},this.checked)"
+                 style="accent-color:var(--primary);cursor:pointer">
+          <span style="font-weight:${isFirst?'700':'400'};color:${isFirst?'var(--primary)':'var(--text)'}">
+            &#128197; ${escHtml(date)}
+          </span>
+          ${panoId ? `<span style="font-size:.7rem;color:var(--muted)" title="${escHtml(panoId)}">${escHtml(panoId.slice(0,12))}\u2026</span>` : ''}
+          ${isFirst ? '<span style="font-size:.67rem;background:var(--primary);color:#fff;border-radius:4px;padding:1px 6px">aktuell</span>' : ''}
+        </label>`;
+      }).join('');
+
+      if (data.note) {
+        listEl.innerHTML += `<div style="width:100%;font-size:.75rem;color:var(--warn);margin-top:6px">&#9432; ${escHtml(data.note)}</div>`;
+      }
+
+      resultsEl.style.display = 'block';
+      updateHistCount();
+      statusEl.textContent = `\u2713 ${_histPanoramas.length} Zeitraeume gefunden.`;
+      appendLog(`${_histPanoramas.length} historische Zeitraeume entdeckt`, 'log-ok');
+
+    } else {
+      statusEl.textContent = `\u2139 ${data.error || 'Keine historischen Aufnahmen an diesem Standort gefunden.'}`;
+      appendLog(`Discovery: keine Ergebnisse \u2014 ${data.error || ''}`, 'log-info');
+    }
+
+  } catch(e) {
+    statusEl.innerHTML = e.message.includes('fetch') || e.message.includes('Failed')
+      ? '\u26a0 Server nicht erreichbar &mdash; <code>python streetview_server.py</code> starten und warten bis gruener Punkt erscheint.'
+      : `Fehler: ${escHtml(e.message)}`;
+    appendLog(`discoverHistorical Fehler: ${e}`, 'log-err');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '&#128269; Zeitraeume entdecken';
+  }
+}
+
+function histToggle(i, checked) {
+  if (checked) _histSelected.add(i); else _histSelected.delete(i);
+  const chip = document.getElementById(`hist-chip-${i}`);
+  if (chip) chip.style.borderColor = checked ? 'var(--primary)' : 'var(--border)';
+  updateHistCount();
+}
+
+function histSelectAll(val) {
+  document.querySelectorAll('#hist-date-list input[type=checkbox]').forEach((cb, i) => {
+    cb.checked = val;
+    histToggle(i, val);
+  });
+}
+
+function updateHistCount() {
+  const el = document.getElementById('hist-sel-count');
+  if (el) el.textContent = `${_histSelected.size} von ${_histPanoramas.length} ausgewaehlt`;
+}
+
+async function dlHistSelected() {
+  const selected = [..._histSelected].map(i => _histPanoramas[i]).filter(Boolean);
+  if (!selected.length) { setStatus('Keine Zeitraeume ausgewaehlt.', 'warn'); return; }
+
+  const panoIds = selected.map(p => p.pano_id).filter(p => p && !p.startsWith('pos_'));
+  const dates   = selected.map(p => p.date || p.capture_date).filter(Boolean).sort();
+
+  appendLog(`Historischer Download: ${selected.length} Zeitraeume, ${panoIds.length} pano_ids`, 'log-cmd');
+
+  if (panoIds.length) {
+    const pat    = v('pat');
+    const apiKey = v('cloud-apikey');
+    const street = v('cloud-street');
+    const city   = v('cloud-city');
+    if (!pat || !apiKey) { setStatus('PAT und API-Key erforderlich.', 'error'); return; }
+
+    const btn = document.getElementById('btn-cloud-start');
+    btn.disabled = true;
+    setStatus(`Starte historischen Download: ${panoIds.length} Panoramen...`, 'running');
+
+    try {
+      const res = await fetch(
+        `https://api.github.com/repos/${OWNER}/${REPO}/actions/workflows/${WORKFLOW}/dispatches`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${pat}`,
+            'Accept': 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2022-11-28',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ref: 'main',
+            inputs: {
+              street, city,
+              quality:    v('cloud-quality'),
+              sampling:   v('cloud-sampling'),
+              radius:     v('cloud-radius'),
+              historical: 'true',
+              pano_ids:   panoIds.join(','),
+              api_key:    apiKey,
+            }
+          })
+        }
+      );
+      if (res.status === 204) {
+        setStatus(`\u2713 ${panoIds.length} historische Panoramen angefragt \u2014 GitHub Actions startet.`, 'success');
+        appendLog(`HTTP 204 \u2014 ${panoIds.length} historische pano_ids dispatched`, 'log-ok');
+        setTimeout(loadCloudRuns, 3000);
+      } else {
+        const txt = await res.text();
+        setStatus(`HTTP ${res.status}: ${txt.slice(0,100)}`, 'error');
+      }
+    } catch(e) {
+      setStatus(`Fehler: ${e}`, 'error');
+    } finally {
+      btn.disabled = false;
+    }
+
+  } else if (dates.length >= 1) {
+    setStatus(`Kein direkter pano_id-Download moeglich \u2014 Datumsbereich: ${dates[0].slice(0,7)} bis ${dates[dates.length-1].slice(0,7)}`, 'warn');
+    appendLog(`Fallback: Datumsbereich ${dates[0]} \u2013 ${dates[dates.length-1]}`, 'log-info');
+  } else {
+    setStatus('Keine pano_ids verfuegbar \u2014 Discovery lieferte nur Datumsmuster ohne IDs.', 'error');
+  }
+}
 
 // Init
 setMode('local');

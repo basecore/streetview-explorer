@@ -273,12 +273,12 @@ def api_discover():
 
         if r.returncode == 0 and r.stdout.strip():
             try:
-                data     = json.loads(r.stdout)
+                data      = json.loads(r.stdout)
                 panoramas = data.get("panoramas", data if isinstance(data, list) else [])
                 return jsonify({"ok": True, "panoramas": panoramas, "maps_url": maps_url})
             except json.JSONDecodeError:
                 # Fallback: Datum-Pattern aus Textausgabe parsen
-                dates = sorted(set(re.findall(r'\d{4}-\d{2}(?:-\d{2})?', r.stdout)), reverse=True)
+                dates     = sorted(set(re.findall(r'\d{4}-\d{2}(?:-\d{2})?', r.stdout)), reverse=True)
                 panoramas = [{"date": d, "pano_id": "", "lat": lat, "lng": lng, "source": "parsed"} for d in dates]
                 if panoramas:
                     return jsonify({"ok": True, "panoramas": panoramas, "maps_url": maps_url,
