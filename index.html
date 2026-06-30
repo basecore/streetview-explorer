@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
-<title>StreetView Explorer v3.7</title>
+<title>StreetView Explorer v3.8</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
@@ -153,7 +153,7 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--pr
 <div class="header">
   <h1>&#127757; StreetView Explorer</h1>
   <div class="header-right">
-    <span class="version-badge">v3.7</span>
+    <span class="version-badge">v3.8</span>
     <a class="gh-link" href="https://github.com/basecore/streetview-explorer" target="_blank">
       <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
       GitHub
@@ -180,8 +180,8 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--pr
 
   <div style="padding:12px 12px 0">
     <div class="mode-switch">
-      <button class="msw-btn act-local" id="msw-local" onclick="setMode('local')">&#128187; Lokal</button>
-      <button class="msw-btn" id="msw-cloud" onclick="setMode('cloud')">&#9729; Cloud</button>
+      <button class="msw-btn" id="msw-local" onclick="setMode('local')">&#128187; Lokal</button>
+      <button class="msw-btn act-cloud" id="msw-cloud" onclick="setMode('cloud')">&#9729; Cloud</button>
     </div>
   </div>
 
@@ -239,8 +239,8 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--pr
         <div class="pano-dl-btns">
           <button class="btn btn-ghost" onclick="togglePanoTable()" id="btn-toggle-table">&#128203; Tabelle ausblenden</button>
           <button class="btn btn-ghost" onclick="exportSelectedCSV()" id="btn-export-csv" style="display:none">&#11123; CSV Export</button>
-          <button class="btn btn-local" id="btn-dl-local" onclick="startDownload('local')">&#9654; Lokal laden</button>
-          <button class="btn btn-cloud" id="btn-dl-cloud" onclick="startDownload('cloud')" style="display:none">&#9654; Request</button>
+          <button class="btn btn-local" id="btn-dl-local" onclick="startDownload('local')" style="display:none">&#9654; Lokal laden</button>
+          <button class="btn btn-cloud" id="btn-dl-cloud" onclick="startDownload('cloud')">&#9654; Request</button>
         </div>
       </div>
 
@@ -582,15 +582,15 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--pr
   </div>
 
   <div class="mode-switch" style="margin-bottom:12px">
-    <button class="msw-btn act-local" id="jobsw-local" onclick="setJobsMode('local')">&#128187; Lokal</button>
-    <button class="msw-btn" id="jobsw-cloud" onclick="setJobsMode('cloud')">&#9729; GitHub Actions</button>
+    <button class="msw-btn" id="jobsw-local" onclick="setJobsMode('local')">&#128187; Lokal</button>
+    <button class="msw-btn act-cloud" id="jobsw-cloud" onclick="setJobsMode('cloud')">&#9729; GitHub Actions</button>
   </div>
-  <div id="jobs-local">
+  <div id="jobs-local" style="display:none">
     <div class="srv-row"><span class="srv-dot" id="srv-dot2"></span><span id="srv-label2">Pr&uuml;fe...</span></div>
     <div id="local-jobs-list"><p style="color:var(--muted)">Noch keine Jobs.</p></div>
     <div class="actions"><button class="btn btn-ghost" onclick="loadLocalJobs()">&#8635; Aktualisieren</button></div>
   </div>
-  <div id="jobs-cloud" style="display:none">
+  <div id="jobs-cloud">
     <div id="cloud-jobs-list"><p style="color:var(--muted)">PAT eingeben.</p></div>
     <div class="actions"><button class="btn btn-ghost" onclick="loadCloudJobs()">&#8635; Laden</button></div>
   </div>
@@ -624,16 +624,16 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--pr
   </div>
 </nav>
 <script>
-const APP_VERSION='v3.7',LOCAL_API='http://localhost:5000';
+const APP_VERSION='v3.8',LOCAL_API='http://localhost:5000';
 const TAB_IDS=['tab-map','tab-config','tab-tokens','tab-quota','tab-jobs','tab-debug'];
-let mode='local',jobsMode='local',mapDrawMode='click';
+let mode='cloud',jobsMode='cloud',mapDrawMode='click';
 let drawnLine=null,linePoints=[],singleMarker=null,gpsMarker=null;
 let foundPanos=[],currentJobId=null,currentES=null,serverOnline=false;
 let gpsLat=null,gpsLng=null,gpsAddr='';
 let hasPoint=false,hasLine=false;
 
 /* ── CRYPTO: API-Keys verschlüsselt speichern ── */
-const CRYPTO_SALT = 'svex-v3.7-salt-x9k2';
+const CRYPTO_SALT = 'svex-v3.8-salt-x9k2';
 
 async function deriveKey(password) {
   const enc = new TextEncoder();
@@ -730,10 +730,11 @@ function showTab(id){
   document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',TAB_IDS[i]===id));
   TAB_IDS.forEach(t=>{const m=document.getElementById('mobt-'+t);if(m)m.classList.toggle('active',t===id);});
   if(id==='tab-jobs'){
-    loadLocalJobs();
     if(jobsMode==='cloud'){
       if(_cloudJobsRefreshTimer)clearTimeout(_cloudJobsRefreshTimer);
       loadCloudJobs();
+    }else{
+      loadLocalJobs();
     }
   }
 }
@@ -745,6 +746,14 @@ function setStatus(msg,type='running'){
 function v(id){return(document.getElementById(id)||{}).value?.trim()||'';}
 function togglePw(id){const e=document.getElementById(id);e.type=e.type==='password'?'text':'password';}
 function escH(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function gmapsPanoUrl(lat,lng,panoId='',heading=0,pitch=0,fov=90){
+  const vp=`${lat},${lng}`;
+  let url=`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${encodeURIComponent(vp)}&heading=${heading||0}&pitch=${pitch||0}&fov=${fov||90}`;
+  if(panoId && !String(panoId).startsWith('pos_')){
+    url+=`&pano=${encodeURIComponent(panoId)}`;
+  }
+  return url;
+}
 
 /* ── MODE ── */
 function setMode(m){
@@ -756,7 +765,7 @@ function setMode(m){
   dbg(`Modus: ${m}`,'info');
   // Jobs-Tab immer synchron halten
   setJobsMode(m==='cloud'?'cloud':'local');
-  checkServer();
+  checkServer(m==='local');
 }
 function setJobsMode(m){
   jobsMode=m;
@@ -764,6 +773,7 @@ function setJobsMode(m){
   document.getElementById('jobs-cloud').style.display=m==='cloud'?'block':'none';
   document.getElementById('jobsw-local').className='msw-btn'+(m==='local'?' act-local':'');
   document.getElementById('jobsw-cloud').className='msw-btn'+(m==='cloud'?' act-cloud':'');
+  checkServer(m==='local');
   if(m==='cloud')loadCloudJobs();else loadLocalJobs();
 }
 
@@ -998,7 +1008,7 @@ function normalizeTileMetadata(d, fallbackLat, fallbackLng, panoId){
  heading:d.heading,
  imageryType:d.imageryType||'',
  links:d.links||[],
- url:`https://www.google.com/maps/@${lat},${lng},3a,75y,0h,90t/data=!3m7!1e1!3m5!1s${id}!`
+ url:gmapsPanoUrl(lat,lng,id,d.heading||0,0,90)
  };
 }
 
@@ -1039,7 +1049,7 @@ function offsetLatLng(lat, lng, northM, eastM){
 
 function makeBrowserFallbackPosition(lat,lng){
  const pano_id=`pos_${lat.toFixed(5)}_${lng.toFixed(5)}`.replace(/[.-]/g,'_');
- return {pano_id,lat,lng,date:'?',url:`https://www.google.com/maps/@${lat},${lng},3a,75y,0h,90t/`,_fallback:true};
+ return {pano_id,lat,lng,date:'?',url:gmapsPanoUrl(lat,lng,'',0,0,90),_fallback:true};
 }
 
 function buildSearchLocations(lat,lng,searchRadius){
@@ -1157,6 +1167,7 @@ async function discoverPanosAlongLine(){
  const isFake=String(pano.pano_id||'').startsWith('pos_');
  const col=isFake?'#c9813a':(serverOnline?'#68a83f':'#4f9aaa');
  const marker=L.circleMarker([pano.lat||p.lat,pano.lng||p.lng],{radius:isFake?6:7,color:col,fillColor:col,fillOpacity:isFake?.55:.8,weight:2})
+ .on('click',()=>togglePanoFromMarker(pano.pano_id))
  .bindPopup(
  `<b style="font-size:.85rem">${escH(pano.pano_id)}</b><br>`+
  `<span style="color:#888;font-size:.75rem">${isFake?'Fallback-Position':'Datum: '+escH(pano.date||'?')}</span><br>`+
@@ -1174,7 +1185,7 @@ async function discoverPanosAlongLine(){
 
  updatePanoBar();updateActionBar();
  if(!serverOnline){
- const realCount=foundPanos.filter(p=>!p.pano_id.startswith('pos_')).length;
+ const realCount=foundPanos.filter(p=>!String(p.pano_id||'').startsWith('pos_')).length;
  if(realCount>0){
  setStatus(`${realCount} echte Panoramen gefunden (Browser-Modus). Cloud-Download möglich.`,'success');
  dbg(`Suche fertig: ${realCount} echte pano_ids via Map Tiles API`,'ok');
@@ -1216,7 +1227,7 @@ function updatePanoBar() {
   if (!foundPanos.length) { bar.style.display = 'none'; return; }
   bar.style.display = 'block';
   const selCount = foundPanos.filter(p => p._selected).length;
-  const fakeCount = foundPanos.filter(p => p.pano_id.startsWith('pos_')).length;
+  const fakeCount = foundPanos.filter(p => String(p.pano_id||'').startsWith('pos_')).length;
 
   document.getElementById('pano-count-label').textContent =
     `${foundPanos.length} Panoramen gefunden` +
@@ -1240,8 +1251,8 @@ function updatePanoBar() {
   document.getElementById('pano-tbody').innerHTML = foundPanos.map((p, i) => {
     const lat = (p.lat || 0).toFixed(5);
     const lng = (p.lng || 0).toFixed(5);
-    const mapsUrl = `https://www.google.com/maps/@${lat},${lng},3a,75y,0h,90t/`;
-    const isFake = p.pano_id.startsWith('pos_');
+    const mapsUrl = gmapsPanoUrl(lat,lng,p.pano_id,p.heading||0,0,90);
+    const isFake = String(p.pano_id||'').startsWith('pos_');
     const isDone = alreadyDone.includes(p.pano_id);
     const rowStyle = isFake ? 'color:var(--muted)' : '';
     const doneTag = isDone
@@ -1265,21 +1276,62 @@ function updatePanoBar() {
   }).join('');
 }
 
+function panoMarkerColor(p, checked){
+  const isFake=String(p.pano_id||'').startsWith('pos_');
+  if(!checked)return '#555350';
+  return isFake?'#c9813a':(serverOnline?'#68a83f':'#4f9aaa');
+}
+
 function togglePano(idx,checked){
-  foundPanos[idx]._selected=checked;
-  // Marker-Farbe aktualisieren
-  if(foundPanos[idx]._marker){
-    const col=checked?(serverOnline?'#68a83f':'#c9813a'):'#555350';
-    foundPanos[idx]._marker.setStyle({color:col,fillColor:col,fillOpacity:checked?.8:.3});
+  const p=foundPanos[idx];
+  if(!p)return;
+
+  p._selected=checked;
+
+  if(p._marker){
+    const col=panoMarkerColor(p,checked);
+    p._marker.setStyle({
+      color:col,
+      fillColor:col,
+      fillOpacity:checked?.8:.3
+    });
   }
+
   updatePanoBar();
 }
+
+function togglePanoFromMarker(panoId){
+  const idx=foundPanos.findIndex(p=>p.pano_id===panoId);
+  if(idx<0)return;
+
+  foundPanos[idx]._selected=!foundPanos[idx]._selected;
+  const checked=foundPanos[idx]._selected;
+
+  if(foundPanos[idx]._marker){
+    const col=panoMarkerColor(foundPanos[idx],checked);
+    foundPanos[idx]._marker.setStyle({
+      color:col,
+      fillColor:col,
+      fillOpacity:checked?.8:.3
+    });
+
+    if(checked){
+      foundPanos[idx]._marker.openPopup();
+    }else{
+      foundPanos[idx]._marker.closePopup();
+    }
+  }
+
+  dbg(`${checked?'Ausgewählt':'Abgewählt'}: ${panoId.substring(0,16)}...`,'info');
+  updatePanoBar();
+}
+
 function toggleSelectAll(checked){
-  foundPanos.forEach((p,i)=>{ p._selected=checked; if(p._marker){const col=checked?(serverOnline?'#68a83f':'#c9813a'):'#555350';p._marker.setStyle({color:col,fillColor:col,fillOpacity:checked?.8:.3});} });
+  foundPanos.forEach((p,i)=>{ p._selected=checked; if(p._marker){const col=panoMarkerColor(p,checked);p._marker.setStyle({color:col,fillColor:col,fillOpacity:checked?.8:.3});} });
   updatePanoBar();
 }
 function invertSelection(){
-  foundPanos.forEach((p,i)=>{ p._selected=!p._selected; if(p._marker){const col=p._selected?(serverOnline?'#68a83f':'#c9813a'):'#555350';p._marker.setStyle({color:col,fillColor:col,fillOpacity:p._selected?.8:.3});} });
+  foundPanos.forEach((p,i)=>{ p._selected=!p._selected; if(p._marker){const col=panoMarkerColor(p,p._selected);p._marker.setStyle({color:col,fillColor:col,fillOpacity:p._selected?.8:.3});} });
   updatePanoBar();
 }
 function flyToMarker(idx){
@@ -1305,7 +1357,7 @@ function exportSelectedCSV(){
   sel.forEach((p,i)=>{
     const lat=(p.lat||0).toFixed(6);
     const lng=(p.lng||0).toFixed(6);
-    const url=`https://www.google.com/maps/@${lat},${lng},3a,75y,0h,90t/data=!3m7!1e1!3m5!1s${p.pano_id}!`;
+    const url=gmapsPanoUrl(lat,lng,p.pano_id,p.heading||0,0,90);
     rows.push(`${i+1},${p.pano_id},${p.date||'?'},${lat},${lng},${url}`);
   });
   const blob=new Blob([rows.join('\n')],{type:'text/csv'});
@@ -1404,8 +1456,8 @@ async function dlCloud(key, sel) {
     ? parts.slice(2).filter(p => !/^\d{5}$/.test(p) && p.length > 3).slice(0, 2).join(', ')
     : parts.slice(1).filter(p => !/^\d{5}$/.test(p) && p.length > 3).slice(0, 2).join(', ');
 
-  const realPanos  = sel.filter(p => !p.pano_id.startsWith('pos_'));
-  const fakePanos  = sel.filter(p =>  p.pano_id.startsWith('pos_'));
+  const realPanos  = sel.filter(p => !String(p.pano_id||'').startsWith('pos_'));
+  const fakePanos  = sel.filter(p =>  String(p.pano_id||'').startsWith('pos_'));
   const alreadyDone = JSON.parse(localStorage.getItem('svex_dispatched_panos') || '[]');
   let toDispatch    = realPanos.filter(p => !alreadyDone.includes(p.pano_id));
   const dupCount    = realPanos.length - toDispatch.length;
@@ -1649,15 +1701,33 @@ function saveQuota(){const qd=quotaData();qd.limit=parseInt(v('quota-limit'))||1
 function resetQuota(){const qd=quotaData();qd.used=0;saveQuotaData(qd);loadQuota();setStatus('Zur\u00fcckgesetzt.','success');}
 
 /* ── SERVER CHECK ── */
-async function checkServer(){
-  try{const r=await fetch(`${LOCAL_API}/api/status`,{signal:AbortSignal.timeout(1500)});serverOnline=r.ok;}
-  catch{serverOnline=false;}
-  const d2=document.getElementById('srv-dot2'),l2=document.getElementById('srv-label2');
+async function checkServer(force=false){
+  const d2=document.getElementById('srv-dot2');
+  const l2=document.getElementById('srv-label2');
+  const ob=document.getElementById('offline-banner');
+
+  // Im Cloud-Modus nicht dauernd localhost pollen;
+  // sonst erzeugt der Browser ERR_CONNECTION_REFUSED in der Konsole.
+  if(!force && mode!=='local' && jobsMode!=='local'){
+    serverOnline=false;
+    if(d2)d2.className='srv-dot offline';
+    if(l2)l2.textContent='Cloud-Modus — lokaler Server nicht benötigt';
+    if(ob)ob.style.display='none';
+    return;
+  }
+
+  try{
+    const r=await fetch(`${LOCAL_API}/api/status`,{signal:AbortSignal.timeout(1500)});
+    serverOnline=r.ok;
+  }catch{
+    serverOnline=false;
+  }
+
   if(d2)d2.className='srv-dot'+(serverOnline?' online':' offline');
-  if(l2)l2.textContent=serverOnline?'Lokaler Server online':'Server offline \u2014 starte streetview_server.py';
-  const ob=document.getElementById('offline-banner');if(ob)ob.style.display=(!serverOnline&&mode==='local')?'block':'none';
+  if(l2)l2.textContent=serverOnline?'Lokaler Server online':'Server offline — starte streetview_server.py';
+  if(ob)ob.style.display=(!serverOnline&&mode==='local')?'block':'none';
 }
-setInterval(checkServer,5000);
+setInterval(()=>{if(mode==='local'||jobsMode==='local')checkServer(true);},5000);
 
 /* ── JOBS ── */
 async function loadLocalJobs(){
@@ -1882,7 +1952,7 @@ dbg('Browser-Modus aktiv (kein lokaler Server n\u00f6tig f\u00fcr Karte/Suche)',
 dbg('F\u00fcr Downloads: python3 streetview_server.py starten','warn');
 loadQuota();
 checkServer();
-setMode('local');
+setMode('cloud');
 loadAllKeys();  // gespeicherte Keys automatisch laden
 </script>
 </body>
