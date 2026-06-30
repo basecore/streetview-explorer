@@ -839,8 +839,8 @@ function startSearch(){
   if(!key){setStatus('Google API-Key im Keys-Tab eingeben.','error');showTab('tab-tokens');return;}
   if(hasPoint&&singleMarker){
     const ll=singleMarker.getLatLng();
-    linePoints=[ll,L.latLng(ll.lat+0.00001,ll.lng+0.00001)];
-    dbg(`Einzelpunkt-Suche: ${ll.lat.toFixed(6)}, ${ll.lng.toFixed(6)}`,'info');
+    linePoints=[ll];
+    dbg(`Einzelpunkt-Suche im Umkreis: ${ll.lat.toFixed(6)}, ${ll.lng.toFixed(6)}`,'info');
   }
   if(!linePoints.length){setStatus('Kein Punkt oder Linie gesetzt.','warn');return;}
   discoverPanosAlongLine();
@@ -969,8 +969,9 @@ async function geocodeStreet(){
 }
 
 /* ── PANORAMA DISCOVERY ── */
-async function queryPanosBrowser(lat, lng, radius, key) {
-  const url = `https://maps.googleapis.com/maps/api/streetview/metadata?location=${lat},${lng}&radius=${radius}&key=${key}&source=outdoor`;
+async function queryPanosBrowser(lat, lng, radius, key, outdoorOnly=true, quiet=false) {
+  const sourceParam = outdoorOnly ? '&source=outdoor' : '';
+  const url = `https://maps.googleapis.com/maps/api/streetview/metadata?location=${lat},${lng}&radius=${radius}&key=${key}${sourceParam}`;
   try {
     const r = await fetch(url);
     const d = await r.json();
@@ -980,14 +981,82 @@ async function queryPanosBrowser(lat, lng, radius, key) {
         lat:     d.location?.lat  || lat,
         lng:     d.location?.lng  || lng,
         date:    d.date           || '?',
-        url:     `https://www.google.com/maps/@${d.location?.lat||lat},${d.location?.lng||lng},3a,75y,0h,90t/`
+        url:     `https://www.google.com/maps/@${d.location?.lat||lat},${d.location?.lng||lng},3a,75y,0h,90t/data=!3m7!1e1!3m5!1s${d.pano_id}!`
       }];
+    }
+    if(!quiet && d.status && d.status !== 'ZERO_RESULTS'){
+      dbg(`Metadata-API status=${d.status}${d.error_message?' — '+d.error_message:''}`, 'warn');
     }
     return [];
   } catch(e) {
     dbg(`Metadata-API Fehler: ${e}`, 'warn');
     return [];
   }
+}
+
+function offsetLatLng(lat, lng, northM, eastM){
+  const dLat = northM / 111320;
+  const dLng = eastM / (111320 * Math.cos(lat * Math.PI / 180));
+  return {lat: lat + dLat, lng: lng + dLng};
+}
+
+async function queryPanosBrowserArea(lat, lng, radius, key, maxResults=5){
+  radius = Math.max(1, parseInt(radius)||8);
+  maxResults = Math.max(1, parseInt(maxResults)||5);
+
+  const found=[];
+  const seen=new Set();
+  const outdoorCfg = v('cfg-outdoor');
+  const allowNonOutdoorFallback = outdoorCfg !== 'true';
+
+  async function addFrom(qLat, qLng, qRadius, label, outdoorOnly=true){
+    if(found.length >= maxResults) return;
+    const res = await queryPanosBrowser(qLat, qLng, qRadius, key, outdoorOnly, true);
+    for(const pano of res){
+      if(!seen.has(pano.pano_id)){
+        seen.add(pano.pano_id);
+        pano.distance_m = haversine(lat, lng, pano.lat, pano.lng);
+        pano.query_label = label;
+        found.push(pano);
+        if(found.length >= maxResults) break;
+      }
+    }
+  }
+
+  // 1) Direkte Suche, aber automatisch breiter als der UI-Default (8m).
+  // GPS liegt oft 50–150m neben der Straße; deshalb wird im Browser-Modus erweitert.
+  const directRadii = [...new Set([radius, 25, 50, 100, 150, Math.max(radius,150)].filter(r=>r>=radius && r<=Math.max(radius,150)))];
+  for(const r of directRadii){
+    await addFrom(lat, lng, r, `center r=${r}m`, true);
+    if(found.length >= maxResults) break;
+  }
+
+  // 2) Wenn Outdoor nichts findet: optional ohne source=outdoor erneut versuchen.
+  if(found.length === 0 && allowNonOutdoorFallback){
+    for(const r of directRadii){
+      await addFrom(lat, lng, r, `center any r=${r}m`, false);
+      if(found.length >= maxResults) break;
+    }
+  }
+
+  // 3) Raster-/Ring-Suche im Umkreis: mehrere Abfragepunkte, jeder mit 50m Radius.
+  // Das imitiert das "query --radius/--max-results"-Prinzip im Browser.
+  if(found.length < maxResults){
+    const searchRadius = Math.max(radius, 150);
+    const ringStep = 50;
+    const queryRadius = Math.max(25, Math.min(50, radius));
+    const dirs = [[1,0],[-1,0],[0,1],[0,-1],[0.707,0.707],[0.707,-0.707],[-0.707,0.707],[-0.707,-0.707]];
+    for(let ring=ringStep; ring<=searchRadius && found.length<maxResults; ring+=ringStep){
+      for(const [n,e] of dirs){
+        const q = offsetLatLng(lat,lng,n*ring,e*ring);
+        await addFrom(q.lat, q.lng, queryRadius, `ring ${ring}m`, true);
+        if(found.length >= maxResults) break;
+      }
+    }
+  }
+
+  found.sort((a,b)=>(a.distance_m||999999)-(b.distance_m||999999));
+  return found.slice(0,maxResults);
 }
 
 async function discoverPanosAlongLine(){
@@ -1010,12 +1079,13 @@ async function discoverPanosAlongLine(){
         const d=await res.json();panos=d.panoramas||[];
         dbg(`P${i}: ${panos.length} Panos vom Server`,'info');
       }else{
-        // v3.7: echte Metadata-API statt Fake-ID
-        panos = await queryPanosBrowser(p.lat, p.lng, radius, key);
+        // v3.7+: Browser-Umkreissuche über Metadata-API statt Fake-ID
+        const maxResults=parseInt(v('cfg-maxresults'))||5;
+        panos = await queryPanosBrowserArea(p.lat, p.lng, radius, key, maxResults);
         if(panos.length > 0){
-          dbg(`P${i}: status=OK pano_id=${panos[0].pano_id.substring(0,16)}...`,'ok');
+          dbg(`P${i}: ${panos.length} echte Panorama(s) im Umkreis gefunden, nächstes=${Math.round(panos[0].distance_m||0)}m pano_id=${panos[0].pano_id.substring(0,16)}...`,'ok');
         } else {
-          dbg(`P${i}: kein Panorama gefunden (radius=${radius}m)`,'warn');
+          dbg(`P${i}: kein Panorama gefunden (erweiterte Suche bis ${Math.max(radius,150)}m)`,'warn');
         }
       }
       for(const pano of panos){
@@ -1046,8 +1116,8 @@ async function discoverPanosAlongLine(){
       setStatus(`${foundPanos.length} echte Panoramen gefunden (Browser-Modus). Cloud-Download möglich.`,'success');
       dbg(`Suche fertig: ${foundPanos.length} echte pano_ids via Metadata-API`,'ok');
     } else {
-      setStatus(`${foundPanos.length} Positionen — keine Panoramen im Umkreis gefunden.`,'warn');
-      dbg('Tipp: Suchradius erhöhen oder anderen Punkt wählen.','warn');
+      setStatus(`Keine Panoramen im erweiterten Umkreis gefunden.`,'warn');
+      dbg('Tipp: Suchradius erhöhen, GPS-Punkt korrigieren oder Strassensuche verwenden.','warn');
     }
   } else {
     setStatus(`${foundPanos.length} Panoramen gefunden — Auswählen und „Lokal laden" drücken.`,'success');
