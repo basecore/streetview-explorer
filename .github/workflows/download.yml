@@ -23,6 +23,10 @@ on:
         description: 'Kommagetrennte pano_ids (optional, ueberspringt Suche)'
         required: false
         default: ''
+      pano_metadata:
+        description: 'JSON metadata for pano_ids from browser discovery'
+        required: false
+        default: ''
       quality:
         description: 'Bildqualitaet (low=32 Tiles, medium=128 Tiles, high=512 Tiles)'
         required: true
@@ -127,114 +131,188 @@ jobs:
           echo "[OK] Pakete installiert"
           streetview-dl --version || echo "[WARN] streetview-dl version check failed"
 
-      - name: Prepare pano_ids file
+      - name: Prepare pano_ids and pano_metadata files
+        env:
+          PANO_IDS_INPUT: ${{ github.event.inputs.pano_ids }}
+          PANO_METADATA_INPUT: ${{ github.event.inputs.pano_metadata }}
         run: |
-          PANO_IDS="${{ github.event.inputs.pano_ids }}"
-          if [ -n "$PANO_IDS" ]; then
-            echo "[" > /tmp/pano_ids.json
-            echo "$PANO_IDS" | tr ',' '\n' | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//' | \
-              awk '{print "\"" $0 "\","}' | sed '$ s/,$//' >> /tmp/pano_ids.json
-            echo "]" >> /tmp/pano_ids.json
-            echo "[OK] pano_ids.json erstellt:"
+          python - <<'PY'
+          import json
+          import os
+          import sys
+
+          pano_ids_raw = os.environ.get("PANO_IDS_INPUT", "").strip()
+          pano_metadata_raw = os.environ.get("PANO_METADATA_INPUT", "").strip()
+
+          has_pano_ids = False
+          has_pano_metadata = False
+
+          if pano_metadata_raw:
+              try:
+                  metadata = json.loads(pano_metadata_raw)
+
+                  if isinstance(metadata, dict) and "panoramas" in metadata:
+                      metadata = metadata["panoramas"]
+
+                  if not isinstance(metadata, list):
+                      raise ValueError("pano_metadata muss eine JSON-Liste sein.")
+
+                  cleaned = []
+                  ids = []
+
+                  for item in metadata:
+                      if not isinstance(item, dict):
+                          continue
+
+                      pid = str(item.get("pano_id", "")).strip()
+                      if not pid:
+                          continue
+
+                      def num(v, default=0.0):
+                          try:
+                              return float(v)
+                          except Exception:
+                              return default
+
+                      entry = {
+                          "pano_id": pid,
+                          "lat": num(item.get("lat", 0.0)),
+                          "lng": num(item.get("lng", 0.0)),
+                          "date": item.get("date") or "?",
+                          "heading": num(item.get("heading", 0.0)),
+                          "maps_url": item.get("maps_url") or "",
+                      }
+
+                      cleaned.append(entry)
+                      ids.append(pid)
+
+                  with open("/tmp/pano_metadata.json", "w", encoding="utf-8") as f:
+                      json.dump(cleaned, f, ensure_ascii=False, indent=2)
+
+                  with open("/tmp/pano_ids.json", "w", encoding="utf-8") as f:
+                      json.dump(ids, f, ensure_ascii=False, indent=2)
+
+                  print(f"[OK] pano_metadata.json erstellt: {len(cleaned)} Einträge")
+                  print(f"[OK] pano_ids.json aus pano_metadata erstellt: {len(ids)} IDs")
+                  has_pano_ids = bool(ids)
+                  has_pano_metadata = bool(cleaned)
+
+              except Exception as e:
+                  print(f"[ERROR] pano_metadata konnte nicht verarbeitet werden: {e}")
+                  sys.exit(1)
+
+          elif pano_ids_raw:
+              ids = [
+                  x.strip()
+                  for x in pano_ids_raw.split(",")
+                  if x.strip()
+              ]
+
+              with open("/tmp/pano_ids.json", "w", encoding="utf-8") as f:
+                  json.dump(ids, f, ensure_ascii=False, indent=2)
+
+              print(f"[OK] pano_ids.json erstellt: {len(ids)} IDs")
+              has_pano_ids = bool(ids)
+
+          else:
+              print("[INFO] Keine pano_ids oder pano_metadata angegeben - Discovery-Modus")
+
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as env:
+              env.write(f"HAS_PANO_IDS={'true' if has_pano_ids else 'false'}\n")
+              env.write(f"HAS_PANO_METADATA={'true' if has_pano_metadata else 'false'}\n")
+          PY
+
+          if [ -f /tmp/pano_metadata.json ]; then
+            echo "=== /tmp/pano_metadata.json ==="
+            cat /tmp/pano_metadata.json
+          fi
+
+          if [ -f /tmp/pano_ids.json ]; then
+            echo "=== /tmp/pano_ids.json ==="
             cat /tmp/pano_ids.json
-          else
-            echo "[INFO] Keine pano_ids angegeben - Discovery-Modus"
           fi
 
       - name: Resolve street from coordinates if needed
+        env:
+          PANO_METADATA_INPUT: ${{ github.event.inputs.pano_metadata }}
         run: |
           LAT="${{ github.event.inputs.lat }}"
           LNG="${{ github.event.inputs.lng }}"
           STREET="${{ github.event.inputs.street }}"
+
           if [ -n "$LAT" ] && [ -n "$LNG" ] && [ -z "$STREET" ]; then
             echo "DISPATCH_STREET=${LAT},${LNG}" >> $GITHUB_ENV
             echo "DISPATCH_CITY=" >> $GITHUB_ENV
+            RAW_STREET="${LAT},${LNG}"
             echo "[INFO] Koordinaten-Modus: $LAT,$LNG"
+
           elif [ -n "$STREET" ]; then
             echo "DISPATCH_STREET=${STREET}" >> $GITHUB_ENV
             echo "DISPATCH_CITY=${{ github.event.inputs.city }}" >> $GITHUB_ENV
+            RAW_STREET="${STREET}"
             echo "[INFO] Strassen-Modus: $STREET, ${{ github.event.inputs.city }}"
+
+          elif [ -n "$PANO_METADATA_INPUT" ]; then
+            FALLBACK_STREET=$(python - <<'PY'
+          import json
+          import os
+
+          raw = os.environ.get("PANO_METADATA_INPUT", "").strip()
+          fallback = "pano_request"
+
+          try:
+              data = json.loads(raw)
+              if isinstance(data, dict) and "panoramas" in data:
+                  data = data["panoramas"]
+
+              if isinstance(data, list) and data:
+                  pid = str(data[0].get("pano_id", "")).strip()
+                  if pid:
+                      fallback = "pano_" + pid[:12]
+          except Exception:
+              pass
+
+          print(fallback)
+          PY
+          )
+            echo "DISPATCH_STREET=${FALLBACK_STREET}" >> $GITHUB_ENV
+            echo "DISPATCH_CITY=" >> $GITHUB_ENV
+            RAW_STREET="${FALLBACK_STREET}"
+            echo "[INFO] pano_metadata-Modus ohne street: ${FALLBACK_STREET}"
+
           else
             echo "DISPATCH_STREET=unbekannt" >> $GITHUB_ENV
             echo "DISPATCH_CITY=" >> $GITHUB_ENV
-            echo "[WARN] Weder street noch lat/lng angegeben"
+            RAW_STREET="unbekannt"
+            echo "[WARN] Weder street noch lat/lng noch pano_metadata angegeben"
           fi
+
+          SAFE_STREET=$(python - <<PY
+          import re
+          s = """$RAW_STREET"""
+          s = re.sub(r"[^A-Za-z0-9._-]+", "_", s).strip("_")
+          print(s or "pano_request")
+          PY
+          )
+          echo "ARTIFACT_STREET=${SAFE_STREET}" >> $GITHUB_ENV
+          echo "[INFO] Artifact street: ${SAFE_STREET}"
 
       - name: Run headless downloader
         env:
           GOOGLE_MAPS_API_KEY: ${{ github.event.inputs.api_key }}
         run: |
-          PANO_IDS="${{ github.event.inputs.pano_ids }}"
           PANO_FLAG=""
-          if [ -n "$PANO_IDS" ]; then
+
+          if [ "${{ env.HAS_PANO_METADATA }}" = "true" ]; then
+            PANO_FLAG="--pano-metadata-file /tmp/pano_metadata.json"
+            echo "[INFO] Nutze pano_metadata-Datei"
+          elif [ "${{ env.HAS_PANO_IDS }}" = "true" ]; then
             PANO_FLAG="--pano-ids-file /tmp/pano_ids.json"
+            echo "[INFO] Nutze pano_ids-Datei"
+          else
+            echo "[INFO] Discovery-Modus"
           fi
 
           DATE_FROM="${{ github.event.inputs.date_from }}"
           DATE_TO="${{ github.event.inputs.date_to }}"
-          MAX_AGE="${{ github.event.inputs.max_age_months }}"
-          SOURCE="${{ github.event.inputs.source }}"
-          OUTDOOR="${{ github.event.inputs.outdoor }}"
-
-          DATE_FROM_FLAG=""
-          DATE_TO_FLAG=""
-          MAX_AGE_FLAG=""
-          SOURCE_FLAG=""
-          OUTDOOR_FLAG=""
-
-          [ -n "$DATE_FROM" ] && DATE_FROM_FLAG="--date-from $DATE_FROM"
-          [ -n "$DATE_TO"   ] && DATE_TO_FLAG="--date-to $DATE_TO"
-          [ -n "$MAX_AGE"   ] && MAX_AGE_FLAG="--max-age-months $MAX_AGE"
-          [ -n "$SOURCE"    ] && SOURCE_FLAG="--source $SOURCE"
-          [ -n "$OUTDOOR"   ] && OUTDOOR_FLAG="--outdoor $OUTDOOR"
-
-          python streetview_headless.py \
-            --street     "${{ env.DISPATCH_STREET }}" \
-            --city       "${{ env.DISPATCH_CITY }}" \
-            --quality    "${{ github.event.inputs.quality }}" \
-            --sampling   "${{ github.event.inputs.sampling }}" \
-            --radius     "${{ github.event.inputs.radius }}" \
-            --historical "${{ github.event.inputs.historical }}" \
-            --heading    "${{ github.event.inputs.heading }}" \
-            --pitch      "${{ github.event.inputs.pitch }}" \
-            --fov        "${{ github.event.inputs.fov }}" \
-            --zoom       "${{ github.event.inputs.zoom }}" \
-            --output-format  "${{ github.event.inputs.output_format }}" \
-            --jpg-quality    "${{ github.event.inputs.jpg_quality }}" \
-            --output ./panoramas \
-            $DATE_FROM_FLAG \
-            $DATE_TO_FLAG \
-            $MAX_AGE_FLAG \
-            $SOURCE_FLAG \
-            $OUTDOOR_FLAG \
-            $PANO_FLAG
-      - name: List downloaded files
-        run: |
-          echo "=== Heruntergeladene Dateien ==="
-          find ./panoramas -type f | sort
-          TOTAL=$(find ./panoramas -type f | wc -l)
-          SIZE=$(du -sh ./panoramas 2>/dev/null | cut -f1)
-          echo "Gesamt: $TOTAL Dateien, Groesse: $SIZE"
-
-      - name: Generate summary
-        run: |
-          TOTAL=$(find ./panoramas -type f | wc -l)
-          SIZE=$(du -sh ./panoramas 2>/dev/null | cut -f1)
-          echo "## StreetView Download Ergebnis" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Parameter | Wert |" >> $GITHUB_STEP_SUMMARY
-          echo "|-----------|------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Strasse   | ${{ env.DISPATCH_STREET }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Stadt     | ${{ env.DISPATCH_CITY }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Qualitaet | ${{ github.event.inputs.quality }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Dateien   | $TOTAL |" >> $GITHUB_STEP_SUMMARY
-          echo "| Groesse   | $SIZE |" >> $GITHUB_STEP_SUMMARY
-          echo "| Zeitstempel | $(date '+%Y-%m-%d %H:%M:%S UTC') |" >> $GITHUB_STEP_SUMMARY
-
-      - name: Upload panoramas as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: panoramas-${{ env.DISPATCH_STREET }}-${{ github.run_number }}
-          path: ./panoramas/
-          retention-days: 7
-          if-no-files-found: warn
+          MAX_AGE="${{
