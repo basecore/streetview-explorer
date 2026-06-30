@@ -969,160 +969,226 @@ async function geocodeStreet(){
 }
 
 /* ── PANORAMA DISCOVERY ── */
-async function queryPanosBrowser(lat, lng, radius, key, outdoorOnly=true, quiet=false) {
-  const sourceParam = outdoorOnly ? '&source=outdoor' : '';
-  const url = `https://maps.googleapis.com/maps/api/streetview/metadata?location=${lat},${lng}&radius=${radius}&key=${key}${sourceParam}`;
-  try {
-    const r = await fetch(url);
-    const d = await r.json();
-    if (d.status === 'OK' && d.pano_id) {
-      return [{
-        pano_id: d.pano_id,
-        lat:     d.location?.lat  || lat,
-        lng:     d.location?.lng  || lng,
-        date:    d.date           || '?',
-        url:     `https://www.google.com/maps/@${d.location?.lat||lat},${d.location?.lng||lng},3a,75y,0h,90t/data=!3m7!1e1!3m5!1s${d.pano_id}!`
-      }];
-    }
-    if(!quiet && d.status && d.status !== 'ZERO_RESULTS'){
-      dbg(`Metadata-API status=${d.status}${d.error_message?' — '+d.error_message:''}`, 'warn');
-    }
-    return [];
-  } catch(e) {
-    dbg(`Metadata-API Fehler: ${e}`, 'warn');
-    return [];
-  }
+let _svexTileSession=null,_svexTileSessionAt=0;
+
+async function getStreetViewTileSession(key){
+ // Map Tiles API Sessions sind kurzlebig. Für Browser-Suche wird eine Session wiederverwendet.
+ if(_svexTileSession && (Date.now()-_svexTileSessionAt)<10*60*1000)return _svexTileSession;
+ const r=await fetch(`https://tile.googleapis.com/v1/createSession?key=${encodeURIComponent(key)}`,{
+ method:'POST',headers:{'Content-Type':'application/json'},
+ body:JSON.stringify({mapType:'streetview',language:'de-DE',region:'DE'})
+ });
+ const d=await r.json().catch(()=>({}));
+ if(!r.ok||!d.session){
+ throw new Error(`Tile Session HTTP ${r.status}: ${d.error?.message||'keine Session'}`);
+ }
+ _svexTileSession=d.session;_svexTileSessionAt=Date.now();
+ return _svexTileSession;
+}
+
+function normalizeTileMetadata(d, fallbackLat, fallbackLng, panoId){
+ const id=d.panoId||d.pano_id||panoId;
+ if(!id)return null;
+ const lat=(typeof d.lat==='number')?d.lat:fallbackLat;
+ const lng=(typeof d.lng==='number')?d.lng:fallbackLng;
+ return {
+ pano_id:id,
+ lat,lng,
+ date:d.date||'?',
+ heading:d.heading,
+ imageryType:d.imageryType||'',
+ links:d.links||[],
+ url:`https://www.google.com/maps/@${lat},${lng},3a,75y,0h,90t/data=!3m7!1e1!3m5!1s${id}!`
+ };
+}
+
+async function getTilePanoMetadataById(panoId, key, session, fallbackLat, fallbackLng){
+ const url=`https://tile.googleapis.com/v1/streetview/metadata?session=${encodeURIComponent(session)}&key=${encodeURIComponent(key)}&panoId=${encodeURIComponent(panoId)}`;
+ const r=await fetch(url);
+ const d=await r.json().catch(()=>({}));
+ if(!r.ok){
+ dbg(`Tile-Metadata ${panoId.substring(0,16)} HTTP ${r.status}: ${d.error?.message||''}`,'warn');
+ return null;
+ }
+ return normalizeTileMetadata(d,fallbackLat,fallbackLng,panoId);
+}
+
+async function queryPanoIdsTile(locations, radius, key, session){
+ const body={locations:locations.map(p=>({lat:p.lat,lng:p.lng})),radius:Math.max(1,parseInt(radius)||50)};
+ const r=await fetch(`https://tile.googleapis.com/v1/streetview/panoIds?session=${encodeURIComponent(session)}&key=${encodeURIComponent(key)}`,{
+ method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)
+ });
+ const d=await r.json().catch(()=>({}));
+ if(!r.ok){
+ dbg(`Tile-panoIds HTTP ${r.status}: ${d.error?.message||JSON.stringify(d).slice(0,120)}`,'warn');
+ return [];
+ }
+ return d.panoIds||[];
+}
+
+async function queryPanosBrowser(lat, lng, radius, key) {
+ // v3.8-kompatibel: nutzt die Map Tiles API statt der alten StreetView-Static-Metadata API.
+ return queryPanosBrowserArea(lat,lng,radius,key,1,false);
 }
 
 function offsetLatLng(lat, lng, northM, eastM){
-  const dLat = northM / 111320;
-  const dLng = eastM / (111320 * Math.cos(lat * Math.PI / 180));
-  return {lat: lat + dLat, lng: lng + dLng};
+ const dLat=northM/111320;
+ const dLng=eastM/(111320*Math.cos(lat*Math.PI/180));
+ return {lat:lat+dLat,lng:lng+dLng};
 }
 
-async function queryPanosBrowserArea(lat, lng, radius, key, maxResults=5){
-  radius = Math.max(1, parseInt(radius)||8);
-  maxResults = Math.max(1, parseInt(maxResults)||5);
+function makeBrowserFallbackPosition(lat,lng){
+ const pano_id=`pos_${lat.toFixed(5)}_${lng.toFixed(5)}`.replace(/[.-]/g,'_');
+ return {pano_id,lat,lng,date:'?',url:`https://www.google.com/maps/@${lat},${lng},3a,75y,0h,90t/`,_fallback:true};
+}
 
-  const found=[];
-  const seen=new Set();
-  const outdoorCfg = v('cfg-outdoor');
-  const allowNonOutdoorFallback = outdoorCfg !== 'true';
+function buildSearchLocations(lat,lng,searchRadius){
+ const locs=[{lat,lng}];
+ const rings=[25,50,100,150,200,300,400,500].filter(r=>r<=searchRadius);
+ for(const ring of rings){
+ const steps=ring>=200?16:8;
+ for(let i=0;i<steps;i++){
+ const a=2*Math.PI*i/steps;
+ locs.push(offsetLatLng(lat,lng,Math.cos(a)*ring,Math.sin(a)*ring));
+ }
+ }
+ return locs.slice(0,100); // Map Tiles panoIds erlaubt max. 100 Locations pro Request
+}
 
-  async function addFrom(qLat, qLng, qRadius, label, outdoorOnly=true){
-    if(found.length >= maxResults) return;
-    const res = await queryPanosBrowser(qLat, qLng, qRadius, key, outdoorOnly, true);
-    for(const pano of res){
-      if(!seen.has(pano.pano_id)){
-        seen.add(pano.pano_id);
-        pano.distance_m = haversine(lat, lng, pano.lat, pano.lng);
-        pano.query_label = label;
-        found.push(pano);
-        if(found.length >= maxResults) break;
-      }
-    }
-  }
+async function queryPanosBrowserArea(lat,lng,radius,key,maxResults=5,withFallback=true){
+ radius=Math.max(1,parseInt(radius)||8);
+ maxResults=Math.max(1,parseInt(maxResults)||5);
+ const session=await getStreetViewTileSession(key);
+ const found=[],seen=new Set();
 
-  // 1) Direkte Suche, aber automatisch breiter als der UI-Default (8m).
-  // GPS liegt oft 50–150m neben der Straße; deshalb wird im Browser-Modus erweitert.
-  const directRadii = [...new Set([radius, 25, 50, 100, 150, Math.max(radius,150)].filter(r=>r>=radius && r<=Math.max(radius,150)))];
-  for(const r of directRadii){
-    await addFrom(lat, lng, r, `center r=${r}m`, true);
-    if(found.length >= maxResults) break;
-  }
+ async function addPano(pano){
+ if(!pano||!pano.pano_id||seen.has(pano.pano_id))return;
+ pano.distance_m=haversine(lat,lng,pano.lat,pano.lng);
+ // cfg-outdoor weiterhin respektieren, aber nur wenn explizit "Ja" gesetzt ist.
+ if(v('cfg-outdoor')==='true' && pano.imageryType && pano.imageryType!=='outdoor')return;
+ seen.add(pano.pano_id);found.push(pano);
+ }
 
-  // 2) Wenn Outdoor nichts findet: optional ohne source=outdoor erneut versuchen.
-  if(found.length === 0 && allowNonOutdoorFallback){
-    for(const r of directRadii){
-      await addFrom(lat, lng, r, `center any r=${r}m`, false);
-      if(found.length >= maxResults) break;
-    }
-  }
+ // 1) Zuerst echte panoIds über Map Tiles API suchen. Das ist der wichtige Unterschied:
+ //    createSession + streetview/panoIds funktioniert mit deinem bereits getesteten Map-Tiles-Key.
+ const searchRadius=Math.max(radius,500); // GPS war ±127m; 150m kann immer noch knapp sein.
+ const requestRadius=Math.max(50,Math.min(100,searchRadius));
+ const locs=buildSearchLocations(lat,lng,searchRadius);
+ dbg(`Browser-Umkreissuche: ${locs.length} Tile-panoIds Punkte, requestRadius=${requestRadius}m, searchRadius=${searchRadius}m`,'info');
 
-  // 3) Raster-/Ring-Suche im Umkreis: mehrere Abfragepunkte, jeder mit 50m Radius.
-  // Das imitiert das "query --radius/--max-results"-Prinzip im Browser.
-  if(found.length < maxResults){
-    const searchRadius = Math.max(radius, 150);
-    const ringStep = 50;
-    const queryRadius = Math.max(25, Math.min(50, radius));
-    const dirs = [[1,0],[-1,0],[0,1],[0,-1],[0.707,0.707],[0.707,-0.707],[-0.707,0.707],[-0.707,-0.707]];
-    for(let ring=ringStep; ring<=searchRadius && found.length<maxResults; ring+=ringStep){
-      for(const [n,e] of dirs){
-        const q = offsetLatLng(lat,lng,n*ring,e*ring);
-        await addFrom(q.lat, q.lng, queryRadius, `ring ${ring}m`, true);
-        if(found.length >= maxResults) break;
-      }
-    }
-  }
+ for(let off=0;off<locs.length && found.length<maxResults;off+=100){
+ const batch=locs.slice(off,off+100);
+ const ids=await queryPanoIdsTile(batch,requestRadius,key,session);
+ for(let j=0;j<ids.length && found.length<maxResults;j++){
+ const id=ids[j];
+ if(!id||seen.has(id))continue;
+ const meta=await getTilePanoMetadataById(id,key,session,batch[j]?.lat||lat,batch[j]?.lng||lng);
+ await addPano(meta);
+ }
+ }
 
-  found.sort((a,b)=>(a.distance_m||999999)-(b.distance_m||999999));
-  return found.slice(0,maxResults);
+ // 2) Wenn mindestens ein echtes Panorama gefunden wurde: über Links leicht erweitern.
+ //    Das nähert sich streetview-dl depth an, ohne den Browser zu überlasten.
+ for(let depth=0;depth<2 && found.length<maxResults;depth++){
+ const base=[...found];
+ for(const p of base){
+ for(const l of (p.links||[])){
+ if(found.length>=maxResults)break;
+ const id=l.panoId||l.pano_id;
+ if(!id||seen.has(id))continue;
+ const meta=await getTilePanoMetadataById(id,key,session,p.lat,p.lng);
+ if(meta){
+ meta.linkHeading=l.heading;
+ meta.linkText=l.text||'';
+ await addPano(meta);
+ }
+ }
+ if(found.length>=maxResults)break;
+ }
+ }
+
+ found.sort((a,b)=>(a.distance_m||999999)-(b.distance_m||999999));
+ if(found.length>0)return found.slice(0,maxResults);
+
+ // 3) Optionaler Positions-Fallback: weiterhin kein Fake als "echtes" pano_id,
+ //    aber nützlich für Cloud-Dispatch per Koordinate, wenn Google im Browser nichts liefert.
+ if(withFallback){
+ dbg('Keine echten pano_ids gefunden — Positions-Fallback wird markiert.','warn');
+ return [makeBrowserFallbackPosition(lat,lng)];
+ }
+ return [];
 }
 
 async function discoverPanosAlongLine(){
-  const key=v('tok-google');
-  if(!key){setStatus('API-Key fehlt.','error');return;}
-  const sampling=parseInt(v('cfg-sampling'))||10,radius=parseInt(v('cfg-radius'))||8;
-  const pts=linePoints.map(p=>({lat:p.lat,lng:p.lng}));
-  const samples=pts.length>1?interpolate(pts,sampling):pts;
-  dbg(`Suche: ${samples.length} Samples, alle ${sampling}m, Server=${serverOnline}`,'info');
-  setStatus(`<span class="spin"></span>Suche ${samples.length} Punkte...`,'running');
-  document.getElementById('action-bar').style.display='none';
-  foundPanos=[];panoLayer.clearLayers();const seen=new Set();
+ const key=v('tok-google');
+ if(!key){setStatus('API-Key fehlt.','error');return;}
+ const sampling=parseInt(v('cfg-sampling'))||10,radius=parseInt(v('cfg-radius'))||8;
+ const pts=linePoints.map(p=>({lat:p.lat,lng:p.lng}));
+ const samples=pts.length>1?interpolate(pts,sampling):pts;
+ dbg(`Suche: ${samples.length} Samples, alle ${sampling}m, Server=${serverOnline}`,'info');
+ setStatus(`<span class="spin"></span>Suche ${samples.length} Punkte...`,'running');
+ document.getElementById('action-bar').style.display='none';
+ foundPanos=[];panoLayer.clearLayers();const seen=new Set();
 
-  for(let i=0;i<samples.length;i++){
-    const p=samples[i];
-    try{
-      let panos=[];
-      if(serverOnline){
-        const res=await fetch(`${LOCAL_API}/api/query`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lat:p.lat,lng:p.lng,radius,api_key:key})});
-        const d=await res.json();panos=d.panoramas||[];
-        dbg(`P${i}: ${panos.length} Panos vom Server`,'info');
-      }else{
-        // v3.7+: Browser-Umkreissuche über Metadata-API statt Fake-ID
-        const maxResults=parseInt(v('cfg-maxresults'))||5;
-        panos = await queryPanosBrowserArea(p.lat, p.lng, radius, key, maxResults);
-        if(panos.length > 0){
-          dbg(`P${i}: ${panos.length} echte Panorama(s) im Umkreis gefunden, nächstes=${Math.round(panos[0].distance_m||0)}m pano_id=${panos[0].pano_id.substring(0,16)}...`,'ok');
-        } else {
-          dbg(`P${i}: kein Panorama gefunden (erweiterte Suche bis ${Math.max(radius,150)}m)`,'warn');
-        }
-      }
-      for(const pano of panos){
-        if(!seen.has(pano.pano_id)){
-          seen.add(pano.pano_id);
-          pano._selected=true;
-          foundPanos.push(pano);
-          const col=serverOnline?'#68a83f':'#c9813a';
-          const marker=L.circleMarker([pano.lat||p.lat,pano.lng||p.lng],{radius:7,color:col,fillColor:col,fillOpacity:.8,weight:2})
-            .bindPopup(
-              `<b style="font-size:.85rem">${escH(pano.pano_id)}</b><br>`+
-              `<span style="color:#888;font-size:.75rem">Datum: ${escH(pano.date||'?')}</span><br>`+
-              `<span style="font-size:.75rem">${(pano.lat||p.lat).toFixed(5)}, ${(pano.lng||p.lng).toFixed(5)}</span><br>`+
-              (pano.url?`<a href="${escH(pano.url)}" target="_blank" style="font-size:.75rem;color:#4f9aaa">Google Maps &#8599;</a>`:'')
-            )
-            .addTo(panoLayer);
-          pano._marker=marker;
-        }
-      }
-    }catch(e){dbg(`Fehler P${i}: ${e}`,'err');}
-    if(i%5===0)updatePanoBar();
-  }
+ for(let i=0;i<samples.length;i++){
+ const p=samples[i];
+ try{
+ let panos=[];
+ if(serverOnline){
+ const res=await fetch(`${LOCAL_API}/api/query`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lat:p.lat,lng:p.lng,radius,api_key:key})});
+ const d=await res.json();panos=d.panoramas||[];
+ dbg(`P${i}: ${panos.length} Panos vom Server`,'info');
+ }else{
+ // Browser-Modus: zuerst echte Map-Tiles-panoIds, danach optional Positions-Fallback.
+ const maxResults=parseInt(v('cfg-maxresults'))||5;
+ panos=await queryPanosBrowserArea(p.lat,p.lng,radius,key,maxResults,true);
+ const real=panos.filter(x=>!String(x.pano_id||'').startsWith('pos_')).length;
+ if(real>0){
+ dbg(`P${i}: ${real} echte Panorama(s) gefunden, nächstes=${Math.round(panos[0].distance_m||0)}m pano_id=${panos[0].pano_id.substring(0,16)}...`,'ok');
+ }else{
+ dbg(`P${i}: keine echten pano_ids — Fallback-Position gesetzt`,'warn');
+ }
+ }
+ for(const pano of panos){
+ if(!seen.has(pano.pano_id)){
+ seen.add(pano.pano_id);
+ pano._selected=true;
+ foundPanos.push(pano);
+ const isFake=String(pano.pano_id||'').startsWith('pos_');
+ const col=isFake?'#c9813a':(serverOnline?'#68a83f':'#4f9aaa');
+ const marker=L.circleMarker([pano.lat||p.lat,pano.lng||p.lng],{radius:isFake?6:7,color:col,fillColor:col,fillOpacity:isFake?.55:.8,weight:2})
+ .bindPopup(
+ `<b style="font-size:.85rem">${escH(pano.pano_id)}</b><br>`+
+ `<span style="color:#888;font-size:.75rem">${isFake?'Fallback-Position':'Datum: '+escH(pano.date||'?')}</span><br>`+
+ `<span style="font-size:.75rem">${(pano.lat||p.lat).toFixed(5)}, ${(pano.lng||p.lng).toFixed(5)}</span><br>`+
+ (pano.distance_m!==undefined&&!isFake?`<span style="font-size:.75rem;color:#888">Distanz: ${Math.round(pano.distance_m)}m</span><br>`:'')+
+ (pano.url?`<a href="${escH(pano.url)}" target="_blank" style="font-size:.75rem;color:#4f9aaa">Google Maps &#8599;</a>`:'')
+ )
+ .addTo(panoLayer);
+ pano._marker=marker;
+ }
+ }
+ }catch(e){dbg(`Fehler P${i}: ${e}`,'err');}
+ if(i%5===0)updatePanoBar();
+ }
 
-  updatePanoBar();updateActionBar();
-  if(!serverOnline){
-    const realCount=foundPanos.filter(p=>!p.pano_id.startsWith('pos_')).length;
-    if(realCount>0){
-      setStatus(`${foundPanos.length} echte Panoramen gefunden (Browser-Modus). Cloud-Download möglich.`,'success');
-      dbg(`Suche fertig: ${foundPanos.length} echte pano_ids via Metadata-API`,'ok');
-    } else {
-      setStatus(`Keine Panoramen im erweiterten Umkreis gefunden.`,'warn');
-      dbg('Tipp: Suchradius erhöhen, GPS-Punkt korrigieren oder Strassensuche verwenden.','warn');
-    }
-  } else {
-    setStatus(`${foundPanos.length} Panoramen gefunden — Auswählen und „Lokal laden" drücken.`,'success');
-    dbg(`Suche fertig: ${foundPanos.length} Panoramen`,'ok');
-  }
+ updatePanoBar();updateActionBar();
+ if(!serverOnline){
+ const realCount=foundPanos.filter(p=>!p.pano_id.startswith('pos_')).length;
+ if(realCount>0){
+ setStatus(`${realCount} echte Panoramen gefunden (Browser-Modus). Cloud-Download möglich.`,'success');
+ dbg(`Suche fertig: ${realCount} echte pano_ids via Map Tiles API`,'ok');
+ }else if(foundPanos.length>0){
+ setStatus(`${foundPanos.length} Fallback-Position(en) markiert — keine echten pano_ids gefunden. Cloud-Dispatch per Koordinate möglich.`,'warn');
+ dbg('Keine echten pano_ids gefunden; Fallback-Koordinaten können an GitHub Actions gesendet werden.','warn');
+ }else{
+ setStatus(`Keine Panoramen im erweiterten Umkreis gefunden.`,'warn');
+ dbg('Tipp: Suchradius erhöhen, GPS-Punkt korrigieren oder Strassensuche verwenden.','warn');
+ }
+ }else{
+ setStatus(`${foundPanos.length} Panoramen gefunden — Auswählen und „Lokal laden" drücken.`,'success');
+ dbg(`Suche fertig: ${foundPanos.length} Panoramen`,'ok');
+ }
 }
 
 function interpolate(pts,everyM){
