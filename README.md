@@ -6,322 +6,745 @@
 [![GitHub Pages](https://img.shields.io/badge/Web_App-GitHub_Pages-222?logo=github&logoColor=white)](https://basecore.github.io/streetview-explorer/)
 [![streetview-dl](https://img.shields.io/badge/powered_by-streetview--dl-007acc)](https://github.com/stiles/streetview-dl)
 
-**Eine moderne Web-App zum Entdecken und Batch-Downloaden von Google Street View Panoramen** —
+**Eine moderne Web-App zum Entdecken, Auswählen und Batch-Downloaden von Google Street View Panoramen** —
 powered by [streetview-dl](https://github.com/stiles/streetview-dl), interaktiver OpenStreetMap-Karte,
-GPS-Ortung, Strassen-Crawling, GitHub Actions Cloud-Modus und eingebautem Quota-Schutz.
+Google Map Tiles API, GPS-Ortung, Punkt-/Linien-/Flächen-Suche, GitHub Actions Cloud-Modus,
+lokalem Download-Modus und eingebautem Quota-Schutz.
 
-> **v3.5** — Zwei Nutzungsmodi: **Cloud-Modus** (GitHub Pages + GitHub Actions, kein lokales Python noetig)
-> und **Local-Modus** (lokaler Python-Server fuer echte pano_id-Discovery direkt ueber die Google API).
+> **v3.8** — Cloud-first StreetView Explorer mit echter Browser-Panorama-Discovery über die
+> **Google Map Tiles API** (`createSession`, `streetview/panoIds`, `streetview/metadata`),
+> interaktiver Marker↔Tabelle-Synchronisierung, direktem StreetView-Linking und neuer Flächen-Suche.
 
 ---
 
 ## 🌐 Web-App starten
 
-**[➜ Web-App oeffnen](https://basecore.github.io/streetview-explorer/)**
+**[➜ Web-App öffnen](https://basecore.github.io/streetview-explorer/)**
 
-Die HTML5-App laeuft direkt im Browser — keine Installation, kein Python lokal noetig.
+Die HTML5-App läuft direkt im Browser.
 
-### Schnellstart (Cloud-Modus)
+- Kein lokaler Python-Server nötig für die normale Suche.
+- Cloud-Modus ist der Standard.
+- Der lokale Server wird nur benötigt, wenn du Downloads direkt auf deine eigene Festplatte ausführen möchtest.
 
-1. Web-App oeffnen
-2. Im **Keys-Tab**: Google API-Key + GitHub PAT eingeben → **„Keys speichern"** (AES-256-GCM verschluesselt)
-3. Im **Karten-Tab**: Modus auf **„Cloud"** stellen
-4. Standort per GPS ermitteln, Punkt per Klick setzen oder Strasse im Suchfeld eingeben
-5. **„Panoramen suchen"** druecken → gefundene Panoramen erscheinen in der Tabelle
-6. Gewuenschte Panoramen auswaehlen → **„▶ Request"**
-7. Im **Jobs-Tab** den Fortschritt live verfolgen
-8. Fertige Panoramas als **ZIP-Artifact herunterladen**
+---
 
+## 🚀 Schnellstart Cloud-Modus
 
-```
-Browser (Web-App)
-    └─► GPS / Klick / Strassensuche (Nominatim)
-        └─► POST api.github.com/.../workflows/download.yml/dispatches
-            └─► GitHub Actions Runner (ubuntu-latest)
-                └─► streetview_headless.py
-                    └─► Panoramas als ZIP-Artifact (7 Tage verfuegbar)
+Der **Cloud-Modus ist ab v3.8 der Default**.
+
+1. **Web-App öffnen**
+2. Im **API-Keys-Tab**:
+   - Google Maps API-Key eintragen
+   - GitHub PAT eintragen
+   - optional: **„Keys speichern“** klicken
+3. Im **Karten-Tab**:
+   - per GPS suchen,
+   - Punkt setzen,
+   - Linie zeichnen,
+   - Fläche zeichnen,
+   - oder Straße suchen
+4. **„🔍 Panoramen suchen“** drücken
+5. Gefundene Panoramen erscheinen:
+   - als Marker auf der OpenStreetMap-Karte
+   - in der Panorama-Tabelle
+6. Panoramen auswählen:
+   - per Tabellen-Checkbox
+   - oder direkt durch Klick auf den Panorama-Marker
+7. **„▶ Request“** drücken
+8. Im **Jobs-Tab** den GitHub Actions Job verfolgen
+9. Fertige Panoramen als **ZIP-Artifact** herunterladen
+
+```text
+Browser / GitHub Pages
+    └─► Punkt / GPS / Linie / Fläche / Straßensuche
+        └─► Google Map Tiles API
+            ├─► createSession
+            ├─► streetview/panoIds
+            └─► streetview/metadata
+                └─► echte pano_ids in Tabelle + Karte
+                    └─► GitHub Actions Workflow Dispatch
+                        └─► streetview_headless.py
+                            └─► Panoramen als ZIP-Artifact
 ```
 
 ---
 
-### Schnellstart (Local-Modus)
+## 🖥 Schnellstart Local-Modus
+
+Der Local-Modus ist weiterhin vorhanden, aber nicht mehr der Standard.
 
 ```bash
-# Python-Server starten (einmalig)
+# Lokalen Python-Server starten
 python3 streetview_server.py
+```
 
-# Web-App oeffnen → Modus "Local" → echte pano_ids per Google API abfragen
+Danach in der Web-App:
+
+1. Karten-Tab öffnen
+2. Modus auf **„Lokal“** stellen
+3. Panoramen suchen
+4. Auswählen
+5. **„▶ Lokal laden“** drücken
+
+Der lokale Modus speichert Downloads direkt auf deine Festplatte.
+
+---
+
+## ✨ Features v3.8
+
+### 🗺 Karte & Navigation
+
+| Feature | Beschreibung |
+|---|---|
+| Interaktive OpenStreetMap-Karte | Leaflet + OSM-Tiles mit Live-Koordinatenanzeige |
+| Cloud-first UI | App startet standardmäßig im Cloud-Modus |
+| GPS-Ortung | Standort per Browser-Geolocation |
+| GPS-Auto-Suchpunkt | Nach Klick auf GPS wird der Standort automatisch als Suchpunkt gesetzt |
+| Kein Zusatzklick bei GPS nötig | Der Button **„🔍 Panoramen suchen“** erscheint direkt nach erfolgreicher GPS-Ermittlung |
+| Punkt-Modus | Einzelnen Suchpunkt per Klick auf die Karte setzen |
+| Linien-Modus | Mehrere Punkte setzen und Linie abschließen |
+| Flächen-Modus | Polygonfläche aufspannen und Panoramen innerhalb der Fläche suchen |
+| Straßensuche | Straße/Stadt per Nominatim suchen und als Linie oder Fläche übernehmen |
+| Karte leeren | Marker, Linien, Flächen, GPS-Punkt und Panorama-Ergebnisse zurücksetzen |
+
+---
+
+## 🧭 Suchmodi
+
+### 📍 Punkt-Suche
+
+Ein Klick auf die Karte setzt einen Suchpunkt.
+
+Geeignet für:
+
+- einzelne Gebäude
+- Kreuzungen
+- POIs
+- manuelle Kontrolle eines Standorts
+
+Workflow:
+
+```text
+Punkt-Modus → Karte anklicken → Panoramen suchen
 ```
 
 ---
 
-## ✨ Features
+### 📷 GPS-Suche
 
-### Karte & Navigation
+Der GPS-Button fragt den Browser-Standort ab.
+
+Ab v3.8 gilt:
+
+- GPS-Punkt wird automatisch als Suchpunkt gesetzt
+- **„🔍 Panoramen suchen“** erscheint sofort
+- kein zusätzlicher Klick auf **„📌 Als Punkt“** nötig
+
+Workflow:
+
+```text
+GPS klicken → Standort gefunden → Panoramen suchen
+```
+
+---
+
+### ✏ Linien-Suche
+
+Im Linien-Modus können mehrere Punkte gesetzt werden.
+
+Die App interpoliert entlang der Linie Sampling-Punkte gemäß dem eingestellten Sampling-Abstand.
+
+Beispiel:
+
+```text
+Sampling-Abstand = 10 m
+Linie = 250 m
+≈ 25 Suchpunkte
+```
+
+Workflow:
+
+```text
+Linie wählen → Punkte setzen → Linie abschließen → Panoramen suchen
+```
+
+---
+
+### ⬜ Flächen-Suche
+
+Neu in v3.8: Du kannst eine Fläche als Polygon zeichnen.
+
+Die App erzeugt innerhalb der Fläche ein Raster aus Sampling-Punkten und sucht an diesen Punkten nach Panoramen.
+
+Geeignet für:
+
+- Parkplätze
+- Werksgelände
+- Wohnblöcke
+- Kreuzungsbereiche
+- Plätze
+- frei definierbare Suchbereiche
+
+Workflow:
+
+```text
+Fläche wählen → mindestens 3 Eckpunkte setzen → Fläche abschließen → Panoramen suchen
+```
+
+Technische Details:
+
+| Eigenschaft | Beschreibung |
+|---|---|
+| Mindestpunkte | 3 Eckpunkte |
+| Sampling | Raster innerhalb der Polygonfläche |
+| Rasterabstand | Einstellung **Sampling-Abstand (m)** |
+| Begrenzung | Maximal ca. 500 Sampling-Punkte pro Fläche |
+| Fallback | Bei sehr kleinen Flächen wird mindestens der Mittelpunkt verwendet |
+
+Hinweis:
+
+> Bei großen Flächen sollte der Sampling-Abstand erhöht werden, um API-Last und Quota-Verbrauch zu begrenzen.
+
+---
+
+## 🔎 Panorama-Discovery
+
+Ab v3.8 nutzt der Browser selbst die **Google Map Tiles API** zur Panorama-Suche.
+
+Die bisherige reine Fallback-Logik wurde erweitert: Auch ohne lokalen Server können echte `pano_id`s gefunden werden.
+
+### Verwendete Google APIs
+
+| API | Zweck |
+|---|---|
+| `createSession` | Erstellt eine Map Tiles StreetView Session |
+| `streetview/panoIds` | Sucht Panorama-IDs in der Nähe von Koordinaten |
+| `streetview/metadata` | Lädt Metadaten zu einer `pano_id`, z. B. Datum, Koordinate, Links |
+
+---
+
+### Ergebnis-Typen
+
+| Typ | Beschreibung |
+|---|---|
+| echte `pano_id` | Von Google Map Tiles API gefundenes Panorama |
+| `pos_...` Fallback | Koordinaten-Fallback, falls keine echte `pano_id` gefunden wurde |
+
+Beispiel echte Panorama-ID:
+
+```text
+yAMdSx48qhlR64YUwB8Bgg
+```
+
+Beispiel Fallback-ID:
+
+```text
+pos_49_03792_12_12779
+```
+
+---
+
+## 🧩 Marker ↔ Tabelle Synchronisierung
+
+Ab v3.8 sind Karte und Tabelle interaktiv gekoppelt.
+
+| Aktion | Ergebnis |
+|---|---|
+| Checkbox in Tabelle deaktivieren | Marker wird grau |
+| Checkbox in Tabelle aktivieren | Marker wird wieder farbig |
+| Panorama-Marker anklicken | Zugehörige Tabellen-Checkbox wird umgeschaltet |
+| Marker erneut anklicken | Auswahl wird wieder zurückgeschaltet |
+| „Alle“ | Alle Panoramen auswählen |
+| „Invertieren“ | Auswahl invertieren |
+| CSV Export | Exportiert nur ausgewählte Panoramen |
+| Cloud Request | Sendet nur ausgewählte Panoramen |
+
+Markerfarben:
+
+| Zustand | Farbe |
+|---|---|
+| echte `pano_id`, ausgewählt | Blau im Cloud-/Browser-Modus |
+| echte `pano_id`, lokal/serverbasiert | Grün |
+| Fallback `pos_...` | Orange |
+| deaktiviert | Grau |
+
+---
+
+## 🔗 Direkte Google Street View Links
+
+Alle Kartenlinks wurden in v3.8 auf direkte StreetView-URLs umgestellt.
+
+Die App nutzt dafür intern:
+
+```js
+gmapsPanoUrl(lat, lng, panoId, heading, pitch, fov)
+```
+
+Für echte `pano_id`s wird der Link mit `pano=` erzeugt:
+
+```text
+https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=LAT,LNG&heading=0&pitch=0&fov=90&pano=PANO_ID
+```
+
+Für Fallback-Positionen wird nur die Koordinate als Viewpoint verwendet:
+
+```text
+https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=LAT,LNG&heading=0&pitch=0&fov=90
+```
+
+Diese Links werden verwendet in:
+
+- Panorama-Tabelle
+- Marker-Popup
+- CSV Export
+
+---
+
+## 📋 Panorama-Tabelle
+
+Nach der Suche erscheinen alle gefundenen Panoramen in einer Tabelle.
+
+| Spalte | Beschreibung |
+|---|---|
+| Checkbox | Auswahl für Download/Export |
+| `#` | Laufende Nummer |
+| `pano_id` | Google StreetView Panorama-ID oder Fallback-ID |
+| Datum | Aufnahmedatum, sofern von Google verfügbar |
+| Lat | Latitude |
+| Lng | Longitude |
+| Karte | StreetView-Link + Marker-Fokus |
+
+Zusätzliche Badges:
+
+| Badge | Bedeutung |
+|---|---|
+| `✓ angefragt` | Panorama wurde bereits per Cloud Request dispatcht |
+| `fallback` | Kein echtes Panorama, sondern Koordinaten-Fallback |
+
+---
+
+## ⭳ CSV Export
+
+Der CSV Export enthält alle ausgewählten Panoramen.
+
+Spalten:
+
+```csv
+#,pano_id,datum,lat,lng,maps_url
+```
+
+`maps_url` ist ein direkter Google StreetView-Link.
+
+---
+
+## ☁ Cloud-Modus
+
+Der Cloud-Modus ist ab v3.8 der Standardmodus.
+
 | Feature | Beschreibung |
 |---|---|
-| Interaktive OpenStreetMap-Karte | Leaflet, OSM-Tiles, Live-Koordinaten-Anzeige |
-| GPS-Ortung | Standort per Browser-Geolocation, Adresse per Nominatim Reverse-Geocode |
-| Punkt-Modus | Einzelnen Punkt per Klick auf Karte setzen |
-| Linien-Modus | Polyline zeichnen (Doppeltippen zum Abschliessen) |
-| Strassen-Suche | Strassenname + Stadt → Geometrie von OpenStreetMap via Nominatim |
-| Sampling | Punkte entlang der Linie alle N Meter (einstellbar, Standard 10 m) |
-| Karte leeren | Alle Marker, Linien und Panoramen auf einmal zuruecksetzen |
+| Kein lokaler Server nötig | Browser findet Panoramen via Map Tiles API |
+| GitHub Actions Dispatch | Download läuft in GitHub Actions |
+| ZIP Artifact | Ergebnisse werden als ZIP bereitgestellt |
+| PAT-authentifizierter Download | Artifact kann direkt aus der App geladen werden |
+| Jobs-Tab Default | Jobs-Tab startet ebenfalls im Cloud/GitHub Actions Modus |
+| Kein localhost Polling | `localhost:5000` wird im Cloud-Modus nicht mehr ständig geprüft |
 
-### Panorama-Discovery
-| Feature | Beschreibung |
-|---|---|
-| Echte pano_ids | Mit lokalem Python-Server: tatsaechliche Google StreetView pano_ids |
-| Browser-Fallback | Ohne Server: Koordinaten-basierte Positionen (pos_...) |
-| Deduplizierung | Jede pano_id erscheint nur einmal, egal wie viele Sample-Punkte sie treffen |
-| Ergebnis-Tabelle | Alle Panoramen mit pano_id, Datum, Lat/Lng, Maps-Link und Karte-Pin-Button |
-| Status-Badges | `✓ angefragt` (bereits dispatched) und `fallback` (Browser-Fallback) |
-| CSV-Export | Alle ausgewaehlten Panoramen als CSV-Datei exportieren |
-| Auswahl-Steuerung | Alle auswaehlen, keine auswaehlen, invertieren, Einzel-Toggle |
+---
 
-### Download-Modi
-| Feature | Beschreibung |
-|---|---|
-| **Local-Modus** | `streetview_headless.py` lokal ausfuehren, direkt auf eigene Festplatte |
-| **Cloud-Modus** | GitHub Actions Job dispatchen, Panoramas als ZIP-Artifact herunterladen |
-| Dispatch-Modi | pano_ids direkt · Koordinaten (lat/lng) · Strassenname/Stadt |
-| Duplikat-Schutz | Bereits angefragte pano_ids werden erkannt, Benutzer wird vor erneutem Dispatch gefragt |
-| Tile-Warnung | Automatische Warnung + Bestaetigung bei geschaetztem Verbrauch > 10.000 Tiles |
-| Tile-Schaetzung | Vor jedem Dispatch: Anzahl Tiles + geschaetzte Kosten werden im Debug-Log angezeigt |
+## 🖥 Local-Modus
 
-### Jobs & Artifacts
-| Feature | Beschreibung |
-|---|---|
-| Auto-Refresh | Jobs-Tab aktualisiert sich automatisch alle 8 Sekunden solange Jobs laufen |
-| Sofort-Platzhalter | Neuer Job erscheint unmittelbar nach Dispatch ohne auf Refresh warten zu muessen |
-| Job abbrechen | Laufende GitHub Actions Jobs direkt aus der App heraus abbrechen |
-| Artifact-Links | Name, Groesse (MB) und Ablaufdatum pro Artifact |
-| Artifact-Download | Direkter ZIP-Download per PAT-Token ohne Browser-Umweg |
-| GitHub Actions Summary | Jeder Run erzeugt eine Parametertabelle direkt in der GitHub Actions UI |
-| Modus-Sync | Karten-Tab Cloud/Local schaltet Jobs-Tab automatisch mit um |
+Der Local-Modus bleibt erhalten.
 
-### Einstellungen (vollstaendige streetview-dl Parameter)
-| Kategorie | Parameter |
-|---|---|
-| **Basis** | Qualitaet (low/medium/high), Sampling-Abstand (m), Suchradius (m), Max. Ergebnisse pro Punkt, Ausgabeordner, Pause zwischen Anfragen (s) |
-| **Historisch** | Historische Suche an/aus, Datum von (YYYY-MM), Datum bis (YYYY-MM), Max. Alter in Monaten |
-| **Field of View** | Heading 0–360°, Pitch −90–90°, FOV 10–120°, Zoom-Level 0–5 |
-| **Bildgroesse** | Breite (px), Hoehe (px) |
-| **Filter** | Nur Outdoor, Quelle (Google/User/alle), Min. Qualitaetswert (0–1), Max. Distanz vom Punkt (m) |
-| **Cropping** | Crop links/rechts/oben/unten (px) |
-| **Output** | Format (JPG/PNG/WebP), JPEG-Qualitaet (%) |
-| **GitHub Actions** | Owner, Repository, Branch, Workflow-Datei |
+Er ist sinnvoll, wenn:
 
-### Quota-Tracking
-| Feature | Beschreibung |
-|---|---|
-| Lokaler Zaehler | Tile-Verbrauch wird pro Monat im Browser-localStorage getrackt |
-| GitHub-Sync | Quota aus abgeschlossenen GitHub Actions Runs des aktuellen Monats neu berechnen |
-| Stopp-Schwelle | Konfigurierbarer Stopp-Prozentsatz (Standard 80 %) |
-| Tile-Referenz | low = 32 · medium = 128 · high = 512 Tiles pro Panorama |
-| Historisch-Faktor | Historische Aufnahmen verbrauchen ca. 2,5× mehr Tiles |
+- Downloads direkt lokal gespeichert werden sollen
+- ein lokaler Python-Prozess verwendet werden soll
+- die GitHub Actions Cloud nicht genutzt werden soll
 
-### API-Keys & Sicherheit
-| Feature | Beschreibung |
+```bash
+python3 streetview_server.py
+```
+
+Danach in der Web-App auf **„Lokal“** umschalten.
+
+---
+
+## 📦 Download-Modi
+
+| Modus | Beschreibung |
 |---|---|
-| AES-256-GCM Verschluesselung | Keys werden geraetegebunden verschluesselt im localStorage gespeichert |
-| Geraete-Fingerprint | PBKDF2 (100.000 Iterationen) + UserAgent + Sprache als Schluessel — kein Server noetig |
-| Auto-Laden | Gespeicherte Keys werden beim App-Start automatisch entschluesselt geladen |
-| Key-Test | Google API-Key und GitHub PAT live testen mit Statusanzeige |
-| Anzeigen/Verstecken | Passwort-Toggle fuer beide Keys |
+| Cloud Request | Startet GitHub Actions Workflow |
+| Lokal laden | Startet lokalen Download über `streetview_server.py` |
+| CSV Export | Exportiert Auswahl als CSV ohne Download |
+
+Dispatch-Modi im Cloud-Modus:
+
+| Dispatch-Typ | Beschreibung |
+|---|---|
+| `pano_ids` | Echte Panorama-IDs werden direkt an den Workflow übergeben |
+| Koordinaten | Fallback bei `pos_...` oder GPS/Punkt |
+| Straße/Stadt | Fallback, wenn keine `pano_id`s vorhanden sind |
+
+---
+
+## ⚙ Einstellungen
+
+### Basis
+
+| Einstellung | Beschreibung |
+|---|---|
+| Qualität | `low`, `medium`, `high` |
+| Sampling-Abstand | Abstand zwischen Suchpunkten in Metern |
+| Suchradius | Radius pro Suchpunkt |
+| Max. Ergebnisse/Punkt | Begrenzung pro Sampling-Punkt |
+| Ausgabeordner | Lokaler Zielordner |
+| Pause zwischen Anfragen | Rate-Limit-Schutz |
+
+---
+
+### Historische Aufnahmen
+
+| Einstellung | Beschreibung |
+|---|---|
+| Historische Suche | Aktiviert historische Epochen |
+| Datum von | Startdatum `YYYY-MM` |
+| Datum bis | Enddatum `YYYY-MM` |
+| Max. Alter | Maximales Alter in Monaten |
+
+---
+
+### Field of View
+
+| Einstellung | Beschreibung |
+|---|---|
+| Heading | Blickrichtung 0–360° |
+| Pitch | Neigung −90–90° |
+| FOV | Field of View 10–120° |
+| Zoom-Level | Zoom 0–5 |
+| Bildbreite | Ausgabe-Breite |
+| Bildhöhe | Ausgabe-Höhe |
+
+---
+
+### Filter
+
+| Einstellung | Beschreibung |
+|---|---|
+| Nur Outdoor | Indoor/Outdoor Filter |
+| Quelle | Google/User/Alle |
+| Min. Qualitätswert | Mindestqualität |
+| Max. Distanz | Distanzfilter |
+
+---
+
+### Output
+
+| Einstellung | Beschreibung |
+|---|---|
+| Format | JPG, PNG, WebP |
+| JPEG-Qualität | Qualität in Prozent |
+| Cropping | Links, rechts, oben, unten |
+
+---
+
+### GitHub Actions
+
+| Einstellung | Beschreibung |
+|---|---|
+| Owner | GitHub Owner |
+| Repository | GitHub Repository |
+| Branch | Branch für Workflow Dispatch |
+| Workflow | Workflow-Datei, z. B. `download.yml` |
 
 ---
 
 ## 📊 Tile-Verbrauch & Kosten
 
-| Qualitaet | Tiles/Panorama | Kostenloses Limit/Monat | Panoramen im Freikontigent |
-|---|---|---|---|
-| low | 32 | 100.000 | ~3.125 |
-| medium | 128 | 100.000 | ~781 |
-| high | 512 | 100.000 | ~195 |
+| Qualität | Tiles/Panorama | Kostenloses Limit/Monat | Panoramen im Freikontingent |
+|---|---:|---:|---:|
+| low | 32 | 100.000 | ca. 3.125 |
+| medium | 128 | 100.000 | ca. 781 |
+| high | 512 | 100.000 | ca. 195 |
 
-> Historische Aufnahmen (`historical: true`) erhoehen den Verbrauch um Faktor ~2,5.
-> Die App warnt automatisch und fragt nach Bestaetigung wenn ein Request voraussichtlich > 10.000 Tiles verbraucht.
+Historische Suche erhöht den Verbrauch ungefähr um Faktor `2,5`.
+
+Die App warnt automatisch, wenn ein Request voraussichtlich mehr als `10.000` Tiles verbraucht.
+
+---
+
+## 🧮 Quota-Tracking
+
+| Feature | Beschreibung |
+|---|---|
+| Lokaler Zähler | Tile-Verbrauch wird monatlich im Browser-localStorage getrackt |
+| GitHub Sync | Verbrauch aus abgeschlossenen GitHub Actions Runs ableiten |
+| Stopp-Schwelle | Standard: 80 % |
+| Manuelle Korrektur | Verbrauch kann im Quota-Tab angepasst werden |
+| Verbrauchsschätzung | Vor jedem Request im Debug-Log sichtbar |
 
 ---
 
 ## 🔑 Google Maps API-Key erstellen
 
-1. **[console.cloud.google.com](https://console.cloud.google.com)** oeffnen (Google-Account benoetigt)
-2. Neues Projekt erstellen (z.B. `streetview-explorer`)
+1. [console.cloud.google.com](https://console.cloud.google.com) öffnen
+2. Neues Projekt erstellen
 3. **APIs & Dienste → Bibliothek → Map Tiles API → Aktivieren**
-4. **APIs & Dienste → Anmeldedaten → + API-Schluessel erstellen** → kopieren
-5. **Abrechnung aktivieren** (Pflicht, auch fuer kostenlosen Tier — Kreditkarte erforderlich)
-6. Optional empfohlen: Key auf `Map Tiles API` einschraenken
-7. Key in Web-App → Keys-Tab eingeben → **„Keys speichern"**
+4. **APIs & Dienste → Anmeldedaten → API-Schlüssel erstellen**
+5. Abrechnung aktivieren
+6. Optional: Key auf **Map Tiles API** beschränken
+7. Key in der Web-App im **API-Keys-Tab** eintragen
+8. Optional: **„Keys speichern“** klicken
+
+Wichtig:
+
+> Für v3.8 ist die **Map Tiles API** entscheidend. Die Browser-Discovery nutzt nicht die alte StreetView Static Metadata API.
 
 ---
 
-## 🔑 GitHub PAT erstellen (fuer Cloud-Modus)
+## 🔑 GitHub PAT erstellen
 
-1. **[github.com/settings/tokens?type=beta](https://github.com/settings/tokens?type=beta)** oeffnen
-2. **„Generate new token" → „Fine-grained token"**
-3. Repository-Zugriff: nur `streetview-explorer` auswaehlen
-4. Permissions: ausschliesslich **Actions → Read and write** setzen
-5. Token generieren → kopieren → in Web-App → Keys-Tab eingeben → **„Keys speichern"**
+Für den Cloud-Modus wird ein GitHub Personal Access Token benötigt.
 
-> Alle anderen Permissions bleiben auf `No access`. Der Token kann damit ausschliesslich
-> Actions in diesem einen Repo starten — kein Code-Zugriff, keine Secrets, keine anderen Repos.
+1. [github.com/settings/tokens?type=beta](https://github.com/settings/tokens?type=beta) öffnen
+2. **Generate new token**
+3. Fine-grained token wählen
+4. Repository-Zugriff auf `streetview-explorer` beschränken
+5. Permission setzen:
+   - **Actions: Read and write**
+6. Token generieren
+7. Token in der Web-App eintragen
+8. Optional: **„Keys speichern“**
 
-### Token verloren oder abgelaufen?
+Empfohlene Rechte:
 
-Neuen Token erstellen (Schritte 1–5 wiederholen). Alte Tokens unter
-[github.com/settings/tokens](https://github.com/settings/tokens) widerrufen.
+| Bereich | Recht |
+|---|---|
+| Repository | Nur dieses Repository |
+| Actions | Read and write |
+| Code | No access |
+| Secrets | No access |
+| Issues | No access |
+| Pull Requests | No access |
+
+---
+
+## 🔐 API-Keys & Sicherheit
+
+| Feature | Beschreibung |
+|---|---|
+| AES-256-GCM | Keys werden verschlüsselt im Browser gespeichert |
+| Gerätebindung | Verschlüsselung basiert auf Browser/UserAgent/Sprache |
+| PBKDF2 | 100.000 Iterationen |
+| Kein Server | Keys verlassen den Browser nur für Google/GitHub API Requests |
+| Auto-Laden | Gespeicherte Keys werden beim App-Start geladen |
+| Key-Test | Google Key und GitHub PAT können getestet werden |
+| Sichtbarkeit | Passwortfelder können temporär angezeigt werden |
+
+Hinweis:
+
+> Die Speicherung im Browser ist komfortabel, aber nicht mit einem professionellen Secret Manager gleichzusetzen. Für produktive Umgebungen sollten API-Keys möglichst eingeschränkt werden.
 
 ---
 
 ## 🐍 Local-Modus: Python-Server
 
-Der lokale Server laeuft auf `http://localhost:5000` und ermoeglichst echte pano_id-Discovery
-direkt ueber die Google Street View API — ohne GitHub Actions, direkt auf die eigene Festplatte.
+Der lokale Server läuft standardmäßig auf:
 
-### Installation & Start
-
-```bash
-# Einmalig: Abhaengigkeiten installieren
-pip install flask flask-cors requests streetview-dl
-
-# Server starten
-python3 streetview_server.py
+```text
+http://localhost:5000
 ```
 
-> `flask` und `flask-cors` werden beim ersten Start automatisch per pip installiert falls sie fehlen.
+Er wird nur im Local-Modus benötigt.
+
+### Installation
+
+```bash
+pip install flask flask-cors requests streetview-dl
+```
+
+### Start
+
+```bash
+python3 streetview_server.py
+```
 
 ### Stoppen
 
 ```bash
-# Im Terminal wo der Server laeuft:
 Ctrl + C
+```
 
-# Falls im Hintergrund — Windows:
-taskkill /F /IM python.exe /FI "WINDOWTITLE eq streetview_server*"
-# Oder per Port (Windows):
-for /f "tokens=5" %a in ('netstat -aon ^| findstr :5000') do taskkill /F /PID %a
+Linux/macOS:
 
-# Falls im Hintergrund — Linux/macOS:
+```bash
 pkill -f streetview_server.py
-# Oder per Port:
+```
+
+Oder per Port:
+
+```bash
 lsof -ti:5000 | xargs kill -9
 ```
 
-### Port aendern
+Windows:
+
+```bat
+for /f "tokens=5" %a in ('netstat -aon ^| findstr :5000') do taskkill /F /PID %a
+```
+
+### Port ändern
+
+Windows:
+
+```bat
+set SVEX_PORT=8080 && python streetview_server.py
+```
+
+Linux/macOS:
 
 ```bash
-# Windows:
-set SVEX_PORT=8080 && python streetview_server.py
-
-# Linux/macOS:
 SVEX_PORT=8080 python3 streetview_server.py
 ```
 
-### Deinstallieren
+---
 
-```bash
-# Nur Python-Pakete entfernen:
-pip uninstall flask flask-cors -y
-
-# Repo komplett loeschen:
-rm -rf streetview-explorer/
-```
-
-> Der Server bindet **ausschliesslich auf `127.0.0.1`** (localhost) — er ist nicht aus dem
-> Netzwerk erreichbar. Kein Daemon, kein Autostart, kein Systemdienst.
-
-### API-Endpunkte
+## 🔌 Lokale API-Endpunkte
 
 | Endpunkt | Methode | Beschreibung |
 |---|---|---|
-| `/api/status` | GET | Serverversion und Health-Check |
-| `/api/query` | POST | Einzelpunkt-Abfrage: lat/lng → pano_ids |
-| `/api/start` | POST | Download-Job starten → job_id |
-| `/api/log/<job_id>` | GET | SSE-Stream: Live-Log des Jobs im Browser |
-| `/api/stop/<job_id>` | POST | Laufenden Job abbrechen |
-| `/api/jobs` | GET | Alle Jobs der aktuellen Session auflisten |
+| `/api/status` | GET | Serverstatus |
+| `/api/query` | POST | Panorama-Abfrage pro Punkt |
+| `/api/start` | POST | Download-Job starten |
+| `/api/log/<job_id>` | GET | Live-Log via SSE |
+| `/api/stop/<job_id>` | POST | Job abbrechen |
+| `/api/jobs` | GET | Lokale Jobs auflisten |
 
 ---
 
-## ⚙️ GitHub Actions Workflow-Inputs
-
-Alle Parameter sind direkt aus der Web-App (Einstellungen-Tab) steuerbar:
+## ⚙ GitHub Actions Workflow-Inputs
 
 | Input | Beschreibung | Standard |
 |---|---|---|
-| `street` | Strassenname ODER `lat,lng` Koordinaten | — |
-| `city` | Stadt (leer lassen bei Koordinaten-Modus) | — |
-| `lat` / `lng` | Direkte Koordinaten als Alternative zu street/city | — |
-| `pano_ids` | Kommagetrennte pano_ids (ueberspringt Discovery komplett) | — |
-| `quality` | low / medium / high | medium |
-| `sampling` | Sampling-Abstand in Metern | 10 |
-| `radius` | Suchradius pro Punkt in Metern | 8 |
-| `historical` | Historische Aufnahmen an/aus | false |
-| `date_from` | Historisch: Datum von (YYYY-MM) | — |
-| `date_to` | Historisch: Datum bis (YYYY-MM) | — |
-| `max_age_months` | Max. Alter der Aufnahmen in Monaten | — |
-| `heading` | Blickrichtung 0–360° | 0 |
-| `pitch` | Neigung −90–90° | 0 |
-| `fov` | Field of View 10–120° | 90 |
-| `zoom` | Zoom-Level 0–5 | 2 |
-| `source` | Quelle filtern: google / user / leer = alle | — |
-| `outdoor` | Nur Outdoor: true / false / leer = alle | — |
-| `output_format` | Ausgabeformat: jpg / png / webp | jpg |
-| `jpg_quality` | JPEG-Qualitaet 10–100 % | 85 |
-| `api_key` | Google Maps API Key (wird nicht gespeichert) | — |
+| `street` | Straßenname oder Fallback-Label | — |
+| `city` | Stadt | — |
+| `lat` | Latitude bei Koordinatenmodus | — |
+| `lng` | Longitude bei Koordinatenmodus | — |
+| `pano_ids` | Kommagetrennte echte Panorama-IDs | — |
+| `quality` | `low`, `medium`, `high` | `medium` |
+| `sampling` | Sampling-Abstand in Metern | `10` |
+| `radius` | Suchradius in Metern | `8` |
+| `historical` | Historische Aufnahmen | `false` |
+| `date_from` | Datum von `YYYY-MM` | — |
+| `date_to` | Datum bis `YYYY-MM` | — |
+| `max_age_months` | Max. Alter in Monaten | — |
+| `heading` | Blickrichtung | `0` |
+| `pitch` | Neigung | `0` |
+| `fov` | Field of View | `90` |
+| `zoom` | Zoom-Level | `2` |
+| `source` | Quelle `google`, `user`, leer | — |
+| `outdoor` | Outdoor-Filter | — |
+| `output_format` | `jpg`, `png`, `webp` | `jpg` |
+| `jpg_quality` | JPEG Qualität | `85` |
+| `api_key` | Google Maps API-Key | — |
 
 ---
 
 ## 🗂 Projektstruktur
 
-```
+```text
 streetview-explorer/
 ├── docs/
-│ └── index.html # Web-App v3.5 (GitHub Pages)
-├── streetview_headless.py # Headless Runner (GitHub Actions / CLI)
-├── streetview_server.py # Lokaler API-Server v3.5 (Flask, Local-Modus)
+│   └── index.html              # Web-App v3.8 für GitHub Pages
+├── streetview_headless.py      # Headless Runner für GitHub Actions / CLI
+├── streetview_server.py        # Lokaler API-Server für Local-Modus
 ├── .github/
-│ └── workflows/
-│ └── download.yml # GitHub Actions Workflow (alle Parameter)
-├── downloads/ # Standard-Ausgabeordner (lokal)
+│   └── workflows/
+│       └── download.yml        # GitHub Actions Workflow
+├── downloads/                  # Standard-Ausgabeordner lokal
 ├── requirements.txt
+├── LICENSE
 └── README.md
 ```
 
 ---
 
+## 🧪 Validierung v3.8
+
+Die v3.8 Web-App sollte folgende Eigenschaften erfüllen:
+
+| Check | Erwartung |
+|---|---|
+| App-Version | `v3.8` |
+| Default-Modus | Cloud |
+| Jobs-Default | GitHub Actions |
+| Browser-Discovery | Map Tiles API |
+| `createSession` | vorhanden |
+| `streetview/panoIds` | vorhanden |
+| `streetview/metadata` | vorhanden |
+| `.startswith(` | darf nicht vorkommen |
+| `.startsWith(` | korrekt verwendet |
+| Google Maps Links | direkte StreetView-Links |
+| Marker-Klick | toggelt Tabellen-Auswahl |
+| Tabellen-Checkbox | ändert Marker-Farbe |
+| GPS | zeigt direkt „Panoramen suchen“ |
+| Fläche | Polygon-Suche verfügbar |
+| Cloud-Modus | kein dauerhaftes localhost-Polling |
+
+---
+
 ## 🐛 Fehlerbehebung
 
-| Problem | Loesung |
+| Problem | Lösung |
 |---|---|
-| `keyInvalid` beim API-Test | Key pruefen, Map Tiles API in Google Cloud aktivieren |
-| `accessNotConfigured` | Billing in Google Cloud aktivieren (Kreditkarte) |
-| Web-App HTTP 401 | PAT ungueltig oder abgelaufen → neuen erstellen |
-| Web-App HTTP 404 | Workflow-Datei fehlt oder falscher Token-Scope (Actions R+W benoetigt) |
-| Web-App HTTP 422 | Unbekannte Workflow-Inputs → `download.yml` auf aktuelle Version aktualisieren |
-| Nur `pos_...` pano_ids | `streetview_server.py` lokal starten fuer echte pano_id-Discovery |
-| `street="unbekannt"` | Im Karten-Tab erst Strasse suchen oder GPS nutzen, dann Request starten |
-| Artifact fehlt nach Erfolg | API-Key pruefen, pano_id manuell in Google Maps validieren |
-| Keys nach Reload weg | Im Keys-Tab: **„Keys speichern"** druecken (werden AES-256-GCM verschluesselt) |
-| Quota-Wert ungenau | Im Quota-Tab: **„☁ GitHub sync"** druecken fuer Berechnung aus echten Job-Daten |
-| Doppelter Dispatch | App erkennt bereits angefragte pano_ids automatisch und fragt vor erneutem Request |
-| Server nicht erreichbar | `python3 streetview_server.py` starten, Port 5000 pruefen (`lsof -i:5000`) |
-| Server laesst sich nicht stoppen | `pkill -f streetview_server.py` oder `lsof -ti:5000 \| xargs kill -9` |
+| `keyInvalid` beim API-Test | API-Key prüfen |
+| `accessNotConfigured` | Map Tiles API aktivieren |
+| Billing-Fehler | Google Cloud Billing aktivieren |
+| Keine Panoramen gefunden | Suchradius erhöhen oder Sampling anpassen |
+| Nur `pos_...` Fallbacks | In der Umgebung wurden keine echten `pano_id`s gefunden |
+| Alte Google-Maps-Links sichtbar | Browser Hard Reload ausführen |
+| `.startswith is not a function` | Alte gecachte Version geladen → Hard Reload |
+| `localhost:5000 ERR_CONNECTION_REFUSED` im Cloud-Modus | Alte gecachte Version geladen oder Local-Modus aktiv |
+| Tabelle verschwindet beim Marker-Klick | Alte Version geladen → v3.8 neu deployen und Hard Reload |
+| GPS zeigt keinen Suchbutton | Browser-Geolocation erlauben und v3.8 verwenden |
+| Fläche erzeugt sehr viele Punkte | Sampling-Abstand erhöhen |
+| HTTP 401 bei GitHub | PAT ungültig oder abgelaufen |
+| HTTP 404 bei GitHub | Repo, Owner oder Workflow falsch |
+| HTTP 422 bei GitHub | Workflow Inputs passen nicht zur `download.yml` |
+| Artifact fehlt | GitHub Actions Run prüfen |
+| Artifact abgelaufen | GitHub Artifacts sind nur begrenzt verfügbar |
+| Quota ungenau | Im Quota-Tab **„☁ GitHub sync“** ausführen |
+
+---
+
+## 🔄 Browser Cache / Hard Reload
+
+Wenn nach einem Update noch alte Fehler auftreten, lädt der Browser vermutlich eine gecachte Version.
+
+Hard Reload:
+
+| System | Tastenkombination |
+|---|---|
+| Windows/Linux | `Ctrl + F5` |
+| macOS Chrome/Edge | `Cmd + Shift + R` |
+| macOS Safari | `Cmd + Option + R` |
+
+Bei GitHub Pages kann zusätzlich etwas Wartezeit nötig sein, bis die neue `index.html` ausgeliefert wird.
 
 ---
 
 ## 🔗 Verwandte Projekte
 
-- [stiles/streetview-dl](https://github.com/stiles/streetview-dl) — der zugrundeliegende Downloader
-- [OpenStreetMap / Nominatim](https://nominatim.org) — Geocoding & Reverse-Geocoding
-- [Leaflet](https://leafletjs.com) — interaktive Karte in der Web-App
-- [GitHub Actions](https://docs.github.com/en/actions) — Cloud-Runner fuer den Download
+- [stiles/streetview-dl](https://github.com/stiles/streetview-dl) — zugrundeliegender Downloader
+- [Google Map Tiles API](https://developers.google.com/maps/documentation/tile) — Panorama Discovery
+- [OpenStreetMap](https://www.openstreetmap.org) — Kartenbasis
+- [Nominatim](https://nominatim.org) — Geocoding & Reverse-Geocoding
+- [Leaflet](https://leafletjs.com) — interaktive Karte
+- [GitHub Actions](https://docs.github.com/en/actions) — Cloud Runner
 
 ---
 
 ## 📄 Lizenz
 
 MIT — siehe [LICENSE](LICENSE).
-- [tkinterweb](https://github.com/Andereoo/TkinterWeb) — Webkit in Tkinter
