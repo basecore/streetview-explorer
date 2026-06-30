@@ -315,4 +315,72 @@ jobs:
 
           DATE_FROM="${{ github.event.inputs.date_from }}"
           DATE_TO="${{ github.event.inputs.date_to }}"
-          MAX_AGE="${{
+          MAX_AGE="${{ github.event.inputs.max_age_months }}"
+          SOURCE="${{ github.event.inputs.source }}"
+          OUTDOOR="${{ github.event.inputs.outdoor }}"
+
+          DATE_FROM_FLAG=""
+          DATE_TO_FLAG=""
+          MAX_AGE_FLAG=""
+          SOURCE_FLAG=""
+          OUTDOOR_FLAG=""
+
+          [ -n "$DATE_FROM" ] && DATE_FROM_FLAG="--date-from $DATE_FROM"
+          [ -n "$DATE_TO"   ] && DATE_TO_FLAG="--date-to $DATE_TO"
+          [ -n "$MAX_AGE"   ] && MAX_AGE_FLAG="--max-age-months $MAX_AGE"
+          [ -n "$SOURCE"    ] && SOURCE_FLAG="--source $SOURCE"
+          [ -n "$OUTDOOR"   ] && OUTDOOR_FLAG="--outdoor $OUTDOOR"
+
+          python streetview_headless.py \
+            --street     "${{ env.DISPATCH_STREET }}" \
+            --city       "${{ env.DISPATCH_CITY }}" \
+            --quality    "${{ github.event.inputs.quality }}" \
+            --sampling   "${{ github.event.inputs.sampling }}" \
+            --radius     "${{ github.event.inputs.radius }}" \
+            --historical "${{ github.event.inputs.historical }}" \
+            --heading    "${{ github.event.inputs.heading }}" \
+            --pitch      "${{ github.event.inputs.pitch }}" \
+            --fov        "${{ github.event.inputs.fov }}" \
+            --zoom       "${{ github.event.inputs.zoom }}" \
+            --output-format  "${{ github.event.inputs.output_format }}" \
+            --jpg-quality    "${{ github.event.inputs.jpg_quality }}" \
+            --output ./panoramas \
+            $DATE_FROM_FLAG \
+            $DATE_TO_FLAG \
+            $MAX_AGE_FLAG \
+            $SOURCE_FLAG \
+            $OUTDOOR_FLAG \
+            $PANO_FLAG
+
+      - name: List downloaded files
+        run: |
+          echo "=== Heruntergeladene Dateien ==="
+          find ./panoramas -type f | sort
+          TOTAL=$(find ./panoramas -type f | wc -l)
+          SIZE=$(du -sh ./panoramas 2>/dev/null | cut -f1)
+          echo "Gesamt: $TOTAL Dateien, Groesse: $SIZE"
+
+      - name: Generate summary
+        run: |
+          TOTAL=$(find ./panoramas -type f | wc -l)
+          SIZE=$(du -sh ./panoramas 2>/dev/null | cut -f1)
+          echo "## StreetView Download Ergebnis" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Parameter | Wert |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Strasse   | ${{ env.DISPATCH_STREET }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Stadt     | ${{ env.DISPATCH_CITY }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Qualitaet | ${{ github.event.inputs.quality }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| pano_metadata | ${{ env.HAS_PANO_METADATA }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| pano_ids | ${{ env.HAS_PANO_IDS }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Dateien   | $TOTAL |" >> $GITHUB_STEP_SUMMARY
+          echo "| Groesse   | $SIZE |" >> $GITHUB_STEP_SUMMARY
+          echo "| Zeitstempel | $(date '+%Y-%m-%d %H:%M:%S UTC') |" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload panoramas as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: panoramas-${{ env.ARTIFACT_STREET }}-${{ github.run_number }}
+          path: ./panoramas/
+          retention-days: 7
+          if-no-files-found: warn
