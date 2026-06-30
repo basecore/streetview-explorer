@@ -35,10 +35,11 @@ Die HTML5-App laeuft direkt im Browser — keine Installation, kein Python lokal
 
 ```
 Browser (Web-App)
-    └─► POST api.github.com/repos/.../actions/workflows/download.yml/dispatches
+    └─► GPS / Klick / Strassensuche (Nominatim)
+        └─► POST api.github.com/.../workflows/download.yml/dispatches
             └─► GitHub Actions Runner (ubuntu-latest)
-                    └─► streetview_headless.py
-                            └─► Panoramas als Artifact (7 Tage verfuegbar)
+                └─► streetview_headless.py
+                    └─► Panoramas als ZIP-Artifact (7 Tage verfuegbar)
 ```
 
 ---
@@ -269,17 +270,14 @@ Alle Parameter sind direkt aus der Web-App (Einstellungen-Tab) steuerbar:
 
 ```
 streetview-explorer/
-├── streetview_explorer.py      # Desktop-GUI (selbst-installierend, Tkinter)
-├── streetview_headless.py      # Headless Runner (GitHub Actions / CLI)
-├── map_viewer.html             # Leaflet-Karte (eingebettet via tkinterweb)
 ├── docs/
-│   └── index.html              # Web-App (GitHub Pages)
+│ └── index.html # Web-App v3.5 (GitHub Pages)
+├── streetview_headless.py # Headless Runner (GitHub Actions / CLI)
+├── streetview_server.py # Lokaler API-Server v3.5 (Flask, Local-Modus)
 ├── .github/
-│   └── workflows/
-│       └── download.yml        # GitHub Actions Workflow
-├── state/                      # Auto-erstellt: Quota-JSON-Dateien
-├── logs/                       # Auto-erstellt: Session-Log-Dateien
-├── downloads/                  # Standard-Ausgabeordner
+│ └── workflows/
+│ └── download.yml # GitHub Actions Workflow (alle Parameter)
+├── downloads/ # Standard-Ausgabeordner (lokal)
 ├── requirements.txt
 └── README.md
 ```
