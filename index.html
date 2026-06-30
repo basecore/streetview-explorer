@@ -641,6 +641,64 @@ function gmapsPanoUrl(lat,lng,panoId='',heading=0,pitch=0,fov=90){
   return url;
 }
 
+async function deriveStreetCityFromPano(p){
+  const fallbackStreet=p?.pano_id?`pano_${String(p.pano_id).substring(0,12)}`:'pano_request';
+  const lat=Number(p?.lat);
+  const lng=Number(p?.lng);
+
+  if(!Number.isFinite(lat)||!Number.isFinite(lng)||(lat===0&&lng===0)){
+    return{street:fallbackStreet,city:''};
+  }
+
+  try{
+    const r=await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}&format=json`,
+      {headers:{'User-Agent':'svex/3.8'}}
+    );
+    const d=await r.json();
+    const a=d.address||{};
+
+    const street=[
+      a.road||a.pedestrian||a.footway||a.cycleway||a.path||a.residential,
+      a.house_number
+    ].filter(Boolean).join(' ');
+
+    const city=a.city||a.town||a.village||a.municipality||a.county||a.state||'';
+
+    return{
+      street:street||fallbackStreet,
+      city:city||''
+    };
+  }catch(e){
+    dbg(`Reverse-Geocode für pano_id fehlgeschlagen: ${e}`,'warn');
+    return{street:fallbackStreet,city:''};
+  }
+}
+
+function buildPanoMetadataPayload(sel){
+  return JSON.stringify(sel.map(p=>{
+    const lat=Number(p.lat||0);
+    const lng=Number(p.lng||0);
+    const heading=Number(p.heading||p.linkHeading||0);
+
+    return{
+      pano_id:String(p.pano_id||''),
+      lat:Number.isFinite(lat)?lat:0,
+      lng:Number.isFinite(lng)?lng:0,
+      date:p.date||'?',
+      heading:Number.isFinite(heading)?heading:0,
+      maps_url:gmapsPanoUrl(
+        Number.isFinite(lat)?lat:0,
+        Number.isFinite(lng)?lng:0,
+        p.pano_id||'',
+        Number.isFinite(heading)?heading:0,
+        0,
+        90
+      )
+    };
+  }).filter(p=>p.pano_id));
+}
+
 function showTab(id){
   TAB_IDS.forEach(t=>document.getElementById(t).classList.toggle('active',t===id));
   document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',TAB_IDS[i]===id));
@@ -1461,13 +1519,21 @@ async function dlCloud(key,sel){
   const streetRaw=v('street-input')||'';
   const parts=streetRaw.split(',').map(s=>s.trim()).filter(Boolean);
   const firstIsNumber=parts.length>0&&/^\d+$/.test(parts[0]);
-  const street=firstIsNumber?(parts[1]||parts[0]):(parts[0]||'');
-  const city=firstIsNumber
+  let street=firstIsNumber?(parts[1]||parts[0]):(parts[0]||'');
+  let city=firstIsNumber
     ?parts.slice(2).filter(p=>!/^\d{5}$/.test(p)&&p.length>3).slice(0,2).join(', ')
     :parts.slice(1).filter(p=>!/^\d{5}$/.test(p)&&p.length>3).slice(0,2).join(', ');
 
   const realPanos=sel.filter(p=>!String(p.pano_id||'').startsWith('pos_'));
   const fakePanos=sel.filter(p=>String(p.pano_id||'').startsWith('pos_'));
+  // Wenn keine Straße aus dem Suchfeld vorhanden ist, versuche sie aus dem ersten Panorama abzuleiten.
+  // Das verhindert Artifact-Namen wie "panoramas-unbekannt-16".
+  if((!street||street.toLowerCase()==='unbekannt')&&sel.length){
+    const derived=await deriveStreetCityFromPano(sel[0]);
+    street=derived.street||street||'pano_request';
+    city=city||derived.city||'';
+    dbg(`Dispatch-Adresse abgeleitet: street="${street}" city="${city}"`,'info');
+  }
   const alreadyDone=JSON.parse(localStorage.getItem('svex_dispatched_panos')||'[]');
   let toDispatch=realPanos.filter(p=>!alreadyDone.includes(p.pano_id));
   const dupCount=realPanos.length-toDispatch.length;
@@ -1521,7 +1587,11 @@ async function dlCloud(key,sel){
       source:v('cfg-source')||'',outdoor:v('cfg-outdoor')||'',api_key:key
     };
     if(!hasPanoIds&&dispatchLat){inputs.lat=dispatchLat;inputs.lng=dispatchLng;}
-    if(hasPanoIds)inputs.pano_ids=toDispatch.map(p=>p.pano_id).join(',');
+    if(hasPanoIds){
+      inputs.pano_ids=toDispatch.map(p=>p.pano_id).join(',');
+      inputs.pano_metadata=buildPanoMetadataPayload(toDispatch);
+      dbg(`pano_metadata hinzugefügt: ${toDispatch.length} Einträge`,'info');
+    }
 
     const res=await fetch(`https://api.github.com/repos/${owner}/${repo}/actions/workflows/${wf}/dispatches`,{
       method:'POST',
@@ -1557,8 +1627,11 @@ async function dlCloud(key,sel){
       updatePanoBar();
     }else{
       const t=await res.text();
-      setStatus(`HTTP ${res.status}: ${t.slice(0,120)}`,'error');
-      dbg(`Dispatch Fehler: ${t.slice(0,200)}`,'err');
+      setStatus(`HTTP ${res.status}: ${t.slice(0,160)}`,'error');
+      dbg(`Dispatch Fehler: ${t.slice(0,300)}`,'err');
+      if(res.status===422){
+        dbg('Hinweis: Falls pano_metadata im Workflow noch nicht definiert ist, muss download.yml um den Input pano_metadata erweitert werden.','warn');
+      }
     }
   }catch(e){
     setStatus(`Fehler: ${e}`,'error');
