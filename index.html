@@ -1122,13 +1122,15 @@ async function queryPanosBrowserArea(lat,lng,radius,key,maxResults=5,withFallbac
 
   async function addPano(pano){
     if(!pano||!pano.pano_id||seen.has(pano.pano_id))return;
-    pano.distance_m=haversine(lat,lng,pano.lat,pano.lng);
+    const distance=haversine(lat,lng,pano.lat,pano.lng);
+    if(distance>searchRadius)return;
+    pano.distance_m=distance;
     if(v('cfg-outdoor')==='true'&&pano.imageryType&&pano.imageryType!=='outdoor')return;
     seen.add(pano.pano_id);found.push(pano);
   }
 
-  const searchRadius=Math.max(radius,500);
-  const requestRadius=Math.max(50,Math.min(100,searchRadius));
+  const searchRadius=radius;
+  const requestRadius=searchRadius;
   const locs=buildSearchLocations(lat,lng,searchRadius);
   dbg(`Browser-Umkreissuche: ${locs.length} Tile-panoIds Punkte, requestRadius=${requestRadius}m`,'info');
 
@@ -1269,14 +1271,30 @@ async function discoverPanosAlongLine(){
           body:JSON.stringify({lat:p.lat,lng:p.lng,radius,api_key:key})
         });
         const d=await res.json();
-        panos=d.panoramas||[];
-        dbg(`P${i}: ${panos.length} Panos vom Server`,'info');
+        panos=(d.panoramas||[]).filter(pano=>{
+          if(!pano||typeof pano.lat!=='number'||typeof pano.lng!=='number')return false;
+          return haversine(p.lat,p.lng,pano.lat,pano.lng)<=radius;
+        });
+        if(hasArea&&areaPoints.length>=3){
+          const poly=areaPoints.map(pt=>({lat:pt.lat,lng:pt.lng}));
+          panos=panos.filter(pano=>pointInPolygon({lat:pano.lat,lng:pano.lng},poly));
+        }
+        dbg(`P${i}: ${panos.length} gültige Panos vom Server`,'info');
       }else{
         const maxResults=parseInt(v('cfg-maxresults'))||5;
-        panos=await queryPanosBrowserArea(p.lat,p.lng,radius,key,maxResults,true);
+        const allowFallback=!(hasArea&&areaPoints.length>=3)&&!(linePoints.length>1);
+        panos=await queryPanosBrowserArea(p.lat,p.lng,radius,key,maxResults,allowFallback);
+        panos=panos.filter(pano=>{
+          if(!pano||typeof pano.lat!=='number'||typeof pano.lng!=='number')return false;
+          return haversine(p.lat,p.lng,pano.lat,pano.lng)<=radius;
+        });
+        if(hasArea&&areaPoints.length>=3){
+          const poly=areaPoints.map(pt=>({lat:pt.lat,lng:pt.lng}));
+          panos=panos.filter(pano=>pointInPolygon({lat:pano.lat,lng:pano.lng},poly));
+        }
         const real=panos.filter(x=>!String(x.pano_id||'').startsWith('pos_')).length;
         if(real>0)dbg(`P${i}: ${real} echte Panorama(s) gefunden`,'ok');
-        else dbg(`P${i}: keine echten pano_ids — Fallback-Position gesetzt`,'warn');
+        else dbg(`P${i}: keine gültigen echten pano_ids im Suchradius${hasArea?' bzw. im Polygon':''}`,'warn');
       }
 
       for(const pano of panos){
@@ -1326,7 +1344,7 @@ async function discoverPanosAlongLine(){
     }else if(foundPanos.length>0){
       setStatus(`${foundPanos.length} Fallback-Position(en) markiert — keine echten pano_ids gefunden.`,'warn');
     }else{
-      setStatus(`Keine Panoramen im erweiterten Umkreis gefunden.`,'warn');
+      setStatus(`Keine Panoramen innerhalb des Suchradius gefunden.`,'warn');
     }
   }else{
     setStatus(`${foundPanos.length} Panoramen gefunden — Auswählen und „Lokal laden“ drücken.`,'success');
